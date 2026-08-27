@@ -6,7 +6,7 @@
     "section": "",
     "text": "0.1 Context\nThis Quarto Manual walks the user and reader through the steps necessary to reproducibly curate Madagascar clinic data received from the Ministry of Health.\nIn MDG, our research has divvied up the geographical land into “healthsheds.” Healthsheds conceptually represent a catchment area in which nearby residents are expected, under normal circumstances, to attend a central clinic for their healthcare. In doing so, we can ask interesting questions about health as it pertains to an individual’s residential healthshed, and investigate what confounds and other variables influence health outcomes. Importantly, we are also able to use the healthsheds for geospatial data analysis questions, such as by aggregating ERA5 satellite data to each healthshed, and seeing if environmental exposures to heat, precipitation, etc., contribute to health outcomes.\nWe receive this data from the Ministry of Health in Madagascar, monthly, in the form of database dumps onto Google Drive. Notably, we believe that, being in small, rural clinics, the clinicians are not using very sophisticated EMR. As a result, we have to make the following important assumptions:",
     "crumbs": [
-      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Madagascar Healthshed Clinic Data Pipeline</span>"
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Madagascar Healthshed Clinic Data Pipeline</span>"
     ]
   },
   {
@@ -16,7 +16,7 @@
     "section": "",
     "text": "Individual nurses, doctors, and other clinicians hand collect physical notes;\nThese notes are aggregated into counts of disease, giving us an idea (but not strict confirmation) of prevalence;\nThis therefore constitutes count data; as such, we assume that NAs in a particular category represent zero-counts for that disease for that time period.",
     "crumbs": [
-      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Madagascar Healthshed Clinic Data Pipeline</span>"
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Madagascar Healthshed Clinic Data Pipeline</span>"
     ]
   },
   {
@@ -26,7 +26,7 @@
     "section": "0.2 Prior Work & Plan",
     "text": "0.2 Prior Work & Plan\nThis project has been ongoing for several years, with several hands having been involved in data management. Contact persons worth keeping in mind:\n\nChris Golden (PI, present)\nG. DeNicola (Post Doc, present)\nMarissa Childs (Post Doc, 2024(?))\nTinashe M. Tapera (RSE, present)\n\n&lt;– insert any other important people here, and list primary roles underneath –/&gt;\nIn general, there are 2 major “blocks” of data: pre-DHIS2, and post.\nPre-implementation of DHSI2, the data were processed ad-hoc and within their means, and post, the introduction of DHIS2 standards made manual fixes and adjustments far less prevalent. In our reproduction of the pipeline, we expect the same truth to hold in implementation. We will keep obvious manual fixes and patches as they are in the pre-DHIS2 data, as there is little we can do to confidently improve on spaghetti code without a comparable true expected outcome to test against. Post DHIS2, we will improve code where necessary to communicate more clearly, or speed up a laborious task.",
     "crumbs": [
-      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Madagascar Healthshed Clinic Data Pipeline</span>"
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Madagascar Healthshed Clinic Data Pipeline</span>"
     ]
   },
   {
@@ -36,27 +36,17 @@
     "section": "0.3 How To Read This Manual",
     "text": "0.3 How To Read This Manual\nThis manual can be read in several ways.\n\n\n\n\n\n\n\n\n\nDo not need to run the code\nWant to run the code yourself\n\n\n\n\nRead on the web\nRead the rendered manual website for an overview of the workflow and its rationale.\nOpen the repository in a browser-based development environment (for example, GitHub Codespaces) and run the procedure blocks there.\n\n\nRead as text\nBrowse the .qmd source files in a text editor or repository viewer to inspect the instructions and code.\nClone the repository, open the .qmd files in your preferred editor, and run the procedure blocks in order.",
     "crumbs": [
-      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Madagascar Healthshed Clinic Data Pipeline</span>"
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Madagascar Healthshed Clinic Data Pipeline</span>"
     ]
   },
   {
     "objectID": "00_cover.html",
     "href": "00_cover.html",
-    "title": "1  ",
+    "title": "2  Data Curation Manual",
     "section": "",
-    "text": "1.1 Before You Publish\nThis manual helps an operator carry out one concrete procedure step by step.\nReplace this page with a short description of:\nKeep this page brief. The cover page should orient the reader, not duplicate the full workflow.\nBefore you share this manual, make sure you have:",
+    "text": "This manual walks the reader through a declarative reproduction of the MDGHealthshedClinicData Prospector.\nThe manual should:\n\ndeclaratively create a robust, reproducible computational environment;\nsafely and declaratively stage input data;\nprocess the data transparently and elegantly;\nversion and distribute the data to the Frontier.",
     "crumbs": [
-      "<span class='chapter-number'>1</span>  <span class='chapter-title'><Procedure Name> Manual</span>"
-    ]
-  },
-  {
-    "objectID": "00_cover.html#before-you-publish",
-    "href": "00_cover.html#before-you-publish",
-    "title": "1  ",
-    "section": "",
-    "text": "renamed the manual to match the real procedure;\nreplaced all placeholder text with project-specific instructions;\nadded at least one real workflow page such as 10_page-setup-environment.qmd;\nverified that each workflow page has exactly one prerequisite block, one or more procedure blocks, and exactly one check block.",
-    "crumbs": [
-      "<span class='chapter-number'>1</span>  <span class='chapter-title'><Procedure Name> Manual</span>"
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Data Curation Manual</span>"
     ]
   }
 ]

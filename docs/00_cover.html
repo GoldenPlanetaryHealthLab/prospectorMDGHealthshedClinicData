@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>1&nbsp;  – Madagascar Healthshed-Clinic Data Processing</title>
+<title>2&nbsp; Data Curation Manual – Madagascar Healthshed-Clinic Data Processing</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -33,7 +33,7 @@ ul.task-list li input[type="checkbox"] {
 <script src="site_libs/quarto-search/fuse.min.js"></script>
 <script src="site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="./">
-<link href="./index.html" rel="next">
+<link href="./index.html" rel="prev">
 <script src="site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
 <script src="site_libs/quarto-html/popper.min.js"></script>
@@ -84,7 +84,7 @@ ul.task-list li input[type="checkbox"] {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./00_cover.html"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title"><procedure name=""> Manual</procedure></span></a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./00_cover.html"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Data Curation Manual</span></a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
@@ -111,14 +111,14 @@ ul.task-list li input[type="checkbox"] {
     <ul class="list-unstyled mt-1">
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./00_cover.html" class="sidebar-item-text sidebar-link active">
- <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title"><procedure name=""> Manual</procedure></span></span></a>
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Madagascar Healthshed Clinic Data Pipeline</span></span></a>
   </div>
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./index.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Madagascar Healthshed Clinic Data Pipeline</span></span></a>
+  <a href="./00_cover.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Data Curation Manual</span></span></a>
   </div>
 </li>
     </ul>
@@ -126,21 +126,16 @@ ul.task-list li input[type="checkbox"] {
 </nav>
 <div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
 <!-- margin-sidebar -->
-    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
-        <nav id="TOC" role="doc-toc" class="toc-active">
-    <h2 id="toc-title">Table of contents</h2>
-   
-  <ul>
-  <li><a href="#before-you-publish" id="toc-before-you-publish" class="nav-link active" data-scroll-target="#before-you-publish"><span class="header-section-number">1.1</span> Before You Publish</a></li>
-  </ul>
-</nav>
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
+        
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title"></span></h1>
+<h1 class="title"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Data Curation Manual</span></h1>
+<p class="subtitle lead">Declarative, Step-by-Step Data Curation of the Clinic Data using Quarto Manuals, Targets &amp; Spack</p>
 </div>
 
 
@@ -157,27 +152,16 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
-<p>This manual helps an operator carry out one concrete procedure step by step.</p>
-<p>Replace this page with a short description of:</p>
+<p>This manual walks the reader through a declarative reproduction of the MDGHealthshedClinicData Prospector.</p>
+<p>The manual should:</p>
 <ul>
-<li>what the procedure prepares or orchestrates;</li>
-<li>who should use this manual;</li>
-<li>what the operator should have before they begin;</li>
-<li>what visible project state should exist by the end.</li>
-</ul>
-<p>Keep this page brief. The cover page should orient the reader, not duplicate the full workflow.</p>
-<section id="before-you-publish" class="level2" data-number="1.1">
-<h2 data-number="1.1" class="anchored" data-anchor-id="before-you-publish"><span class="header-section-number">1.1</span> Before You Publish</h2>
-<p>Before you share this manual, make sure you have:</p>
-<ul>
-<li>renamed the manual to match the real procedure;</li>
-<li>replaced all placeholder text with project-specific instructions;</li>
-<li>added at least one real workflow page such as <code>10_page-setup-environment.qmd</code>;</li>
-<li>verified that each workflow page has exactly one prerequisite block, one or more procedure blocks, and exactly one check block.</li>
+<li>declaratively create a robust, reproducible computational environment;</li>
+<li>safely and declaratively stage input data;</li>
+<li>process the data transparently and elegantly;</li>
+<li>version and distribute the data to the Frontier.</li>
 </ul>
 
 
-</section>
 
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
@@ -582,11 +566,11 @@ ul.task-list li input[type="checkbox"] {
   </script>
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
+      <a href="./index.html" class="pagination-link" aria-label="Madagascar Healthshed Clinic Data Pipeline">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Madagascar Healthshed Clinic Data Pipeline</span></span>
+      </a>          
   </div>
   <div class="nav-page nav-page-next">
-      <a href="./index.html" class="pagination-link" aria-label="Madagascar Healthshed Clinic Data Pipeline">
-        <span class="nav-page-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Madagascar Healthshed Clinic Data Pipeline</span></span> <i class="bi bi-arrow-right-short"></i>
-      </a>
   </div>
 </nav>
 </div> <!-- /content -->

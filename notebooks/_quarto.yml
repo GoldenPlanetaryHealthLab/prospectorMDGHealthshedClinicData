@@ -7,8 +7,8 @@ book:
   author: "Tinshe M. Tapera"
   date: "8/27/2026"
   chapters:
-    - 00_cover.qmd
     - index.qmd
+    - 00_cover.qmd
 
       #bibliography: references.bib
 
