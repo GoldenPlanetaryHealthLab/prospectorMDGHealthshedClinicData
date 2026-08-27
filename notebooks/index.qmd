@@ -1,0 +1,74 @@
+---
+title: "Madagascar Healthshed Clinic Data Pipeline"
+subtitle: "An Executable Manual for Curating the Madagascar/MAHERY Healthshed Clinic Data"
+format:
+  html:
+    toc: true
+    code-fold: false
+author: Tinashe M. Tapera
+date: last-modified
+execute: 
+  eval: false
+---
+
+This Quarto Manual walks the user and reader through the steps necessary
+to reproducibly curate Madagascar clinic data received from the Ministry of
+Health.
+
+## Context
+
+In MDG, our research has divvied up the geographical land into "healthsheds."
+Healthsheds conceptually represent a catchment area in which nearby residents
+are expected, under normal circumstances, to attend a central clinic for their
+healthcare. In doing so, we can ask interesting questions about health as it
+pertains to an individual's residential healthshed, and investigate what
+confounds and other variables influence health outcomes. Importantly,
+we are also able to use the healthsheds for geospatial data analysis questions,
+such as by aggregating ERA5 satellite data to each healthshed, and seeing
+if environmental exposures to heat, precipitation, etc., contribute to
+health outcomes.
+
+We receive this data from the Ministry of Health in Madagascar, monthly,
+in the form of database dumps onto Google Drive.
+Notably, we believe that, being in small, rural clinics, the clinicians are
+not using very sophisticated EMR. As a result, we have to make the following
+important assumptions:
+
+- Individual nurses, doctors, and other clinicians hand collect physical notes;
+- These notes are aggregated into counts of disease, giving us an idea (but not strict confirmation) of prevalence;
+- This therefore constitutes _count_ data; as such, we assume that NAs in a particular category
+represent zero-counts for that disease for that time period. 
+
+## Prior Work & Plan
+
+This project has been ongoing for several years, with several hands having
+been involved in data management. Contact persons worth keeping in mind:
+
+- Chris Golden (PI, present)
+- G. DeNicola (Post Doc, present)
+- Marissa Childs (Post Doc, 2024(?))
+- Tinashe M. Tapera (RSE, present)
+
+<-- insert any other important people here, and list primary roles underneath --/>
+
+In general, there are 2 major "blocks" of data: pre-DHIS2, and post.
+
+Pre-implementation of DHSI2, the data were processed ad-hoc and within their means,
+and post, the introduction of DHIS2 standards made manual fixes and adjustments
+far less prevalent. In our reproduction of the pipeline, we expect
+the same truth to hold in implementation. We will keep obvious manual
+fixes and patches as they are in the pre-DHIS2 data, as there is little we
+can do to confidently improve on spaghetti code without a comparable true
+expected outcome to test against. Post DHIS2, we will improve code where
+necessary to communicate more clearly, or speed up a laborious task.
+
+## How To Read This Manual
+
+This manual can be read in several ways.
+
+| | Do not need to run the code | Want to run the code yourself |
+|---|---|---|
+| **Read on the web** | Read the rendered manual website for an overview of the workflow and its rationale. | Open the repository in a browser-based development environment (for example, GitHub Codespaces) and run the procedure blocks there. |
+| **Read as text** | Browse the `.qmd` source files in a text editor or repository viewer to inspect the instructions and code. | Clone the repository, open the `.qmd` files in your preferred editor, and run the procedure blocks in order. |
+
+
