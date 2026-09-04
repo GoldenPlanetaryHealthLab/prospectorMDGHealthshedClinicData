@@ -1,0 +1,48 @@
+frontier:
+  name: golden-lab
+  root: /n/holylabs/cgolden_lab/Lab/frontier
+  schema_version: 0.1
+  stagecoach_version: 0.1
+paths:
+  goldmine: goldmine
+  works: works
+  town: town
+  governance: governance
+citizen:
+  name: tinashe
+  email: ttapera@hsph.harvard.edu
+project:
+  project_name: prospectorMDGHealthshedClinicData
+  project_working_dir: /n/holylabs/cgolden_lab/Lab/frontier/works/prospectors/prospectorMDGHealthshedClinicData
+  input_data_dir: /n/holylabs/cgolden_lab/Lab/frontier/works/prospectors/prospectorMDGHealthshedClinicData/data/inputs
+  intermediate_data_dir: /n/holylabs/cgolden_lab/Lab/frontier/works/prospectors/prospectorMDGHealthshedClinicData/data/intermediates
+  output_data_dir: /n/holylabs/cgolden_lab/Lab/frontier/works/prospectors/prospectorMDGHealthshedClinicData/data/outputs
+  sandbox_dir: /n/holylabs/cgolden_lab/Lab/frontier/works/prospectors/prospectorMDGHealthshedClinicData/sandbox
+sources:
+  01_gold_mine:
+    enabled: true
+    items:
+    - name: RMA_clinic_data_gdrive
+      path_regex: '/n/holylabs/LABS/cgolden_lab/Lab/frontier/gold_mine/01_ore/golden_googledrive_rclone/Climate-Smart Public Health - Madagascar/4. Datasets/Health Data/National clinic data'
+      required: true
+  02_globus:
+    enabled: false
+    source_endpoint: null
+    destination_endpoint: null
+    items:
+    - name: example_globus_item
+      source_path: null
+      destination_path: null
+      files_regex: []
+      recursive: true
+      required: true
+  03_dataverse:
+    enabled: false
+    server_url: null
+    dataset_pid: null
+    dataset_version: latest
+    api_token_file: null
+    items:
+    - name: example_dataverse_item
+      files_regex: []
+      required: true

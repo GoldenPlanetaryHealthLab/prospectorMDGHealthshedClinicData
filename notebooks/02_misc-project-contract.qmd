@@ -1,0 +1,74 @@
+---
+title: "Project Contract"
+execute:
+  eval: false
+engine: markdown
+---
+
+The existing project uses `data/raw`, `data/interim`, and `data/processed`.
+This Manual preserves those names:
+
+- `data/raw` is the immutable staged-input boundary;
+- `data/interim` contains disposable derived state;
+- `data/processed` contains candidate and versioned release artifacts;
+- `notebooks` owns the Manual and pipeline declarations;
+- `scripts` contains generated command-line entry points;
+- `containers` contains generated recipes and local runtime configuration;
+- `artifacts/containers` contains unversioned SIF images;
+- `_targets` contains unversioned targets state.
+
+::: {.manual-prereq title="Confirm The Repository Root"}
+
+Run project commands from the repository root. The existing `data/`,
+`notebooks/`, and `src/` directories should be present.
+
+:::
+
+::: {.manual-procedure .emit-generic file="{{ emit.project_root }}/.gitignore" title="Emit The Local-State Boundary"}
+
+```gitignore
+.Rhistory
+.RData
+.Rproj.user/
+.quarto/
+notebooks/.quarto/
+.envrc
+.spack-env/
+.uvr/library/
+.uvr/cache/
+.container-home/
+.container-tmp/
+containers/runtime/local.env
+artifacts/containers/*.sif
+_targets/
+*.out
+*.err
+**/*logs/*
+**/*labbook
+sandbox/**
+!sandbox/.gitkeep
+```
+
+:::
+
+::: {.manual-procedure title="Create Missing Scaffold Directories"}
+
+```sh
+mkdir -p artifacts/containers containers/bootstrap containers/build \
+  containers/runtime containers/templates scripts tests/testthat
+```
+
+:::
+
+::: {.manual-check title="Verify The Project Contract"}
+
+```sh
+test -d data/raw
+test -d data/interim
+test -d data/processed
+test -d notebooks
+test -d src
+test -f .gitignore
+```
+
+:::

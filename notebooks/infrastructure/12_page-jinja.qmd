@@ -1,0 +1,95 @@
+---
+title: "Declare the Native Runtime"
+subtitle: "Review Spack requirements before building"
+execute:
+  eval: false
+engine: markdown
+---
+
+`spack.yaml` declares the native runtime. R 4.5.1 is retained from the
+existing environment. Neovim is retained deliberately as the interactive IDE
+for pipeline development. The scientific workflow itself remains
+command-line-driven.
+
+The `x86_64_v3` baseline avoids tying the image to the build node. The system
+libraries follow the exemplar's R, Quarto, `targets`, and graphics build
+baseline; project-specific additions require evidence from reviewed code.
+
+The native layer includes both FlexiBLAS, which Spack's R installation uses,
+and OpenBLAS. The latter is an explicit runtime requirement because binary R
+packages resolved by `uvr` can link directly to the `libopenblas.so.0` SONAME
+instead of going through R's FlexiBLAS interface. Declaring OpenBLAS as a root
+spec ensures that its shared libraries are linked into the final Spack view.
+
+::: {.manual-prereq title="Confirm The Runtime Policy"}
+
+Before building, review the R, Neovim, Rocky Linux, Spack, and CPU target
+versions below. None of these choices are inferred from protected data.
+
+:::
+
+::: {.manual-procedure .emit-config-yaml file="{{ emit.project_root }}/spack.yaml" title="Emit The Runtime Declaration"}
+
+```yaml
+spack:
+  specs:
+  - r@4.5.1
+  - libxml2
+  - icu4c
+  - libx11
+  - git
+  - curl
+  - openssl
+  - libgit2
+  - cmake
+  - gmake
+  - freetype
+  - libjpeg-turbo
+  - libpng
+  - libtiff
+  - libwebp
+  - fontconfig
+  - fribidi
+  - harfbuzz
+  - libuv
+  - glpk
+  - flexiblas
+  - openblas
+  view: true
+  concretizer:
+    unify: true
+  packages:
+    all:
+      require:
+      - target=x86_64_v3
+  config:
+    template_dirs:
+    - $env/containers/templates
+    - $spack/share/spack/templates
+  container:
+    format: singularity
+    images:
+      os: rockylinux:9
+      spack: 1.2.0
+    template: MDGHealthshedClinicData.def.j2
+    os_packages:
+      final:
+      - ca-certificates
+      - findutils
+      - gzip
+      - tar
+      - which
+      - gcc
+      - gcc-c++
+      - make
+```
+
+:::
+
+::: {.manual-check title="Verify The Declaration"}
+
+```sh
+rg -n 'r@4.5.1|neovim|flexiblas|openblas|target=x86_64_v3|rockylinux:9' spack.yaml
+```
+
+:::

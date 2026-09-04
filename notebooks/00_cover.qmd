@@ -1,7 +1,9 @@
 ---
 title: "Data Curation Manual"
 subtitle: "Declarative, Step-by-Step Data Curation of the Clinic Data using Quarto Manuals, Targets & Spack"
-format: html
+execute:
+  eval: false
+engine: markdown
 ---
 
 This manual walks the reader through a declarative reproduction of the MDGHealthshedClinicData Prospector.
@@ -13,3 +15,54 @@ The manual should:
 - process the data transparently and elegantly;
 - version and distribute the data to the Frontier.
 
+The Manual separates three operations:
+
+1. an authoring render produces human-readable documentation;
+2. an emission render synchronizes reviewed scripts and configuration;
+3. the emitted container runner executes R and the targets pipeline.
+
+No render is permitted to inspect or transform protected source data.
+
+::: {.emit-generic file="{{ emit.project_root }}/README.md"}
+
+~~~~markdown
+# Madagascar Healthshed Clinic Data
+
+This repository contains the executable curation Manual for the Madagascar
+Healthshed Clinic Data pipeline. The Manual owns generated configuration and
+command-line entry points; scientific execution occurs explicitly through a
+Singularity container and a targets graph.
+
+## Current status
+
+Infrastructure and an input-inventory target are scaffolded. Source selection,
+schema interpretation, pre-/post-DHIS2 reconciliation, missing-value rules,
+disclosure controls, and release design remain documented human decisions.
+
+No protected data is rendered into the Manual or committed to this repository.
+
+## Render the Manual
+
+```sh
+scripts/render-isolated --profile authoring
+scripts/render-isolated --profile emit
+```
+
+The authoring profile updates the rendered Manual. The emit profile also
+synchronizes generated scripts and configuration from reviewed `.qmd` source.
+
+## Build and operate the environment
+
+Follow the rendered Infrastructure pages in `docs/infrastructure/`. After the
+runtime image and frozen R library exist:
+
+```sh
+scripts/mdg-healthshed-clinic-data
+scripts/mdg-healthshed-clinic-data exec uvr run scripts/run-pipeline.R
+```
+
+With no subcommand, the container runner opens a shell in the repository.
+Commands require the explicit `exec` subcommand.
+~~~~
+
+:::

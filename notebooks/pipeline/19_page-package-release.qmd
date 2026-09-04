@@ -1,0 +1,47 @@
+---
+title: "Package a Versioned Release"
+subtitle: "Separate curation from publication"
+execute:
+  eval: false
+engine: markdown
+---
+
+Release packaging begins only after curated targets and disclosure rules are
+approved. This page deliberately chooses no format, schema, version, or
+destination yet.
+
+::: {.manual-prereq title="Approve The Release Contract"}
+
+A human owner must decide:
+
+- release resources and their grain;
+- public, restricted, or internal access classification;
+- allowed identifiers, geographies, and temporal resolution;
+- required data dictionaries and provenance metadata;
+- validation standard and publication destination;
+- semantic version and immutability policy.
+
+:::
+
+::: {.manual-procedure title="Package Without Re-Cleaning"}
+
+Future package targets should consume curated targets, attach reviewed schema
+and provenance, write to a versioned directory under `data/processed`, and
+refuse to overwrite a nonempty immutable release. Packaging must not contain a
+second, hidden implementation of cleaning rules.
+
+```r
+# Human-owned placeholder; choose the release contract before implementation.
+# release_package_validated_list <- { ... }
+# release_files_published_paths <- { ... }
+```
+
+:::
+
+::: {.manual-check title="Verify Release Evidence"}
+
+Future checks must validate the package schema, disclosure controls,
+round-trip equality with curated targets, provenance, checksums, and a no-op
+second targets run.
+
+:::

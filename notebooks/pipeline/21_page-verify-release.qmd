@@ -1,0 +1,40 @@
+---
+title: "Verify a Release"
+subtitle: "Retain evidence independently of pipeline success"
+execute:
+  eval: false
+engine: markdown
+---
+
+There is no release to verify during scaffolding. This page defines the
+evidence boundary that the future release implementation must satisfy.
+
+::: {.manual-prereq title="Confirm Release Completion"}
+
+The versioned release target must have completed, and the approving reviewer
+must identify the exact release directory and expected resources.
+
+:::
+
+::: {.manual-procedure title="Validate The Published Artifact"}
+
+Future verification must:
+
+- load the published artifact through its declared interchange format;
+- validate every resource against its schema;
+- confirm identifiers and prohibited fields are absent;
+- compare published resources with their curated targets;
+- record package versions, source provenance, checksums, and review approval;
+- run the pipeline again and confirm that no target rebuilds.
+
+Verification code belongs here only after the release contract is approved.
+
+:::
+
+::: {.manual-check title="Retain Reproducible Evidence"}
+
+Store non-disclosive verification output with the release record. Never include
+protected rows or values in the rendered Manual, scheduler logs, or version
+control.
+
+:::

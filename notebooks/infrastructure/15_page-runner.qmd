@@ -1,0 +1,153 @@
+---
+title: "Run the Project Environment"
+subtitle: "Use one Singularity boundary interactively and from Slurm"
+execute:
+  eval: false
+engine: markdown
+---
+
+The runner is the only place that selects the image, cleans the host
+environment, and binds writable project state. Interactive shells, explicit
+command execution, and Slurm all consume this same boundary.
+
+::: {.manual-prereq title="Confirm The Runtime Image"}
+
+Build the image from the preceding pages or set
+`MDG_HEALTHSHED_CLINIC_DATA_IMAGE` in
+`containers/runtime/local.env`.
+
+:::
+
+:::: {.emit-script-sh file="{{ emit.project_root }}/scripts/mdg-healthshed-clinic-data" mode="0755"}
+::: {.manual-procedure title="Emit The Environment Runner"}
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+project_dir=$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
+
+usage() {
+  cat <<'EOF'
+Usage:
+  mdg-healthshed-clinic-data [shell [SHELL_OPTION...]]
+  mdg-healthshed-clinic-data exec COMMAND [ARG...]
+
+With no arguments, open a shell in /work. Commands must use the explicit
+`exec` subcommand.
+EOF
+}
+
+action=${1:-shell}
+if (( $# > 0 )); then
+  shift
+fi
+
+case "${action}" in
+  shell) ;;
+  exec)
+    if (( $# == 0 )); then
+      echo "The exec subcommand requires a command." >&2
+      usage >&2
+      exit 64
+    fi
+    ;;
+  -h|--help)
+    usage
+    exit 0
+    ;;
+  *)
+    echo "Unknown subcommand: ${action}" >&2
+    usage >&2
+    exit 64
+    ;;
+esac
+
+local_env="${project_dir}/containers/runtime/local.env"
+if [[ -f "${local_env}" ]]; then
+  set -a
+  source "${local_env}"
+  set +a
+fi
+
+runtime=${CONTAINER_RUNTIME:-apptainer}
+if ! command -v "${runtime}" >/dev/null 2>&1; then
+  runtime=singularity
+fi
+command -v "${runtime}" >/dev/null 2>&1 || {
+  echo "Neither apptainer nor singularity is available." >&2
+  exit 127
+}
+
+image=${MDG_HEALTHSHED_CLINIC_DATA_IMAGE:-"${project_dir}/artifacts/containers/mdg-healthshed-clinic-data.sif"}
+test -r "${image}" || {
+  echo "Container image not readable: ${image}" >&2
+  echo "Build it from the Infrastructure pages or set MDG_HEALTHSHED_CLINIC_DATA_IMAGE." >&2
+  exit 1
+}
+
+runtime_options=(
+  --cleanenv
+  --bind "${project_dir}:/work"
+  --pwd /work
+)
+
+case "${action}" in
+  shell)
+    exec "${runtime}" shell "${runtime_options[@]}" "$@" "${image}"
+    ;;
+  exec)
+    exec "${runtime}" exec "${runtime_options[@]}" "${image}" "$@"
+    ;;
+esac
+```
+
+:::
+::::
+
+::: {.manual-procedure .emit-generic file="{{ emit.project_root }}/containers/runtime/local.env.example" title="Emit A Local Image Override Example"}
+
+```text
+# Copy to containers/runtime/local.env; this file is intentionally untracked.
+# MDG_HEALTHSHED_CLINIC_DATA_IMAGE=/absolute/path/mdg-healthshed-clinic-data.sif
+# CONTAINER_RUNTIME=singularity
+```
+
+:::
+
+::: {.manual-procedure .emit-script-sh file="{{ emit.project_root }}/slurm/launch/launch_container.sbatch" mode="0755" title="Emit The Slurm Runner Consumer"}
+
+```bash
+#!/usr/bin/env bash
+#SBATCH --job-name=mdg-healthshed-clinic-data
+#SBATCH --partition=hsph
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=24G
+#SBATCH --time=04:00:00
+#SBATCH --output=/n/holylabs/cgolden_lab/Lab/frontier/works/prospectors/prospectorMDGHealthshedClinicData/slurm/launch/logs/launch-%j.out
+#SBATCH --error=/n/holylabs/cgolden_lab/Lab/frontier/works/prospectors/prospectorMDGHealthshedClinicData/slurm/launch/logs/launch-%j.err
+
+set -euo pipefail
+
+PROJECT_DIR=/n/holylabs/cgolden_lab/Lab/frontier/works/prospectors/prospectorMDGHealthshedClinicData
+mkdir -p "${PROJECT_DIR}/slurm/launch/logs"
+cd "${PROJECT_DIR}"
+module purge
+exec "${PROJECT_DIR}/scripts/mdg-healthshed-clinic-data" "$@"
+```
+
+:::
+
+::: {.manual-check title="Verify The Host/Container Boundary"}
+
+```sh
+bash -n scripts/mdg-healthshed-clinic-data \
+  slurm/launch/launch_container.sbatch
+test "$(CONTAINER_RUNTIME=echo scripts/mdg-healthshed-clinic-data | awk '{print $1}')" = shell
+test "$(CONTAINER_RUNTIME=echo scripts/mdg-healthshed-clinic-data exec true | awk '{print $1}')" = exec
+if CONTAINER_RUNTIME=echo scripts/mdg-healthshed-clinic-data | \
+  rg -q '\.container-(home|tmp)|\.uvr'; then exit 1; fi
+if scripts/mdg-healthshed-clinic-data true; then false; else test "$?" -eq 64; fi
+```
+
+:::

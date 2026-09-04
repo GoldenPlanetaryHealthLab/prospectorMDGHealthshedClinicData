@@ -1,0 +1,73 @@
+---
+title: "Lock and Synchronize R Packages"
+subtitle: "Keep project packages separate from the immutable runtime"
+execute:
+  eval: false
+engine: markdown
+---
+
+`uvr.toml` declares direct R requirements and `uvr.lock` records their resolved
+versions. The SIF supplies the stable R ABI and the `uvr` executable. At
+runtime, `uvr` owns its project library, cache, R-version resolution, and
+activation files; the container and runner do not override them.
+
+Only packages required by the scaffold are declared now. Add readers,
+transformers, validators, and release tooling only after the corresponding
+Manual decisions and code exist.
+
+::: {.manual-prereq title="Confirm The Direct Dependencies"}
+
+Review the dependency list below. A dependency belongs here only when Manual or
+pipeline code imports it.
+
+:::
+
+::: {.manual-procedure .emit-config-toml file="{{ emit.project_root }}/uvr.toml" title="Emit The R Package Declaration"}
+
+```toml
+[project]
+name = "prospectorMDGHealthshedClinicData"
+r_version = "4.5.1"
+
+[dependencies]
+parsermd = "*"
+skimr = "*"
+duckdb = "*"
+duckplyr = "*"
+here = "*"
+targets = "*"
+tarchetypes = "*"
+```
+
+:::
+
+::: {.manual-procedure title="Resolve And Synchronize In The Container"}
+
+```sh
+scripts/mdg-healthshed-clinic-data exec uvr lock
+scripts/mdg-healthshed-clinic-data exec uvr sync
+scripts/mdg-healthshed-clinic-data exec uvr sync --frozen
+scripts/mdg-healthshed-clinic-data exec uvr activate --write-shim
+```
+
+Commit `uvr.lock` only after successful resolution through the built runtime.
+Use `uvr r pin` only when an additional exact `.r-version` pin is intentional;
+do not generate that optional file outside `uvr`.
+
+Run scripts through `uvr run`. For an interactive session, enter the container
+shell and source `.uvr/activate`; that shim asks `uvr` to resolve the current
+project environment instead of storing hard-coded paths.
+
+:::
+
+::: {.manual-check title="Verify The R Environment Contract"}
+
+```sh
+test -f uvr.toml
+rg -n '^r_version = "4.5.1"|^targets =|^tarchetypes =' uvr.toml
+test -f uvr.lock
+scripts/mdg-healthshed-clinic-data exec uvr sync --frozen
+scripts/mdg-healthshed-clinic-data exec Rscript -e 'library(targets)'
+```
+
+:::

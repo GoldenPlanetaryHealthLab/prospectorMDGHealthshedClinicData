@@ -16,4 +16,5 @@ contributes:
       code-overflow: wrap
       code-line-numbers: true
       filters:
+        - ../quarto-emit/quarto-emit.lua
         - manual.lua

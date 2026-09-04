@@ -1,24 +1,47 @@
 project:
   type: book
   output-dir: ../docs
+  render:
+    - "*.qmd"
+
+# Rendering documents and emits selected project files. It never initializes
+# R or executes the scientific pipeline.
+engine: markdown
+
+profile:
+  default: authoring
 
 book:
-  title: "Madagascar Healthshed-Clinic Data Processing"
+  title: "Madagascar Healthshed Clinic Data Curation Manual"
   author: "Tinshe M. Tapera"
-  date: "8/27/2026"
+  date: last-modified
   chapters:
     - index.qmd
-    - 00_cover.qmd
+    - part: "Project Setup"
+      chapters:
+        - 00_cover.qmd
+        - 01_misc-render-isolated.qmd
+        - 02_misc-project-contract.qmd
+        - 03_misc-data-governance.qmd
+    - part: "Infrastructure"
+      chapters:
+        - infrastructure/10_page-direnv.qmd
+        - infrastructure/11_page-spack.qmd
+        - infrastructure/12_page-jinja.qmd
+        - infrastructure/13_page-jinja-build.qmd
+        - infrastructure/14_page-uvr.qmd
+        - infrastructure/15_page-runner.qmd
+    - part: "Pipeline"
+      chapters:
+        - pipeline/16_page-stage-inputs.qmd
+        - pipeline/17_page-inspect-source-data.qmd
+        - pipeline/18_page-prep-w3.qmd
+        - pipeline/19_page-package-release.qmd
+        - pipeline/20_page-execute-pipeline.qmd
+        - pipeline/21_page-verify-release.qmd
 
-      #bibliography: references.bib
+execute:
+  enabled: false
 
 format:
-  html:
-    theme:
-      - cosmo
-      - brand
-
-extensions:
-  - quarto-manual
-
-
+  GoldenPlanetaryHealthLab/quarto-manual-html: default

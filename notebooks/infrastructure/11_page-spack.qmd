@@ -1,0 +1,52 @@
+---
+title: "Bootstrap the Spack Builder"
+subtitle: "Create a pinned Rocky 9 workshop before resolving project software"
+execute:
+  eval: false
+engine: markdown
+---
+
+The builder image contains Rocky Linux 9 and a pinned Spack release, but no
+project packages. It resolves and installs the final runtime independently of
+the cluster's mutable Spack installation.
+
+::: {.manual-prereq title="Confirm The Bootstrap Tools"}
+
+```sh
+command -v quarto
+command -v singularity
+```
+
+:::
+
+::: {.manual-procedure .emit-generic file="{{ emit.project_root }}/containers/bootstrap/spack-builder.def" title="Emit The Builder Definition"}
+
+```text
+Bootstrap: docker
+From: spack/rockylinux9:1.2.0
+
+%environment
+export SPACK_ROOT=/opt/spack
+export PATH=/opt/spack/bin:${PATH}
+```
+
+:::
+
+::: {.manual-procedure title="Build The Builder Image"}
+
+```sh
+mkdir -p artifacts/containers
+singularity build --fakeroot artifacts/containers/spack-builder.sif \
+  containers/bootstrap/spack-builder.def
+```
+
+:::
+
+::: {.manual-check title="Verify The Builder"}
+
+```sh
+singularity exec artifacts/containers/spack-builder.sif spack --version
+singularity exec artifacts/containers/spack-builder.sif cat /etc/os-release
+```
+
+:::

@@ -1,0 +1,37 @@
+---
+title: "Inspect Source Data"
+subtitle: "A human review gate before encoding a schema"
+execute:
+  eval: false
+engine: markdown
+---
+
+This page quickly catalogs and summarizes the available data.
+
+::: {.manual-prereq title="Inputs Staged Successfully"}
+
+```{r}
+library(targets)
+library(dplyr)
+library(skimr)
+
+tar_load(pipeline_raw_input_files_paths)
+```
+
+:::
+
+::: {.manual-procedure title="Document The Input Data"}
+
+```{r}
+
+```
+#TODO
+:::
+
+::: {.manual-check title="Confirm The Inspection Decision"}
+
+This page is complete only when the accountable reviewer has approved a source
+contract precise enough to test. Until then, do not register a source reader or
+curation target.
+
+:::

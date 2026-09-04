@@ -1,0 +1,254 @@
+---
+title: "Curate the Healthshed Clinic Data"
+subtitle: "Translate reviewed domain decisions into targets"
+execute:
+  eval: false
+engine: markdown
+---
+
+This is the future source of the cleaning target declarations. It is not yet
+registered in `_targets.R` because inspecting filenames does not justify
+guessing a schema or transformation.
+
+::: {.manual-prereq title="Approve The Curation Contract"}
+
+The source-inspection page must first record the source schema, record grain,
+stable keys, pre-/post-DHIS2 boundary, missing-value semantics, validation
+rules, and disclosure controls.
+
+:::
+
+::: {.manual-procedure title="Prep Raw RMA_DEPSI Files"}
+
+In this first section of the script, we take raw files and prepare them
+by aggregating them into a single CSV, one row per
+clinic-year-month, and one column per health outcome-age-sex.
+
+Applies only to 2020-2022 data.
+
+We've also opted-in to using DuckDB via the `duckplyr` package
+to avoid in-memory limitations.
+
+```{r}
+library(targets)
+library(readr)
+library(openxlsx)
+library(duckplyr)
+library(cli)
+
+tar_load(pipeline_raw_input_files_paths)
+```
+
+
+We have a variable number of missing values in our
+first rows of data, so we'll need to ensure they don't
+get read as logical NAs. The `duckplyr` `options`
+list allows us to force `DOUBLE` and `VARCHAR` types: 
+
+
+```{r}
+read_csv_nonlogical <- function(filepath){
+
+  readr_spec <- spec_csv(filepath) 
+  spec_names <- names(readr_spec$cols)
+
+  readr_spec %>%
+    as.character() %>%
+    str_split_1("") %>%
+    tibble(spec = .) %>%
+    mutate(
+      name = spec_names,
+      duckdb_dtype = case_when(
+        str_detect(name, regex("description", ignore_case = TRUE)) ~ "VARCHAR",
+        spec == "c" ~ "VARCHAR",
+        spec == "d" ~ "DOUBLE",
+        spec == "l" ~ "DOUBLE",
+        .default = "DOUBLE"
+      )
+    ) %>%
+    select(name, duckdb_dtype) %>%
+    deframe() -> duckdb_spec
+
+  
+  # Set the CSV dialect explicitly. Auto-detection samples only the first
+  # rows, so a quoted comma appearing later can otherwise be misclassified as
+  # an extra column.
+  read_csv_duckdb(
+    filepath,
+    options = list(
+      types = list(duckdb_spec),
+      delim = ",",
+      quote = "\"",
+      escape = "\""
+    )
+  ) %>%
+    return()
+  
+}
+
+```
+
+The reductions below use operations that `duckplyr` translates to DuckDB.
+DuckDB's `MAX()` ignores null values and returns null for an all-null group,
+which preserves the behavior of the previous `max_or_na()` helper without
+materializing columns in R.
+
+```{r}
+summarise_group_max <- function(df) {
+  grouping_columns <- c("organisationunitid", "periodname")
+  missing_grouping_columns <- setdiff(grouping_columns, names(df))
+  if (length(missing_grouping_columns)) {
+    stop(
+      "Cannot calculate clinic-month maxima; missing grouping column(s): ",
+      paste(missing_grouping_columns, collapse = ", ")
+    )
+  }
+
+  df |>
+    summarise(
+      across(
+        -all_of(grouping_columns),
+        ~ max(.x, na.rm = TRUE)
+      ),
+      .by = all_of(grouping_columns)
+    )
+}
+
+process_csv_safely <- function(csv_path, output_path=here("data/intermediates"), drop_cols = c("organisationunitcode", "orgnaisationunitdescription")) {
+  stopifnot(length(csv_path) == 1L, file.exists(csv_path))
+  
+  cli_alert_info(paste("Working on:", csv_path))
+  
+  # Read file with type-safe reader
+  temp_df <- read_csv_nonlogical(csv_path)
+  
+  # Drop the extra columns if they exist
+  temp_df <- temp_df %>%
+    select(-any_of(drop_cols))
+  
+  # Calculate diagnostics in DuckDB and collect only the two scalar results.
+  file_stats <- temp_df |>
+    summarise(
+      group_rows = n(),
+      .by = c(organisationunitid, periodname)
+    ) |>
+    summarise(
+      rows = sum(group_rows),
+      duplicate_rows = sum(group_rows - 1L)
+    ) |>
+    collect()
+
+  cli_alert_info(paste(
+    "Successfully created dataframe for", csv_path, "with shape",
+    file_stats$rows[[1]], "x", length(names(temp_df))
+  ))
+  cli_alert_info(paste(
+    "Number of duplicate clinic-month-year records:",
+    file_stats$duplicate_rows[[1]]
+  ))
+  
+  # Description fields are assigned VARCHAR when the CSV relation is created.
+  result = summarise_group_max(temp_df)
+  
+  dir.create(dirname(output_path), recursive = TRUE, showWarnings = FALSE)
+  compute_parquet(result, output_path)
+
+  output_path
+}
+```
+
+`process_csv_safely()` intentionally accepts exactly one path, calculates the
+clinic-month maximum within that file, and never holds other input tables in
+memory. `_targets.R` selects the `RMA_W3_FULL` paths and defines a dynamic
+`map()` branch for each path outside this notebook. That makes each CSV
+independently schedulable and means the branch artifacts contain summaries
+rather than raw input tables. Dynamic branching enables parallel execution;
+the approved Slurm allocation and selected `targets` backend determine how
+many branches run concurrently.
+
+The second reduction in `_targets.R` combines the smaller branch summaries and
+takes the clinic-month maximum again. This is equivalent to taking the maximum
+over the fully combined raw data because maximum is associative:
+
+\[
+\max(\text{all rows}) = \max(\max(\text{file 1}), \ldots, \max(\text{file N}))
+\]
+
+This two-stage reduction was introduced after the raw-table aggregation was
+OOM-killed with a 120 GiB Slurm allocation. It is a memory-scaling change, not
+a change to the numeric maximum rule. The current reducer retains the prior
+rule for every non-grouping field; a later curation decision should define
+field-specific behavior for names, descriptions, and codes rather than treating
+a lexicographic character maximum as scientific metadata.
+
+::: {.callout-warning title="Current stopping point: declare the final DuckDB aggregation"}
+
+The per-file reductions completed, but the final target was OOM-killed in a
+120 GiB Slurm allocation. The diagnostic evidence is that files can have zero
+duplicate clinic-month keys. In that situation, a per-file group maximum has
+nearly the same cardinality as the input, so the final target still needs to
+materialize all branch summaries at once. Increasing the requested memory is
+not the next proposed experiment.
+
+The per-file target now implements a disk-backed DuckDB/duckplyr boundary. Its
+stages are:
+
+1. preserve the existing one-file CSV reading, UTF-8, and type-normalization
+   behavior;
+2. execute each per-file clinic-month `MAX` reduction in DuckDB;
+3. write each branch result to Parquet without materializing it in R.
+
+The remaining implementation step is to read all branch Parquet paths as one
+DuckDB relation, execute the final clinic-month reduction, and persist that
+result through another file target.
+
+The aim is to preserve the original code's transformation logic as closely as
+possible. The change is the execution engine and storage boundary, not a
+redesign of the data-cleaning rules. Before implementation, the output schema
+and reducer for metadata fields must be made explicit: numeric measures use
+maximum, whereas names, descriptions, and codes require a domain-specific
+rule. DuckDB and duckplyr are declared runtime dependencies.
+
+:::
+
+When the per-file target is complete, its branches should be available:
+
+```{r}
+tar_branches(clinic_raw_data_RMA_W3_within_file_group_max_df)
+```
+
+There's an error for the below target:
+
+```r
+✖ clinic_RMA_W3_group_max errored
+✖ errored pipeline [4.2s, 0 completed, 133 skipped]
+Error:
+! Error in tar_make():
+  Error storing output: Error evaluating duckdb query: Invalid Input Error: Failed to read file "data/intermediates/RMAgnes généraux de danger 0 –  28j, Masculin" was read from the original file "data/intermediates/RMA_W3/clinic_raw_data_RMA_W3_within_file_group_max_df_5c3b0c7130d76e95.parquet", but could not be found in file "data/intermediates/RMA_W3/clinic_raw_data_RMA_W3_within_file_group_max_df_fde7c9d9be4698d8.parquet".
+Candidate names: organisationunitid, periodname, orgunitlevel1, orgunitlevel2, orgunitlevel3, orgunitlevel4, orgunitlevel5, organisationunitname, periodid, periodcode, perioddescription, Surveillance nutritionnelle des enfants moins de 5 ans peses 0 – 5 mois, Surveillance nutritionnelle des enfants moins de 5 ans peses 6 – 11 mois, Surveillance nutritionnelle des enfants moins de 5 ans peses 12 – 23 mois, Surveillance nutritionnelle des enfants moins de 5 ans peses 24 – 59 mois, Surveillance nutritionnelle des enfants moins de 5 ans mesures 0 – 5 mois, Surveillance nutritionnelle des enfants moins de 5 ans mesures 6 – 11 mois, Surveillance nutritionnelle des enfants moins de 5 ans mesures 12 – 23 mois, Surveillance nutritionnelle des enfants moins de 5 ans mesures 24 – 59 mois, Surveillance nutritionnelle des enfants moins de 5 ans peses et mesures 0 – 5 mois, Surveillance nutritionnelle des enfants moins de 5 ans peses et mesures 6 – 11 mois, Surveillance nutritionnelle des enfants moins de 5 ans peses et mesures 12 – 23 mois, Surveillance nutritionnelle des enfants moins de 5 ans peses et mesures 24 – 59 mois, T11: Enfants mesur�s par PB et d�ctect�s par oed�mes 0 – 5 mois, T11: Enfants mesur�s par PB et d�ctect�s par oed�mes 6 – 11 mois, T11: Enfants mesur�s par PB et d�ctect�s par oed�mes 12 – 23 mois, T11: Enfants mesur�s par PB et d�ctect�s par oed�mes 24 – 59 mois, Surveillance nutritionnelle des enfants moins de 5 ans P/A inf -2ET Insuf pond. 0 – 5 mois, Surveillance n
+  See https://books.ropensci.org/targets/debugging.html
+```
+
+```{r}
+clinic_RMA_W3_group_max <- clinic_raw_data_RMA_W3_within_file_group_max_df |>
+  as.character() |>
+  unname() |>
+  read_parquet_duckdb() |>
+  summarise_group_max() 
+```
+
+The final summary target is `clinic_raw_data_RMA_W3_group_max_df`.
+
+```{r}
+tar_read(clinic_raw_data_RMA_W3_group_max_df)
+```
+
+:::
+
+::: {.manual-check title="Prove Curation Against The Contract"}
+
+Future checks must test the documented invariants and compare observed
+exceptions with reviewer-approved expectations. “The code ran” is not
+sufficient evidence of correct curation.
+
+:::

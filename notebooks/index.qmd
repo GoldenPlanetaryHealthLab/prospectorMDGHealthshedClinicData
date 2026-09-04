@@ -1,19 +1,15 @@
 ---
-title: "Madagascar Healthshed Clinic Data Pipeline"
-subtitle: "An Executable Manual for Curating the Madagascar/MAHERY Healthshed Clinic Data"
-format:
-  html:
-    toc: true
-    code-fold: false
-author: Tinashe M. Tapera
-date: last-modified
-execute: 
+title: "Madagascar Healthshed Clinic Data Curation Manual"
+subtitle: "A reproducible path from staged source material to a versioned release"
+execute:
   eval: false
+engine: markdown
 ---
 
-This Quarto Manual walks the user and reader through the steps necessary
-to reproducibly curate Madagascar clinic data received from the Ministry of
-Health.
+This Quarto Manual is the human-facing source of truth for constructing and
+operating the Madagascar Healthshed Clinic Data pipeline. Its `emit` profile
+materializes reviewed configuration and command-line tools. Scientific work is
+then run explicitly through the generated container runner and targets graph.
 
 ## Context
 
@@ -49,7 +45,8 @@ been involved in data management. Contact persons worth keeping in mind:
 - Marissa Childs (Post Doc, 2024(?))
 - Tinashe M. Tapera (RSE, present)
 
-<-- insert any other important people here, and list primary roles underneath --/>
+> **Human decision required:** confirm the project participants, their roles,
+> and the accountable data steward before source data is staged or inspected.
 
 In general, there are 2 major "blocks" of data: pre-DHIS2, and post.
 
@@ -62,6 +59,21 @@ can do to confidently improve on spaghetti code without a comparable true
 expected outcome to test against. Post DHIS2, we will improve code where
 necessary to communicate more clearly, or speed up a laborious task.
 
+## Current curation boundary
+
+The repository is ready to establish infrastructure and orchestration, but the
+following scientific decisions are intentionally not encoded yet:
+
+- the authoritative source files and their provenance;
+- the unit of observation and stable identifiers;
+- the boundary between pre-DHIS2 and post-DHIS2 processing;
+- missing-value and zero-count semantics by field and era;
+- validation rules, disclosure controls, and release schema;
+- the release version and publication destination.
+
+Those decisions belong in the Pipeline pages after review by a data steward and
+domain expert. Rendering this Manual never opens files under `data/`.
+
 ## How To Read This Manual
 
 This manual can be read in several ways.
@@ -70,5 +82,4 @@ This manual can be read in several ways.
 |---|---|---|
 | **Read on the web** | Read the rendered manual website for an overview of the workflow and its rationale. | Open the repository in a browser-based development environment (for example, GitHub Codespaces) and run the procedure blocks there. |
 | **Read as text** | Browse the `.qmd` source files in a text editor or repository viewer to inspect the instructions and code. | Clone the repository, open the `.qmd` files in your preferred editor, and run the procedure blocks in order. |
-
 

@@ -1,0 +1,75 @@
+---
+title: "Stage Inputs"
+subtitle: "Establish provenance before opening source files"
+execute:
+  eval: false
+engine: markdown
+---
+
+The existing `data/raw` directory is the pipeline's immutable input boundary.
+This first target records which staged files exist, but does not open them.
+
+::: {.manual-prereq title="Confirm Staging Authority"}
+
+Prior meetings with GDN confirmed our data source. The two distinct batches
+of clinical data are generally "from Symphonia," who is our
+data management liaison from the government of Madagascar. We had
+been storing this data on Google Drive, meaning our
+staged data can come straight from the GDrive mirror. The path
+is under CSPH Madagascar, under Health Data/Ntl Clinic Data.
+
+Add the stagecoach manifest and use `targets::use_targets()` to put the
+targets file in the repo.
+
+Make sure that the targets file and the stagecoach manifest are ready and edited to have the
+inputs ready and the targets file added with `tar_tangle(<NOTEBOOK>)`.
+
+:::
+
+::: {.manual-procedure title="Inventory Staged Files Without Reading Them"}
+
+The root `_targets.R` tangles this assignment into the initial graph. It
+observes paths only when the pipeline is explicitly executed.
+
+```{r}
+#| format: file
+pipeline_stagecoach_manifest_path <- here("stagecoach_manifest.yml")
+pipeline_raw_input_files_paths <- {
+
+  stopifnot({
+    file.exists(pipeline_stagecoach_manifest_path)
+  })
+  input_dir <- here::here("data", "inputs")
+  if (!dir.exists(input_dir)) {
+    stop("The staged-input directory is missing: ", input_dir)
+  }
+
+  input_paths <- list.files(
+    input_dir,
+    recursive = TRUE,
+    full.names = TRUE,
+    include.dirs = FALSE
+  )
+  if (!length(input_paths)) {
+    stop(
+      "No approved inputs are staged. Complete the human staging decision ",
+      "before running the pipeline."
+    )
+  }
+
+  input_paths
+}
+```
+
+:::
+
+::: {.manual-check title="Verify The Staging Boundary"}
+
+```sh
+test -d data/inputs
+test ! -L data/inputs
+```
+
+Do not print filenames or file contents into Manual render logs.
+
+:::

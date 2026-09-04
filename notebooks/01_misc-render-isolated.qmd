@@ -1,0 +1,101 @@
+---
+title: "Render In Isolation"
+execute:
+  eval: false
+engine: markdown
+---
+
+Use `scripts/render-isolated` from the repository root. It renders a private,
+data-free staging copy so concurrent jobs do not share Quarto's mutable cache.
+Only a successful site and files recorded by `quarto-emit` are promoted back.
+
+::: {.manual-prereq title="Confirm The Render Boundary"}
+
+The host needs `bash`, `rsync`, `mktemp`, and `quarto`. Do not run two publishing
+renders against the same checkout simultaneously because both would promote to
+the same `docs/` directory.
+
+:::
+
+::: {.manual-procedure .emit-script-sh file="{{ emit.project_root }}/scripts/render-isolated" mode="0755" title="Emit The Isolated Render Wrapper"}
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+script_dir=$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+project_dir=$(CDPATH= cd -- "${script_dir}/.." && pwd)
+stage_dir=$(mktemp -d "${TMPDIR:-/tmp}/quarto-render.XXXXXXXX")
+trap 'rm -rf -- "$stage_dir"' EXIT
+
+export XDG_CACHE_HOME="${stage_dir}/xdg-cache"
+export XDG_DATA_HOME="${stage_dir}/xdg-data"
+export XDG_RUNTIME_DIR="${stage_dir}/xdg-runtime"
+mkdir -p "$XDG_CACHE_HOME" "$XDG_DATA_HOME" "$XDG_RUNTIME_DIR"
+
+# The Manual does not consume protected data or mutable runtime state.
+rsync -a \
+  --exclude '.git' \
+  --exclude '.jj' \
+  --exclude '.quarto' \
+  --exclude '.spack-env' \
+  --exclude '.uvr' \
+  --exclude '_targets' \
+  --exclude 'artifacts' \
+  --exclude 'data' \
+  --exclude 'docs' \
+  --exclude 'notebooks/.quarto' \
+  --exclude 'notebooks/_site' \
+  --exclude 'notebooks/site_libs' \
+  --exclude 'notebooks/*labbook' \
+  "$project_dir/" "$stage_dir/project/"
+
+(
+  cd "$stage_dir/project"
+  quarto render notebooks "$@"
+)
+
+emit_manifest="$stage_dir/project/.quarto/quarto-emit-manifest.tsv"
+stage_project=$(realpath -e "$stage_dir/project")
+if [[ -f "$emit_manifest" ]]; then
+  while IFS=$'\t' read -r emitted_path source_page; do
+    [[ -n "$emitted_path" && -n "$source_page" ]] || continue
+    case "$source_page" in
+      "$stage_project"/notebooks/*) ;;
+      *) echo "Refusing emit source outside notebooks: $source_page" >&2; exit 1 ;;
+    esac
+    staged_file=$(realpath -e "$(dirname "$source_page")/$emitted_path") || {
+      echo "Generated file is missing: $emitted_path" >&2
+      exit 1
+    }
+    case "$staged_file" in
+      "$stage_project"/*) ;;
+      *) echo "Refusing emit target outside staged project: $staged_file" >&2; exit 1 ;;
+    esac
+    destination="$project_dir/${staged_file#"$stage_project"/}"
+    mkdir -p "$(dirname "$destination")"
+    rsync -a "$staged_file" "$destination"
+  done < "$emit_manifest"
+fi
+
+rsync -a --delete "$stage_dir/project/docs/" "$project_dir/docs/"
+```
+
+:::
+
+Use the default profile for documentation and the explicit profile for file
+generation:
+
+```sh
+scripts/render-isolated --profile authoring
+scripts/render-isolated --profile emit
+```
+
+::: {.manual-check title="Verify The Wrapper"}
+
+```sh
+bash -n scripts/render-isolated
+scripts/render-isolated --profile authoring --no-execute
+```
+
+:::

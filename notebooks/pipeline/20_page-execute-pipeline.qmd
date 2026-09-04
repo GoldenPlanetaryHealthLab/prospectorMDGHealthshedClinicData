@@ -1,0 +1,107 @@
+---
+title: "Execute the Pipeline"
+subtitle: "Keep rendering and scientific execution separate"
+execute:
+  eval: false
+engine: markdown
+---
+
+The graph inventories staged paths and dynamically branches the approved W3
+CSV preparation work. Branching is declared here rather than in the notebook:
+the notebook defines one-file transformation logic, while this graph defines
+dependencies and the scheduler can distribute independent branches.
+
+::: {.callout-warning title="W3 final aggregation stopping point"}
+
+The current graph executes each per-file maximum in DuckDB and writes the
+result to a branch-specific Parquet file. `targets` stores those file paths
+rather than attempting to serialize live duckplyr relations. The final
+cross-file DuckDB aggregation is not yet declared here.
+
+:::
+
+::: {.manual-prereq title="Confirm The Execution Boundary"}
+
+The runtime image and frozen R package library must exist. Approved inputs must
+be staged under `data/raw`. Rendering the Manual is not pipeline execution.
+
+:::
+
+:::: {.emit-source-r file="{{ emit.project_root }}/_targets.R"}
+::: {.manual-procedure title="Emit The Targets Graph"}
+
+```r
+library(targets)
+library(tarchetypes)
+
+tar_option_set(
+  packages = c(
+    "duckplyr", "tibble", "here", "readr", "cli", "glue", "purrr", "stringr", "dplyr"
+  )
+)
+
+list(
+  tarchetypes::tar_tangle(
+    "notebooks/pipeline/16_page-stage-inputs.qmd"
+  ),
+  tarchetypes::tar_tangle(
+    "notebooks/pipeline/18_page-prep-w3.qmd"
+  ),
+  tar_target(
+    clinic_raw_data_RMA_W3_csv_path,
+    pipeline_raw_input_files_paths %>%
+      str_subset("RMA_W3_FULL")
+  ),
+  tar_target(
+    clinic_raw_data_RMA_W3_within_file_group_max_df,
+    process_csv_safely(
+      clinic_raw_data_RMA_W3_csv_path,
+      file.path(
+        "data/intermediates/RMA_W3",
+        paste0(tar_name(), ".parquet")
+      )
+    ),
+    pattern = map(clinic_raw_data_RMA_W3_csv_path),
+    format = "file"
+  )
+)
+```
+
+:::
+::::
+
+::: {.manual-procedure .emit-script-sh file="{{ emit.project_root }}/scripts/run-pipeline.R" mode="0755" title="Emit The Pipeline Entry Point"}
+
+```r
+#!/usr/bin/env Rscript
+
+script_arg <- grep("^--file=", commandArgs(trailingOnly = FALSE), value = TRUE)
+script_path <- if (length(script_arg)) sub("^--file=", "", script_arg[[1]]) else ""
+if (!nzchar(script_path)) {
+  stop("Could not determine the pipeline runner path.")
+}
+
+repository_root <- normalizePath(
+  file.path(dirname(script_path), ".."),
+  mustWork = TRUE
+)
+setwd(repository_root)
+targets::tar_make()
+```
+
+:::
+
+Run the graph explicitly:
+
+```sh
+scripts/mdg-healthshed-clinic-data exec uvr run scripts/run-pipeline.R
+```
+
+::: {.manual-check title="Verify The Initial Graph"}
+
+```sh
+scripts/mdg-healthshed-clinic-data exec Rscript -e \
+  'stopifnot(all(c("pipeline_raw_input_files_paths", "clinic_raw_data_RMA_W3_csv_path", "clinic_raw_data_RMA_W3_within_file_group_max_df") %in% targets::tar_manifest()$name))'
+```
+
+:::

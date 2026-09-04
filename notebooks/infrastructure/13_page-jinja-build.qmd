@@ -1,0 +1,166 @@
+---
+title: "Customize and Build the Runtime"
+subtitle: "Generate the final Singularity recipe in the pinned builder"
+execute:
+  eval: false
+engine: markdown
+---
+
+The Jinja extension adds `uvr`, Quarto, ARF, and the Spack view to Spack's
+generated Singularity recipe. ARF is installed from its pinned, checksummed
+Linux Rust-binary release. The image supplies R and its native runtime
+dependencies; `uvr` retains ownership of project-library and cache resolution
+at runtime.
+
+The extension configures only image-owned executable, header, metadata, and
+shared-library search paths. It does not set `UVR_LIBRARY`, `UVR_CACHE_DIR`,
+`R_LIBS_USER`, or `R_LIBS`: those paths are project state, so `uvr` resolves
+them after the repository is mounted at `/work`.
+
+ARF dynamically loads R's C API rather than merely starting an `R` subprocess.
+The template therefore preserves the environment emitted by Spack's parent
+template, including the R library directory contributed by environment
+activation. The ARF smoke test starts a headless R session under `--cleanenv`-
+equivalent image conditions, which catches a missing `libR.so` or one of its
+transitive native libraries.
+
+The container also owns a UTF-8 locale invariant: `LANG` and `LC_ALL` are set
+to `C.UTF-8` in the image environment. The runner uses `--cleanenv`, which
+otherwise leaves R in the ASCII `C` locale. In that locale, R's `list.files()`
+turns a valid combining-accent filename byte sequence into literal text such
+as `<cc><81>`, creating a path that cannot exist. Setting the invariant in the
+image makes filename enumeration deterministic and independent of the host
+login locale. The build-time `%test` runs before Singularity applies this
+image environment, so the post-build verification below is the check that the
+invariant is actually active at runtime.
+
+::: {.manual-prereq title="Confirm The Builder And Container Runtime"}
+
+```sh
+command -v singularity
+test -r artifacts/containers/spack-builder.sif
+```
+
+:::
+
+:::: {.emit-generic file="{{ emit.project_root }}/containers/templates/MDGHealthshedClinicData.def.j2"}
+::: {.manual-procedure title="Emit The Final-Image Extension"}
+
+```jinja
+{% extends "container/singularity.def" %}
+
+{% block build_stage %}
+{{ super() }}
+  set -euo pipefail
+  UVR_VERSION=0.4.6
+  QUARTO_VERSION=1.9.38
+  ARF_VERSION=0.5.2
+  ARF_ARCHIVE=arf-console-x86_64-unknown-linux-gnu.tar.xz
+  ARF_SHA256=64bb48569e79b91d0b258445173a78b5ad74e9274e8fd17b524c64531405b987
+  curl --fail --location --show-error --output /tmp/uvr.tar.gz \
+    "https://github.com/nbafrank/uvr/releases/download/v${UVR_VERSION}/uvr-x86_64-unknown-linux-gnu.tar.gz"
+  mkdir -p /opt/uvr/bin
+  tar -xzf /tmp/uvr.tar.gz -C /opt/uvr/bin
+  rm -f /tmp/uvr.tar.gz
+  /opt/uvr/bin/uvr --version | grep -Fx "uvr ${UVR_VERSION}"
+  curl --fail --location --show-error --output /tmp/quarto.tar.gz \
+    "https://github.com/quarto-dev/quarto-cli/releases/download/v${QUARTO_VERSION}/quarto-${QUARTO_VERSION}-linux-amd64.tar.gz"
+  mkdir -p /opt/quarto
+  tar -xzf /tmp/quarto.tar.gz -C /opt/quarto --strip-components=1
+  rm -f /tmp/quarto.tar.gz
+  /opt/quarto/bin/quarto --version | grep -Fx "${QUARTO_VERSION}"
+  curl --fail --location --show-error --output "/tmp/${ARF_ARCHIVE}" \
+    "https://github.com/eitsupi/arf/releases/download/v${ARF_VERSION}/${ARF_ARCHIVE}"
+  printf '%s  %s\n' "${ARF_SHA256}" "/tmp/${ARF_ARCHIVE}" | sha256sum --check --strict
+  mkdir -p /tmp/arf /opt/arf/bin
+  tar -xJf "/tmp/${ARF_ARCHIVE}" -C /tmp/arf
+  install -m 0755 "/tmp/arf/${ARF_ARCHIVE%.tar.xz}/arf" /opt/arf/bin/arf
+  /opt/arf/bin/arf --version | grep -Fx "arf ${ARF_VERSION}"
+{% endblock %}
+
+{% block final_stage %}
+{{ super() }}
+%files from build
+  /opt/uvr /opt/uvr
+  /opt/quarto /opt/quarto
+  /opt/arf /opt/arf
+  /opt/spack-environment/spack.lock /opt/spack-environment/spack.lock
+%post
+  set -eu
+  ln -sf /opt/uvr/bin/uvr /usr/local/bin/uvr
+  ln -sf /opt/quarto/bin/quarto /usr/local/bin/quarto
+  ln -sf /opt/arf/bin/arf /usr/local/bin/arf
+  cat >> "$SINGULARITY_ENVIRONMENT" <<'EOF'
+unset R_HOME
+export LANG=C.UTF-8
+export LC_ALL=C.UTF-8
+export SPACK_VIEW=/opt/views/view
+export PATH="/usr/local/bin:/opt/views/view/bin:${PATH}"
+export PKG_CONFIG_PATH="/opt/views/view/lib/pkgconfig:/opt/views/view/lib64/pkgconfig:/opt/views/view/share/pkgconfig:${PKG_CONFIG_PATH:-}"
+export CPATH="/opt/views/view/include:${CPATH:-}"
+export LIBRARY_PATH="/opt/views/view/lib:/opt/views/view/lib64:${LIBRARY_PATH:-}"
+export LD_LIBRARY_PATH="/opt/views/view/lib:/opt/views/view/lib64:${LD_LIBRARY_PATH:-}"
+EOF
+%test
+  set -eu
+  command -v R
+  command -v Rscript
+  command -v uvr
+  command -v quarto
+  command -v arf
+  R --version
+  uvr --version
+  quarto --version | grep -Fx "1.9.38"
+  arf --version | grep -Fx "arf 0.5.2"
+  LANG=C.UTF-8 LC_ALL=C.UTF-8 Rscript --vanilla -e 'quit(status = if (l10n_info()[["UTF-8"]]) 0 else 1)'
+  test -r /opt/views/view/lib/libopenblas.so.0
+  r_home=$(R RHOME)
+  test -r "${r_home}/lib/libR.so"
+  test -r /opt/spack-environment/spack.lock
+  test ! -e /opt/spack/bin/spack
+{% endblock %}
+```
+
+:::
+::::
+
+::: {.manual-procedure title="Generate And Build The Runtime"}
+
+Run from the repository root inside an adequate allocation:
+
+```sh
+mkdir -p containers/build artifacts/containers
+singularity exec --cleanenv --pwd /work --bind "$PWD:/work" \
+    artifacts/containers/spack-builder.sif \
+    spack -e . containerize \
+    > containers/build/mdg-healthshed-clinic-data.def
+singularity build --fakeroot \
+  artifacts/containers/mdg-healthshed-clinic-data.sif \
+  containers/build/mdg-healthshed-clinic-data.def
+```
+
+:::
+
+::: {.manual-check title="Verify The Runtime"}
+
+```sh
+singularity exec artifacts/containers/mdg-healthshed-clinic-data.sif R --version
+singularity exec artifacts/containers/mdg-healthshed-clinic-data.sif nvim --version
+singularity exec artifacts/containers/mdg-healthshed-clinic-data.sif uvr --version
+singularity exec artifacts/containers/mdg-healthshed-clinic-data.sif arf --version
+singularity exec artifacts/containers/mdg-healthshed-clinic-data.sif \
+  Rscript --vanilla -e 'stopifnot(l10n_info()[["UTF-8"]])'
+singularity test artifacts/containers/mdg-healthshed-clinic-data.sif
+singularity exec artifacts/containers/mdg-healthshed-clinic-data.sif \
+  test -r /opt/views/view/lib/libopenblas.so.0
+singularity exec artifacts/containers/mdg-healthshed-clinic-data.sif \
+  test -r /opt/spack-environment/spack.lock
+if singularity inspect --environment \
+  artifacts/containers/mdg-healthshed-clinic-data.sif | \
+  rg -q '^export (UVR_LIBRARY|UVR_CACHE_DIR|R_LIBS_USER|R_LIBS)='; then
+  echo "The image must not override uvr project-environment resolution." >&2
+  exit 1
+fi
+```
+
+:::
