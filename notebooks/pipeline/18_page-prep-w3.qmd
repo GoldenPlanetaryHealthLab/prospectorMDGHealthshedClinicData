@@ -114,7 +114,7 @@ summarise_group_max <- function(df) {
     )
 }
 
-process_csv_safely <- function(csv_path, output_path=here("data/intermediates"), drop_cols = c("organisationunitcode", "orgnaisationunitdescription")) {
+process_csv_safely <- function(csv_path, output_path=here("data/intermediates"), drop_cols = c("organisationunitcode", "organisationunitdescription")) {
   stopifnot(length(csv_path) == 1L, file.exists(csv_path))
   
   cli_alert_info(paste("Working on:", csv_path))
@@ -157,12 +157,11 @@ process_csv_safely <- function(csv_path, output_path=here("data/intermediates"),
 }
 ```
 
-`process_csv_safely()` intentionally accepts exactly one path, calculates the
-clinic-month maximum within that file, and never holds other input tables in
+`process_csv_safely()` intentionally accepts exactly one path, and never holds other input tables in
 memory. `_targets.R` selects the `RMA_W3_FULL` paths and defines a dynamic
 `map()` branch for each path outside this notebook. That makes each CSV
-independently schedulable and means the branch artifacts contain summaries
-rather than raw input tables. Dynamic branching enables parallel execution;
+independently schedulable and means the branch artifacts contain parquet files
+rather than raw csvs. Dynamic branching enables parallel execution;
 the approved Slurm allocation and selected `targets` backend determine how
 many branches run concurrently.
 
@@ -217,30 +216,66 @@ When the per-file target is complete, its branches should be available:
 tar_branches(clinic_raw_data_RMA_W3_within_file_group_max_df)
 ```
 
-There's an error for the below target:
+We use the function below to calculate the group maxes for the full
+dataset:
+```{r}
+write_group_max_parquet <- function(input_paths, output_path) {
+  
+  input_paths <- input_paths |>
+    as.character() |>
+    unname()
 
-```r
-✖ clinic_RMA_W3_group_max errored
-✖ errored pipeline [4.2s, 0 completed, 133 skipped]
-Error:
-! Error in tar_make():
-  Error storing output: Error evaluating duckdb query: Invalid Input Error: Failed to read file "data/intermediates/RMAgnes généraux de danger 0 –  28j, Masculin" was read from the original file "data/intermediates/RMA_W3/clinic_raw_data_RMA_W3_within_file_group_max_df_5c3b0c7130d76e95.parquet", but could not be found in file "data/intermediates/RMA_W3/clinic_raw_data_RMA_W3_within_file_group_max_df_fde7c9d9be4698d8.parquet".
-Candidate names: organisationunitid, periodname, orgunitlevel1, orgunitlevel2, orgunitlevel3, orgunitlevel4, orgunitlevel5, organisationunitname, periodid, periodcode, perioddescription, Surveillance nutritionnelle des enfants moins de 5 ans peses 0 – 5 mois, Surveillance nutritionnelle des enfants moins de 5 ans peses 6 – 11 mois, Surveillance nutritionnelle des enfants moins de 5 ans peses 12 – 23 mois, Surveillance nutritionnelle des enfants moins de 5 ans peses 24 – 59 mois, Surveillance nutritionnelle des enfants moins de 5 ans mesures 0 – 5 mois, Surveillance nutritionnelle des enfants moins de 5 ans mesures 6 – 11 mois, Surveillance nutritionnelle des enfants moins de 5 ans mesures 12 – 23 mois, Surveillance nutritionnelle des enfants moins de 5 ans mesures 24 – 59 mois, Surveillance nutritionnelle des enfants moins de 5 ans peses et mesures 0 – 5 mois, Surveillance nutritionnelle des enfants moins de 5 ans peses et mesures 6 – 11 mois, Surveillance nutritionnelle des enfants moins de 5 ans peses et mesures 12 – 23 mois, Surveillance nutritionnelle des enfants moins de 5 ans peses et mesures 24 – 59 mois, T11: Enfants mesur�s par PB et d�ctect�s par oed�mes 0 – 5 mois, T11: Enfants mesur�s par PB et d�ctect�s par oed�mes 6 – 11 mois, T11: Enfants mesur�s par PB et d�ctect�s par oed�mes 12 – 23 mois, T11: Enfants mesur�s par PB et d�ctect�s par oed�mes 24 – 59 mois, Surveillance nutritionnelle des enfants moins de 5 ans P/A inf -2ET Insuf pond. 0 – 5 mois, Surveillance n
-  See https://books.ropensci.org/targets/debugging.html
+  stopifnot(
+    length(input_paths) > 0L,
+    all(file.exists(input_paths))
+  )
+
+  relation <- read_parquet_duckdb(
+    input_paths,
+    options = list(union_by_name = TRUE)
+  )
+
+  result <- summarise_group_max(relation)
+
+  dir.create(
+    dirname(output_path),
+    recursive = TRUE,
+    showWarnings = FALSE
+  )
+
+  compute_parquet(result, output_path)
+
+  output_path
+}
+
 ```
 
+Now, to calculate the group maxes:
+
 ```{r}
-clinic_RMA_W3_group_max <- clinic_raw_data_RMA_W3_within_file_group_max_df |>
-  as.character() |>
-  unname() |>
-  read_parquet_duckdb() |>
-  summarise_group_max() 
+#| format: file
+clinic_RMA_W3_group_max_parquet_path <- write_group_max_parquet(
+  clinic_RMA_W3_parquet_paths,
+  "data/intermediates/RMA_W3_group_max.parquet"
+)
 ```
 
-The final summary target is `clinic_raw_data_RMA_W3_group_max_df`.
+The group max summary target looks like this:
+#TODO: how to skim() duckdb parquet
+```{r}
+tar_read(clinic_RMA_W3_group_max_df)
+```
+
+:::
+
+:::{.manual-procedure title="Crosswalk with GESIS Data"}
+
+Our next step is to crosswalk the clinic data with GESIS DHIS data to get the
+exact questions for each measure.
 
 ```{r}
-tar_read(clinic_raw_data_RMA_W3_group_max_df)
+crosswalk_file <- pipeline_raw_input_files_paths |>
+  str_subset("mapping DHIS2 GESIS 2010 2022")
 ```
 
 :::

@@ -24,7 +24,7 @@ list(
       str_subset("RMA_W3_FULL")
   ),
   tar_target(
-    clinic_raw_data_RMA_W3_within_file_group_max_df,
+    clinic_RMA_W3_parquet_paths,
     process_csv_safely(
       clinic_raw_data_RMA_W3_csv_path,
       file.path(
