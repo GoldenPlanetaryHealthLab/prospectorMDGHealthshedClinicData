@@ -7,7 +7,8 @@ library(tarchetypes)
 
 tar_option_set(
   packages = c(
-    "duckplyr", "tibble", "here", "readr", "cli", "glue", "purrr", "stringr", "dplyr"
+    "duckplyr", "assertr", "tibble", "here", "readr", "cli", "glue", "purrr", "stringr", "dplyr",
+    "readxl"
   )
 )
 
@@ -34,10 +35,8 @@ list(
     ),
     pattern = map(clinic_raw_data_RMA_W3_csv_path),
     format = "file"
+  ),
+  tarchetypes::tar_tangle(
+    "notebooks/pipeline/19_page-clean-mapping-dhis2-gesis.qmd"
   )#,
-  #tar_target(
-  #  clinic_RMA_W3_group_max_df,
-  #  summarise_group_max(clinic_raw_data_RMA_W3_within_file_group_max_df),
-  #  memory = "transient"
-  #)
 )

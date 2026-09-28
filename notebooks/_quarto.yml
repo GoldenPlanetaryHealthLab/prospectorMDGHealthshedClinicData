@@ -36,6 +36,7 @@ book:
         - pipeline/16_page-stage-inputs.qmd
         - pipeline/17_page-inspect-source-data.qmd
         - pipeline/18_page-prep-w3.qmd
+        - pipeline/19_page-clean-mapping-dhis2-gesis.qmd
         - pipeline/19_page-package-release.qmd
         - pipeline/20_page-execute-pipeline.qmd
         - pipeline/21_page-verify-release.qmd

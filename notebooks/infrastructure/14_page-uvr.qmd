@@ -35,6 +35,8 @@ skimr = "*"
 duckdb = "*"
 duckplyr = "*"
 here = "*"
+assertr = "*"
+readxl = "*"
 targets = "*"
 tarchetypes = "*"
 ```

@@ -18,6 +18,14 @@ url = "https://cran.r-project.org/src/contrib/DBI_1.3.0.tar.gz"
 checksum = "md5:ce5e3153cc7395a2aac452db1099d003"
 
 [[package]]
+name = "MASS"
+version = "7.3.66"
+source = "cran"
+raw_version = "7.3-66"
+url = "https://cran.r-project.org/src/contrib/MASS_7.3-66.tar.gz"
+checksum = "md5:272648f9e6c9f1855417b099ea03ee46"
+
+[[package]]
 name = "Matrix"
 version = "1.7.6"
 source = "cran"
@@ -49,6 +57,19 @@ source = "cran"
 raw_version = "0.2.2"
 url = "https://cran.r-project.org/src/contrib/S7_0.2.2.tar.gz"
 checksum = "md5:6a40d3eae470be0f06a03737b9391269"
+
+[[package]]
+name = "assertr"
+version = "3.0.1"
+source = "cran"
+raw_version = "3.0.1"
+url = "https://cran.r-project.org/src/contrib/assertr_3.0.1.tar.gz"
+checksum = "md5:b1aeebaf9ff6a7817c8e1759c2212275"
+requires = [
+    "dplyr",
+    "MASS",
+    "rlang",
+]
 
 [[package]]
 name = "backports"
@@ -136,6 +157,18 @@ requires = [
     "otel",
     "processx",
     "R6",
+]
+
+[[package]]
+name = "cellranger"
+version = "1.1.0"
+source = "cran"
+raw_version = "1.1.0"
+url = "https://cran.r-project.org/src/contrib/cellranger_1.1.0.tar.gz"
+checksum = "md5:1abcfea6af5ab2e277cb99e86880456f"
+requires = [
+    "rematch",
+    "tibble",
 ]
 
 [[package]]
@@ -234,11 +267,11 @@ requires = [
 
 [[package]]
 name = "duckdb"
-version = "1.5.5"
+version = "1.5.6"
 source = "cran"
-raw_version = "1.5.5"
-url = "https://cran.r-project.org/src/contrib/duckdb_1.5.5.tar.gz"
-checksum = "md5:c1f5bc205faad8bcaf5b88f6b82d1cbe"
+raw_version = "1.5.6"
+url = "https://cran.r-project.org/src/contrib/duckdb_1.5.6.tar.gz"
+checksum = "md5:c394f89e8e9662a2c77c13860b9f09f6"
 requires = ["DBI"]
 
 [[package]]
@@ -367,11 +400,11 @@ requires = [
 
 [[package]]
 name = "igraph"
-version = "2.3.3"
+version = "2.3.4"
 source = "cran"
-raw_version = "2.3.3"
-url = "https://cran.r-project.org/src/contrib/igraph_2.3.3.tar.gz"
-checksum = "md5:afb847dd9d9cd2c0606573ebe214393d"
+raw_version = "2.3.4"
+url = "https://cran.r-project.org/src/contrib/igraph_2.3.4.tar.gz"
+checksum = "md5:32025403dd0a955373615930cf0aa578"
 requires = [
     "cli",
     "lifecycle",
@@ -647,6 +680,28 @@ requires = [
     "cpp11",
     "tzdb",
 ]
+
+[[package]]
+name = "readxl"
+version = "1.5.0-4.1"
+source = "cran"
+raw_version = "1.5.0.1"
+url = "https://cran.r-project.org/src/contrib/readxl_1.5.0.1.tar.gz"
+checksum = "md5:c29e07dbcae56f627b3db7ce48a5577b"
+requires = [
+    "cellranger",
+    "tibble",
+    "cpp11",
+    "progress",
+]
+
+[[package]]
+name = "rematch"
+version = "2.0.0"
+source = "cran"
+raw_version = "2.0.0"
+url = "https://cran.r-project.org/src/contrib/rematch_2.0.0.tar.gz"
+checksum = "md5:64ad138fd1cec37d50683cbf2958e47b"
 
 [[package]]
 name = "repr"

@@ -259,25 +259,31 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../pipeline/18_page-prep-w3.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Curate the Healthshed Clinic Data</span></span></a>
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">engine: markdown</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/19_page-clean-mapping-dhis2-gesis.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Clean the DHIS2–GESIS Mapping</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../pipeline/19_page-package-release.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Package a Versioned Release</span></span></a>
+ <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Package a Versioned Release</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../pipeline/20_page-execute-pipeline.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Execute the Pipeline</span></span></a>
+ <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">Execute the Pipeline</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../pipeline/21_page-verify-release.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">Verify a Release</span></span></a>
+ <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Verify a Release</span></span></a>
   </div>
 </li>
       </ul>
@@ -328,7 +334,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>Review the dependency list below. A dependency belongs here only when Manual or pipeline code imports it.</p>
 </div>
 </div>
-<div class="manual-procedure emit-config-toml callout callout-style-default callout-tip no-icon callout-titled" title="Emit The R Package Declaration" data-file="{{ emit.project_root }}/uvr.toml" data-manual-kind="procedure">
+<div class="manual-procedure emit-config-toml callout callout-style-default callout-tip no-icon callout-titled" data-file="{{ emit.project_root }}/uvr.toml" title="Emit The R Package Declaration" data-manual-kind="procedure">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
 <i class="callout-icon no-icon"></i>
@@ -348,8 +354,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-8"><a href="#cb1-8"></a><span class="dt">duckdb</span> <span class="op">=</span> <span class="st">"*"</span></span>
 <span id="cb1-9"><a href="#cb1-9"></a><span class="dt">duckplyr</span> <span class="op">=</span> <span class="st">"*"</span></span>
 <span id="cb1-10"><a href="#cb1-10"></a><span class="dt">here</span> <span class="op">=</span> <span class="st">"*"</span></span>
-<span id="cb1-11"><a href="#cb1-11"></a><span class="dt">targets</span> <span class="op">=</span> <span class="st">"*"</span></span>
-<span id="cb1-12"><a href="#cb1-12"></a><span class="dt">tarchetypes</span> <span class="op">=</span> <span class="st">"*"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb1-11"><a href="#cb1-11"></a><span class="dt">assertr</span> <span class="op">=</span> <span class="st">"*"</span></span>
+<span id="cb1-12"><a href="#cb1-12"></a><span class="dt">readxl</span> <span class="op">=</span> <span class="st">"*"</span></span>
+<span id="cb1-13"><a href="#cb1-13"></a><span class="dt">targets</span> <span class="op">=</span> <span class="st">"*"</span></span>
+<span id="cb1-14"><a href="#cb1-14"></a><span class="dt">tarchetypes</span> <span class="op">=</span> <span class="st">"*"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </div>
 <div class="manual-procedure callout callout-style-default callout-tip no-icon callout-titled" title="Resolve And Synchronize In The Container" data-manual-kind="procedure">

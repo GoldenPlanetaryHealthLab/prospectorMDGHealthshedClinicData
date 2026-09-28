@@ -1,4 +1,4 @@
----
+
 title: "Curate the Healthshed Clinic Data"
 subtitle: "Translate reviewed domain decisions into targets"
 execute:
@@ -274,11 +274,64 @@ Our next step is to crosswalk the clinic data with GESIS DHIS data to get the
 exact questions for each measure.
 
 ```{r}
-crosswalk_file <- pipeline_raw_input_files_paths |>
+pipeline_raw_crosswalk_file <- pipeline_raw_input_files_paths |>
   str_subset("mapping DHIS2 GESIS 2010 2022")
+
+crosswalk_dhis_gesis_df <- read_csv(pipeline_raw_crosswalk_file) |>
+  select(UID...12, code_fs, TYPE, FS) |>
+  rename(organisationunitid = UID...12) |> #correct the naming of organisationunitid
+  distinct() |>                            #tidy up missingness
+  filter(!is.na(organisationunitid))
 ```
 
+A quick skim of the crosswalk file:
+
+```{r}
+#library(skimr)
+```
+
+Lastly, we `left_join` the RMA wave 3 data with this crosswalk on Organisation.
+The last bit of cleaning correctly maps diagnoses that changed names slightly between wave 3 subwaves
+
+```{r}
+clinic_RMA_W3_clean_parquet_path <- read_parquet_duckdb(clinic_RMA_W3_group_max_parquet_path) |>
+  left_join(as_duckdb_tibble(crosswalk_dhis_gesis_df), by = "organisationunitid") |>
+  mutate(
+    # rows of AME where periodcode > 202300 should be values of AME prem;
+    `T13: AME 0-6 mois` = if_else(
+      periodcode > 202300,  `T13: AME premiere heure 0-6 mois`, `T13: AME 0-6 mois`
+    ),
+    # etc
+    `T13: AME 1ère heure` = if_else(
+      periodcode > 202300, `T13: AME premiere heure 1ère heure`, `T13: AME 1ère heure`
+    ),
+    `MIDs pour groupe à risque (migrants/réfugiés/personnes déplacées)` = if_else(
+      periodcode > 202300, `CHU CHRR T26 MIDs pour groupe à risque (migrants/réfugiés/personnes déplacées)`, `MIDs pour groupe à risque (migrants/réfugiés/personnes déplacées)`
+    )
+  ) |>
+  # remove redundant
+  select(
+    -any_of(c(
+      "T13: AME premiere heure 0-6 mois",
+      "T13: AME premiere heure 1ère heure",
+      "CHU CHRR T26 MIDs pour groupe à risque (migrants/réfugiés/personnes déplacées)"
+    ))
+  ) |>
+  mutate(V1 = row_number() - 1L) |>
+  select(V1, everything()) %>%
+  {
+    path <- here("data/intermediates/clinic_RMA_W3_clean.parquet")
+
+    compute_parquet(., path)
+
+    path
+  }
+```
 :::
+
+Important: there is a chance that the assignment of V1 to row number doesn't
+work here, due to the fact that the data is now in a Parquet and row numbers
+are only computed at evaluation time.
 
 ::: {.manual-check title="Prove Curation Against The Contract"}
 
