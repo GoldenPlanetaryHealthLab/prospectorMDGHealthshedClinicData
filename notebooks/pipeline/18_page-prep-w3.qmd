@@ -274,10 +274,10 @@ Our next step is to crosswalk the clinic data with GESIS DHIS data to get the
 exact questions for each measure.
 
 ```{r}
-pipeline_raw_crosswalk_file <- pipeline_raw_input_files_paths |>
+pipeline_xwalk_raw_path <- pipeline_raw_input_files_paths |>
   str_subset("mapping DHIS2 GESIS 2010 2022")
 
-crosswalk_dhis_gesis_df <- read_csv(pipeline_raw_crosswalk_file) |>
+pipeline_xwalk_dhis_gesis_df <- read_csv(pipeline_raw_crosswalk_file) |>
   select(UID...12, code_fs, TYPE, FS) |>
   rename(organisationunitid = UID...12) |> #correct the naming of organisationunitid
   distinct() |>                            #tidy up missingness
@@ -295,7 +295,7 @@ The last bit of cleaning correctly maps diagnoses that changed names slightly be
 
 ```{r}
 clinic_RMA_W3_clean_parquet_path <- read_parquet_duckdb(clinic_RMA_W3_group_max_parquet_path) |>
-  left_join(as_duckdb_tibble(crosswalk_dhis_gesis_df), by = "organisationunitid") |>
+  left_join(as_duckdb_tibble(pipeline_xwalk_dhis_gesis_df), by = "organisationunitid") |>
   mutate(
     # rows of AME where periodcode > 202300 should be values of AME prem;
     `T13: AME 0-6 mois` = if_else(

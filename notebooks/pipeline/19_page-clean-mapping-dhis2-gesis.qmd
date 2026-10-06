@@ -6,19 +6,17 @@ execute:
 engine: markdown
 ---
 
-This page records the existing DHIS2–GESIS mapping-cleaning workflow without
-changing its code. The stage boundaries separate session setup, source reads,
-reviewed corrections, validation queries, and persistence so each part can be
-made reproducible and target-oriented independently.
+This page translates the reviewed DHIS2–GESIS mapping-cleaning workflow into
+successive targets. The stage boundaries separate source reads, reviewed
+corrections, validation queries, and persistence so each decision remains
+auditable while the execution becomes reproducible.
 
-::: {.callout-warning title="Legacy code preserved for staged modernization"}
+::: {.callout-warning title="Preserve reviewed decisions while modernizing"}
 
-The code below is intentionally unmodified. It contains interactive-session
-state, relative paths, mutable objects, diagnostic expressions, and a direct
-write. Treat each procedure as a modernization boundary rather than as an
-endorsement of its current implementation. Preserve the reviewed mapping
-decisions while changing execution mechanics only after their behavior has
-been characterized.
+The transformations below preserve the reviewed mapping decisions from the
+legacy workflow. Each assigned object is a pipeline target. Diagnostic chunks
+are deliberately unassigned and marked for evaluation so they print evidence
+without adding check-only objects to the target graph.
 
 :::
 
@@ -31,14 +29,26 @@ review decision represented by each correction.
 
 :::
 
-::: {.manual-procedure title="Initialize The Legacy Session And Read The Mapping"}
+```{r}
+#| eval: true
+#| include: false
+library(targets)
+library(dplyr)
+library(readr)
+library(assertr)
+library(stringr)
+```
+
+::: {.manual-procedure title="Stage 1 — Read And Filter The Source Mapping"}
 
 This stage reads the base mapping, and assigns names to the four UID levels.
-It removes the year 2022 and Belelanda from the list.
+It removes the year 2022 and Belalanda from the list.
+
+Interestingly, this reads in the crosswalk file separately from the
+previous stage. We have to keep an eye on that...
 
 ```{r}
-
-crosswalk_mapping_df <- read.csv(pipeline_raw_crosswalk_file) |>
+pipeline_xwalk_mapping_df <- read.csv(pipeline_xwalk_raw_path) |>
   as_tibble() |>
   rename(region_uid = UID, 
          district_uid = `UID.1`,
@@ -53,10 +63,11 @@ crosswalk_mapping_df <- read.csv(pipeline_raw_crosswalk_file) |>
 
 
 
-::: {.manual-procedure title="Stage 2 — Correct Out-Of-Range GESIS Codes"}
+::: {.manual-procedure title="Stages 2–3 — Correct GESIS Codes And Fill The Known UID"}
 
 This stage loads the reviewed corrections, checks UID consistency for both the
-old and corrected codes, and then applies the corrected GESIS code.
+old and corrected codes, applies the corrected GESIS code, and fills the known
+UID for GESIS code `630151027`.
 
 ```{r}
 # 2) bits out of range ------
@@ -64,35 +75,56 @@ old and corrected codes, and then applies the corrected GESIS code.
 # sometimes, those GESIS codes should be corrected 
 pipeline_raw_gesis_correct_path <- str_subset(pipeline_raw_input_files_paths, "CSB1 CSB2 PUBLIC PRIVATE.xlsx")
 
-crosswalk_gesis_correct_df <- read_xlsx(pipeline_raw_gesis_correct_path) |>
+pipeline_xwalk_gesis_correct_df <- read_xlsx(pipeline_raw_gesis_correct_path) |>
   filter(!is.na(`NEW CODE`) & `NEW CODE` != "NEW CODE") %>% 
   setNames(c("old_code", "correct_code", "uid", "name", "status", "note")) %>% 
   unique()
+```
 
+The first check confirms that corrected GESIS codes do not introduce a UID
+that conflicts with the mapping.
+
+```{r}
+#| eval: true
 # double check what fixing these GESIS codes will do
 # A) do any clinics already have the corrected GESIS codes? if so, do they have the same UID? 
-crosswalk_mapping_df %>% 
-  left_join(crosswalk_gesis_correct_df %>% select(code_fs = correct_code, new_uid = uid)) %>% 
+tar_read(pipeline_xwalk_mapping_df) %>% 
+  left_join(
+    tar_read(pipeline_xwalk_gesis_correct_df) %>%
+      select(code_fs = correct_code, new_uid = uid),
+    by = "code_fs"
+  ) %>% 
   filter(!is.na(new_uid)) %>% 
   filter(new_uid != fs_uid) %>%
-  nrow 
+  verify(nrow(.) == 0)
 # yes, and the uid always matches 
+```
 
+The second check confirms the same UID consistency for the old GESIS codes.
+
+```{r}
+#| eval: true
 # B) does the uid also match the one for the old code?
-crosswalk_mapping_df %>% 
-  left_join(crosswalk_gesis_correct_df %>% rename(code_fs = old_code, new_uid = uid)) %>% 
+tar_read(pipeline_xwalk_mapping_df) %>% 
+  left_join(
+    tar_read(pipeline_xwalk_gesis_correct_df) %>%
+      rename(code_fs = old_code, new_uid = uid),
+    by = "code_fs"
+  ) %>% 
   filter(!is.na(new_uid)) %>% 
   filter(new_uid != fs_uid) %>%
-  nrow
+  verify(nrow(.) == 0)
 # yes, the updated uid matches the one from the old code, so shouldn't affect UID contiguity for a clinic
+```
 
+```{r}
 # make the adjustment to the mapping file
-crosswalk_mapping_corrected_df <- crosswalk_mapping_df %>% 
-  left_join(crosswalk_gesis_correct_df %>% select(code_fs = old_code, correct_code), 
+pipeline_xwalk_mapping_corrected_df <- pipeline_xwalk_mapping_df %>% 
+  left_join(pipeline_xwalk_gesis_correct_df %>% select(code_fs = old_code, correct_code), 
             by = c("code_fs")) %>% 
   mutate(code_fs = ifelse(is.na(correct_code), code_fs, correct_code)) %>% 
   select(-correct_code) %>%
-  #manual fill the UID from other years for 630151027
+  #manually fill the UID from other years for 630151027
   mutate(fs_uid = ifelse(code_fs == "630151027" & grepl("Ankilivalo", FS), 
                          "ZX5EkF6eC0x", 
                          fs_uid)) 
@@ -111,13 +143,13 @@ This stage imports reviewed UID fills and applies them by GESIS clinic code.
 # 4) fill in missing UIDs for GESIS-years in mapping ----
 # for GESIS-years for public clinics in the mapping file
 # reporting data in 2018/2019 using this file for those 4 clinics 
-uid_fill_path <- str_subset(pipeline_raw_input_files_paths, "gesis_missing_uid_in_mapping.xlsx")
+pipeline_uid_fill_path <- str_subset(pipeline_raw_input_files_paths, "gesis_missing_uid_in_mapping.xlsx")
 
-uid_fill_df <- read_xlsx(uid_fill_path) %>% 
+pipeline_uid_fill_df <- read_xlsx(pipeline_uid_fill_path) %>% 
   mutate(code_fs = as.character(code_fs))
 
-crosswalk_mapping_uids_df <- crosswalk_mapping_corrected_df %<>% 
-  left_join(uid_fill_df %>% select(code_fs, uid), 
+pipeline_xwalk_mapping_uids_df <- pipeline_xwalk_mapping_corrected_df %>% 
+  left_join(pipeline_uid_fill_df %>% select(code_fs, uid), 
             by = "code_fs") %>% 
   mutate(fs_uid = ifelse(is.na(uid), fs_uid, uid))  %>% 
   select(-uid)
@@ -132,113 +164,145 @@ crosswalk_mapping_uids_df <- crosswalk_mapping_corrected_df %<>%
 # because it was private over that time span
 ```
 
-The future implementation should validate uniqueness on the join key and
-retain the narrative evidence associated with these reviewed exceptions.
+The target retains the narrative evidence associated with these reviewed
+exceptions next to the transformation.
 
 :::
 
 ::: {.manual-procedure title="Stage 5 — Reconcile UID-Years With Multiple GESIS Codes"}
 
 This stage classifies reviewer notes, retains the original internal diagnostic
-as comments, evaluates external GESIS–UID consequences, and applies deletions
-and renames.
+as an executable check, evaluates external GESIS–UID consequences, and applies
+deletions and renames.
 
 ```{r}
 # 5) UID-years with multiple GESIS codes ---- 
-mult_gesis <- read.csv("./data/raw/symphonia_verified/VERIFIER fs_uid_year_with_multiple_gesis.csv") %>% 
+pipeline_mult_gesis_raw_path <- str_subset(
+  pipeline_raw_input_files_paths,
+  "VERIFIER_fs_uid_year_with_multiple_gesis.csv"
+)
+
+pipeline_xwalk_mult_gesis_df <- read_delim(pipeline_mult_gesis_raw_path, delim=";") %>% 
   mutate(change = case_when(grepl("the clinic was moved to the district of mandoto", note) ~ "keep", 
                             note %in% c("Same clinic", "OK", "ok") ~ "keep", 
                             grepl("^rename", note) ~ "rename", 
                             grepl("delete|Delete", note) ~ "delete",
-                            T ~ as.character(NA)), 
+                            TRUE ~ as.character(NA)), 
          code_fs = as.character(code_fs)) 
 # started with 36 UID-years with multiple GESIS 
 # there are 2 deletions, 16 renames, and 18 cases where its just two codes for the same clinic
 # --> 18 UID-years with multiple GESIS at the end
+```
 
+Print the number of reviewed rows assigned to each action.
+
+```{r}
+#| eval: true
+tar_read(pipeline_xwalk_mult_gesis_df) %>%
+  count(change, name = "reviewed_rows")
+```
+
+Inspect the internally affected UID and clinic-name records before applying
+the corrections.
+
+```{r}
+#| eval: true
 # what will the impacts of this correction be? 
 # internally, for any UIDs that we're correcting, check what happens
-# mapping %>% 
-#   left_join(mult_gesis %>% 
-#               select(cAnnee, code_fs, change, 
-#                      fs_uid_correct = UID, 
-#                      fs_name_correct = `NAME.CLINICS`), 
-#             by = c("cAnnee", "code_fs")) %>% 
-#   filter(change != "delete" | is.na(change)) %>% 
-#   mutate(fs_uid_correct = case_when(change == "rename" & fs_uid_correct == "No UID" ~ "",
-#                                     change == "rename" ~ fs_uid_correct, 
-#                                     T ~ fs_uid),
-#          FS_correct = case_when(change == "rename" & fs_name_correct != "" ~ fs_name_correct, 
-#                                 T ~ FS)) %>% 
-#   group_by(fs_uid_correct) %>% 
-#   filter(any(change == "rename")) %>% 
-#   filter(fs_uid_correct != "") %>% 
-#   arrange(fs_uid_correct) %>% 
-#   View
-# all seems reasonable
-
-# externally, will this change GESIS - UID pairs? only for times when there is a UID added, 
-# dropping a UID to blank shouldn't have an effect since the GESIS is unchanged
-mapping %>% 
-  left_join(mult_gesis %>% 
-              select(cAnnee, code_fs, change, 
-                     fs_uid_correct = UID, 
-                     fs_name_correct = `NAME.CLINICS`), 
-            by = c("cAnnee", "code_fs")) %>% 
+tar_read(pipeline_xwalk_mapping_uids_df) %>% 
+  left_join(
+    tar_read(pipeline_xwalk_mult_gesis_df) %>% 
+      select(cAnnee, code_fs, change, 
+             fs_uid_correct = UID, 
+             fs_name_correct = `NAME.CLINICS`),
+    by = c("cAnnee", "code_fs")
+  ) %>% 
   filter(change != "delete" | is.na(change)) %>% 
   mutate(fs_uid_correct = case_when(change == "rename" & fs_uid_correct == "No UID" ~ "",
                                     change == "rename" ~ fs_uid_correct, 
-                                    T ~ fs_uid),
+                                    TRUE ~ fs_uid),
+         FS_correct = case_when(change == "rename" & fs_name_correct != "" ~ fs_name_correct, 
+                                TRUE ~ FS)) %>% 
+  group_by(fs_uid_correct) %>% 
+  filter(any(change == "rename")) %>% 
+  filter(fs_uid_correct != "") %>% 
+  arrange(fs_uid_correct)
+# all seems reasonable
+```
+
+Print the GESIS–UID pairs whose time coverage changes when the reviewed
+renames are applied.
+
+```{r}
+#| eval: true
+# externally, will this change GESIS - UID pairs? only for times when there is a UID added, 
+# dropping a UID to blank shouldn't have an effect since the GESIS is unchanged
+tar_read(pipeline_xwalk_mapping_uids_df) %>% 
+  left_join(
+    tar_read(pipeline_xwalk_mult_gesis_df) %>% 
+      select(cAnnee, code_fs, change, 
+             fs_uid_correct = UID, 
+             fs_name_correct = `NAME.CLINICS`),
+    by = c("cAnnee", "code_fs")
+  ) %>% 
+  filter(change != "delete" | is.na(change)) %>% 
+  mutate(fs_uid_correct = case_when(change == "rename" & fs_uid_correct == "No UID" ~ "",
+                                    change == "rename" ~ fs_uid_correct, 
+                                    TRUE ~ fs_uid),
          fs_name_correct = case_when(change == "rename" & fs_name_correct != "" ~ fs_name_correct, 
-                                T ~ FS)) %>% 
+                                     TRUE ~ FS)) %>% 
   filter(fs_uid_correct != "") %>% 
   group_by(fs_uid_correct) %>% 
   mutate(uid_change = any(change == "rename")) %>% 
   group_by(code_fs) %>% 
   mutate(gesis_change = any(uid_change)) %>% 
-  filter(uid_change) #%>% 
-  #View
+  filter(uid_change)
 # main concern is GESIS - UID pairs that are now more years, so would include more names in the diagnosis data 
 # following UID should be checked: 
 # 630241019 - UiaPcR9m5R8 adding old 2015 -- CSB2 Manevy (good)
 # 530541020 - EB8qTcx1zZb adding 2017 -- CSB1 Manankatafana (good)
 # in the diagnosis data, both have no major name changes
+```
 
+```{r}
 # make the change 
-mapping %<>%
+pipeline_xwalk_mapping_multi_gesis_df <- pipeline_xwalk_mapping_uids_df %>%
   # the UIDs got dropped when we rename, which only matters in one case 
   # whe the row needs to be deleted, so separately add in the delete cases vs rest
-  left_join(mult_gesis %>%
+  left_join(pipeline_xwalk_mult_gesis_df %>%
               filter(change == "delete") %>% 
               select(cAnnee, code_fs, fs_uid, change),
             by = c("cAnnee", "code_fs", "fs_uid")) %>%
   filter(change != "delete" | is.na(change)) %>% 
   select(-change) %>% 
-  left_join(mult_gesis %>%
+  left_join(pipeline_xwalk_mult_gesis_df %>%
               filter(change != "delete") %>% 
               select(cAnnee, code_fs, change,
                      fs_uid_correct = UID,
-                     fs_name_correct = `NAME.CLINICS`),
+                     fs_name_correct = `NAME CLINICS`),
             by = c("cAnnee", "code_fs")) %>%
   mutate(fs_uid = case_when(change == "rename" & fs_uid_correct == "No UID" ~ "",
                             change == "rename" ~ fs_uid_correct,
-                            T ~ fs_uid),
+                            TRUE ~ fs_uid),
          FS = case_when(change == "rename" & fs_name_correct != "" ~ fs_name_correct, 
-                        T ~ FS)) %>%
-  select(-(change:fs_name_correct))
+                        TRUE ~ FS)) %>%
+  select(-(change:fs_name_correct)) %>%
+  verify(nrow(.) == 34810)
 # deletes 2 rows, so now down to 34810 
-# check that there are ony 18 UID-years mapping to 2 GESIS codes
-# mapping %>% 
-#   filter(fs_uid != "") %>%
-#   group_by(fs_uid, cAnnee) %>% 
-#   summarise(n_gesis = n_distinct(code_fs)) %>% 
-#   filter(n_gesis > 1) %>% 
-#   nrow
 ```
 
-Modernize the classification, impact analysis, and mutation as separate
-targets or pure functions so reviewer decisions can be checked before they
-alter the mapping.
+Confirm that 18 nonblank UID-years still map to multiple GESIS codes after the
+reviewed deletions and renames.
+
+```{r}
+#| eval: true
+tar_read(pipeline_xwalk_mapping_multi_gesis_df) %>% 
+  filter(fs_uid != "") %>%
+  group_by(fs_uid, cAnnee) %>% 
+  summarise(n_gesis = n_distinct(code_fs), .groups = "drop") %>% 
+  filter(n_gesis > 1) %>% 
+  verify(nrow(.) == 18)
+```
 
 :::
 
@@ -247,36 +311,54 @@ alter the mapping.
 This stage constructs the accepted missing clinic across eight mapping years
 and appends those rows.
 
+A breaking change that must be noted: we aren't sure if the following
+adds 8 rows, or adds row index 8...
+
 ```{r}
 # 6) 10 GESIS codes not in the mapping ----
 # 8 need to be deleted from diagnosis data, 1 doesn't have a UID, lets add row for the last 1
-uid_add <- read.csv("./data/raw/symphonia_verified/VERIFIER clinic_codes_in_gesis_but_not_in_mapping.csv") %>% 
-  filter(NOTE != "DELETE" & uid != "NO UID") %>% 
-  left_join(data.frame(cAnnee = c("2013", "2015", "OLD GESIS 2015", 
-                                  "NEW GESIS 2015", "2016", "2017", "2018", "2019")), 
-            by = character()) %>% 
-  transmute(cAnnee, 
-            code_reg = NA, 
-            region_uid = NA, 
-            region = NA, 
-            code_dist = NA, 
-            district_uid = NA, 
-            district = NA, 
-            code_commune = NA, 
-            commune_uid = NA, 
-            commune = NA, 
-            code_fs = as.character(clinic_code), 
-            fs_uid = uid, 
-            TYPE = str_split_fixed(name, " ", 2)[,1],
-            FS = name) 
+pipeline_raw_uid_add_path <- str_subset(
+  pipeline_raw_input_files_paths,
+  "VERIFIER clinic_codes_in_gesis_but_not_in_mapping.csv"
+)
 
-mapping %<>% 
-  rbind(uid_add)
-# adds 8 rows --> 34818
+pipeline_xwalk_uid_add_df <- read_csv(pipeline_raw_uid_add_path) %>% 
+  #filter(NOTE != "DELETE" & uid != "NO UID") %>% 
+  filter(!is.na(uid) & str_to_lower(uid) != "no uid") %>%
+  cross_join(
+    tibble(cAnnee = c("2013", "2015", "OLD GESIS 2015", 
+                      "NEW GESIS 2015", "2016", "2017", "2018", "2019"))
+  ) %>% 
+  transmute(cAnnee, 
+            code_reg = NA_integer_, 
+            region_uid = NA_character_, 
+            region = NA_character_, 
+            code_dist = NA_integer_, 
+            district_uid = NA_character_, 
+            district = NA_character_, 
+            code_commune = NA_integer_, 
+            commune_uid = NA_character_, 
+            commune = NA_character_, 
+            code_fs = as.character(clinic_code), 
+            fs_uid = as.character(uid), 
+            TYPE = str_split_fixed(name, " ", 2)[,1],
+            FS = as.character(name)) 
+
+pipeline_xwalk_mapping_uid_added_df <- bind_rows(
+  pipeline_xwalk_mapping_multi_gesis_df,
+  pipeline_xwalk_uid_add_df
+) %>%
+  verify(nrow(.) == 34818)
+# adds 8 rows --> 34818  # this is incorrect, it should add row 8
 ```
 
-Future work can make the intended one-clinic/eight-year expansion and output
-schema explicit before replacing the cross join and row binding.
+Print the resulting row count after adding the eight reviewed year records.
+
+```{r}
+#| eval: true
+tar_read(pipeline_xwalk_mapping_uid_added_df) %>%
+  nrow()
+```
 
 :::
 
@@ -289,44 +371,93 @@ diagnosis data.
 ```{r}
 # 7) some manual changes ---- 
 # integrating the mapping with the diagnosis dataset identified these problems with the mapping file
-mapping %<>% 
-  mutate(code_fs = case_when(fs_uid == "naW8NwTF6iT" & cAnnee == "NEW GESIS 2015" ~ "430351007",
-                             fs_uid == "C43g5TA5l3j" & grepl("2015", cAnnee) ~ "430351006",
-                             fs_uid == "hVmE01gCHfg" &
-                               cAnnee %in% c(2013:2019,
-                                             "NEW GESIS 2015",
-                                             "OLD GESIS 2015") ~ "220441038",
-                             fs_uid == "i9IyexSemHX" ~ "220441034",
-                             fs_uid == "xWIEcSCmwUF" & cAnnee == "2010" ~ "440551024",
-                             fs_uid == "QxMf9Q2KYxI" & cAnnee == "2010" ~ "440541010",
-                             T ~ code_fs)) %>% 
+pipeline_xwalk_mapping_clean_df <- pipeline_xwalk_mapping_uid_added_df %>% 
+  mutate(
+    code_fs = case_when(
+      fs_uid == "naW8NwTF6iT" & cAnnee == "NEW GESIS 2015"                                   ~ "430351007",
+      fs_uid == "C43g5TA5l3j" & grepl("2015", cAnnee)                                        ~ "430351006",
+      fs_uid == "hVmE01gCHfg" & cAnnee %in% c(2013:2019, "NEW GESIS 2015", "OLD GESIS 2015") ~ "220441038",
+      fs_uid == "i9IyexSemHX"                                                                ~ "220441034",
+      fs_uid == "xWIEcSCmwUF" & cAnnee == "2010"                                             ~ "440551024",
+      fs_uid == "QxMf9Q2KYxI" & cAnnee == "2010"                                             ~ "440541010",
+      TRUE                                                                                   ~ code_fs
+    )
+  ) %>% 
+  
   # replace what 340141015 is mapping to in new 2015, easier to delete one row and add another
-  {rbind(filter(., !(fs_uid == "H9S6IOY4CKL" & code_fs == "340141015" & cAnnee == "NEW GESIS 2015")),
-         filter(., fs_uid == "SnRMbMj7ON9" & cAnnee == "OLD GESIS 2015") %>%
-           mutate(cAnnee = "NEW GESIS 2015",
-                  code_fs = "340141015"))} %>%
+  {
+    rows_to_keep <- filter(
+      .,
+      !(fs_uid == "H9S6IOY4CKL" &
+          code_fs == "340141015" &
+          cAnnee == "NEW GESIS 2015")
+    )
+
+    replacement_row <- filter(
+      .,
+      fs_uid == "SnRMbMj7ON9" & cAnnee == "OLD GESIS 2015"
+    ) %>%
+      mutate(
+        cAnnee = "NEW GESIS 2015",
+        code_fs = "340141015"
+      )
+
+    bind_rows(rows_to_keep, replacement_row)
+  } %>%
+  
   # similarly, replace what 520551034 is mapping to in 2011 - old 2015
-  {rbind(filter(., !(fs_uid == "JnmokyKVSvS" & code_fs == "520551034" & 
-                            cAnnee %in% c(2011:2014, "OLD GESIS 2015"))),
-         filter(., fs_uid == "d0n2W7psb6s" & cAnnee == "2016") %>% 
-           mutate(code_fs = "520551034") %>% 
-           select(-cAnnee) %>% 
-           left_join(data.frame(cAnnee = c(2011:2014, "OLD GESIS 2015")), 
-                     by = character()))} %>% 
+  {
+    replacement_years <- tibble(
+      cAnnee = c(2011:2014, "OLD GESIS 2015")
+    )
+
+    rows_to_keep <- filter(
+      .,
+      !(fs_uid == "JnmokyKVSvS" &
+          code_fs == "520551034" &
+          cAnnee %in% replacement_years$cAnnee)
+    )
+
+    replacement_rows <- filter(
+      .,
+      fs_uid == "d0n2W7psb6s" & cAnnee == "2016"
+    ) %>%
+      mutate(code_fs = "520551034") %>%
+      select(-cAnnee) %>%
+      cross_join(replacement_years)
+
+    bind_rows(rows_to_keep, replacement_rows)
+  } %>%
+
   # add row for "H9S6IOY4CKL" in new 2015  
-  {rbind(., 
-         filter(., fs_uid == "H9S6IOY4CKL" & cAnnee == "OLD GESIS 2015") %>%
-           mutate(cAnnee = "NEW GESIS 2015",
-                  code_fs = "340141014"))} %>% 
+  {
+    existing_rows <- .
+
+    additional_row <- filter(
+      .,
+      fs_uid == "H9S6IOY4CKL" & cAnnee == "OLD GESIS 2015"
+    ) %>%
+      mutate(
+        cAnnee = "NEW GESIS 2015",
+        code_fs = "340141014"
+      )
+
+    bind_rows(existing_rows, additional_row)
+  } %>%
+
   # drop rows for UID noCoZFMcMVa in 2010, 2011, old 2015
-  filter(!(fs_uid == "noCoZFMcMVa" & cAnnee %in% c(2010, 2011, "OLD GESIS 2015")))
+  filter(!(fs_uid == "noCoZFMcMVa" & cAnnee %in% c(2010, 2011, "OLD GESIS 2015"))) %>%
+  verify(nrow(.) == 34816)
   # nrow # reduces from 34819 to 34816 rows
-                             
 ```
 
-Each exception should eventually be represented as auditable correction data
-or as a narrowly named rule, with before/after assertions for its affected
-records.
+Print the final row count after the remaining manual corrections.
+
+```{r}
+#| eval: true
+tar_read(pipeline_xwalk_mapping_clean_df) %>%
+  nrow()
+```
 
 :::
 
@@ -336,30 +467,34 @@ These diagnostics examine UID-year-to-GESIS multiplicity, newly introduced
 GESIS-to-UID multiplicity, and UIDs associated with multiple clinic names.
 
 ```{r}
+#| eval: true
 # 8) checks ---- 
 # how many cases of uid-year mapping to multiple GESIS?
-mapping %>% 
+tar_read(pipeline_xwalk_mapping_clean_df) %>% 
   group_by(fs_uid, cAnnee) %>% 
-  summarise(n_gesis = n_distinct(code_fs)) %>% 
+  summarise(n_gesis = n_distinct(code_fs), .groups = "drop") %>% 
   filter(fs_uid != "") %>% 
   filter(n_gesis > 1)  %>% 
-  nrow
+  verify(nrow(.) == 19)
 # 18 from before + we made another one for UID HsLE6ajNRZX in 2017 with our 
 # recent addition in 6, but both codes show up in the diagnosis dataset in 2017
+```
 
+```{r}
+#| eval: true
 # how many gesis map to more than one uid that didn't before?
-mapping %>% 
+tar_read(pipeline_xwalk_mapping_clean_df) %>% 
   group_by(code_fs) %>% 
-  summarise(n_uid = n_distinct(fs_uid)) %>% 
+  summarise(n_uid = n_distinct(fs_uid), .groups = "drop") %>% 
   filter(n_uid > 1)  %>% 
   pull(code_fs) %>% 
-  setdiff(read.csv("./data/raw/from Symphonia/mapping GESIS DHIS questions - mapping DHIS2 GESIS 2010 2022.csv") %>%
+  setdiff(read_csv(tar_read(pipeline_raw_crosswalk_file)) %>%
             rename(region_uid = UID, 
                    district_uid = `UID.1`,
                    commune_uid = `UID.2`, 
                    fs_uid = `UID.3`) %>% 
             group_by(code_fs) %>% 
-            summarise(n_uid = n_distinct(fs_uid)) %>% 
+            summarise(n_uid = n_distinct(fs_uid), .groups = "drop") %>% 
             filter(n_uid > 1)  %>% 
             pull(code_fs))
 
@@ -368,35 +503,22 @@ mapping %>%
 # for the public ones
 # "530541020" --> seems the codes got messed by between two clinics and this fixes it 
 # "530651023" --> same as above? much shorter time series for all gesis/uid involved
+```
 
+```{r}
+#| eval: true
 # does each UID have one name? 
-mapping %>% 
+tar_read(pipeline_xwalk_mapping_clean_df) %>% 
   group_by(fs_uid) %>% 
   mutate(n_name = n_distinct(FS)) %>% 
   filter(fs_uid != "") %>% 
-  filter(n_name > 1) #%>% View
+  filter(n_name > 1)
 # 2 cases where thats not true, but both reflect a change in clinic type
 ```
 
-During modernization, convert the accepted counts and exception sets into
-explicit tests while retaining inspectable diagnostic tables for unexpected
-records.
+These checks deliberately print their observed counts and exception records.
+The comments retain the reviewed expectations against which those results are
+interpreted.
 
 :::
 
-::: {.manual-procedure title="Persist The Clean Mapping"}
-
-The legacy workflow ends by writing the cleaned mapping directly to an
-intermediate CSV.
-
-```{r}
-# save the clean mapping file ----
-write.csv(mapping, "./data/intermediate/mapping_gesis_dhis2_clean.csv", 
-          row.names = FALSE)
-```
-
-The final modernization boundary can replace this side effect with a declared
-file target after all preceding transformations and checks have reproducible
-interfaces.
-
-:::
