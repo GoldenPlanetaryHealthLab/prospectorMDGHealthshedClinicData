@@ -13,13 +13,14 @@ profile:
 
 book:
   title: "Madagascar Healthshed Clinic Data Curation Manual"
-  author: "Tinshe M. Tapera"
+  author: "Tinashe M. Tapera"
   date: last-modified
   chapters:
     - index.qmd
     - part: "Project Setup"
       chapters:
         - 00_cover.qmd
+        - pipeline/mapping/legacy-pipeline-map.qmd
         - 01_misc-render-isolated.qmd
         - 02_misc-project-contract.qmd
         - 03_misc-data-governance.qmd
@@ -37,9 +38,11 @@ book:
         - pipeline/17_page-inspect-source-data.qmd
         - pipeline/18_page-prep-w3.qmd
         - pipeline/19_page-clean-mapping-dhis2-gesis.qmd
-        - pipeline/19_page-package-release.qmd
-        - pipeline/20_page-execute-pipeline.qmd
-        - pipeline/21_page-verify-release.qmd
+        - pipeline/20_page-construct-clinic-ids.qmd
+        - pipeline/21_page-construct-diagnosis-dictionary.qmd
+        - releases/19_page-package-release.qmd
+        - releases/20_page-execute-pipeline.qmd
+        - releases/21_page-verify-release.qmd
 
 execute:
   enabled: false

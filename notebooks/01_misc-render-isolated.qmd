@@ -83,6 +83,8 @@ rsync -a --delete "$stage_dir/project/docs/" "$project_dir/docs/"
 
 :::
 
+::: {.manual-procedure title="Render The Manual Or Emit Project Files"}
+
 Use the default profile for documentation and the explicit profile for file
 generation:
 
@@ -91,11 +93,16 @@ scripts/render-isolated --profile authoring
 scripts/render-isolated --profile emit
 ```
 
+:::
+
 ::: {.manual-check title="Verify The Wrapper"}
+
+Confirm shell syntax and the presence of the rendered index after the
+authoring procedure completes.
 
 ```sh
 bash -n scripts/render-isolated
-scripts/render-isolated --profile authoring --no-execute
+test -s docs/index.html
 ```
 
 :::

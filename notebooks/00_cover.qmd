@@ -8,6 +8,12 @@ engine: markdown
 
 This manual walks the reader through a declarative reproduction of the MDGHealthshedClinicData Prospector.
 
+Clinic data from Madagsascar is imported from legacy Google Drive uploads. The data
+spans several years from 2010 to 2024, with prospective data to be added 2025 onwards.
+GESIS is the prior format, where each row in a GESIS file is a count of GESIS codes
+and likewise for DHIS2 data. Diagnoses are translated and linked by several crosswalks
+and manual fixes recorded in the code.
+
 The manual should:
 
 - declaratively create a robust, reproducible computational environment;

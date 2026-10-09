@@ -31,10 +31,21 @@ Verification code belongs here only after the release contract is approved.
 
 :::
 
-::: {.manual-check title="Retain Reproducible Evidence"}
+::: {.manual-procedure title="Retain Reproducible Evidence"}
 
-Store non-disclosive verification output with the release record. Never include
+Retain verification evidence in ordinary targets or tracked Parquet file
+targets and associate it with the release record. Never include
 protected rows or values in the rendered Manual, scheduler logs, or version
 control.
+
+:::
+
+::: {.manual-check title="Confirm The Release Verification Record"}
+
+When the release targets exist, confirm that the retained record identifies
+the exact release version and artifact checksums, contains passing schema
+and disclosure checks, and reports equality with the curated products.
+The second pipeline run must leave every release target current. Until those
+results exist, this scaffold does not establish a verified release.
 
 :::

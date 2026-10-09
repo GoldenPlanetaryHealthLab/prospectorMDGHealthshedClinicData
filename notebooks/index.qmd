@@ -78,6 +78,26 @@ domain expert. Rendering this Manual never opens files under `data/`.
 
 This manual can be read in several ways.
 
+Each workflow page follows the [Quarto Manuals page contract](https://goldenplanetaryhealthlab.github.io/QuartoManual/):
+one prerequisite block establishes the starting state, one or more procedure
+blocks perform the work, and one check block verifies the outcome. Target
+declarations, file writes, and execution commands belong in procedures.
+Checks inspect the resulting targets or artifacts through assertions,
+summaries, plots, or test commands. Read the prose before each code chunk for
+its inputs, action, and expected result.
+
+Long transformations are divided into named stages so the operator can
+inspect their handoffs. Dependencies between pages live in targets and tracked
+files. The public authoring render executes no protected-data analysis;
+diagnostic chunks are for an authorized data session, and synthetic tests can
+run without the staged sources.
+
+After editing a page, check the block structure without executing its code:
+
+```sh
+python3 tests/check-manual-structure.py
+```
+
 | | Do not need to run the code | Want to run the code yourself |
 |---|---|---|
 | **Read on the web** | Read the rendered manual website for an overview of the workflow and its rationale. | Open the repository in a browser-based development environment (for example, GitHub Codespaces) and run the procedure blocks there. |

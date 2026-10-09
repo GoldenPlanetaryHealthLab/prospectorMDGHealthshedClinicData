@@ -1,4 +1,4 @@
-
+---
 title: "Curate the Healthshed Clinic Data"
 subtitle: "Translate reviewed domain decisions into targets"
 execute:
@@ -6,9 +6,7 @@ execute:
 engine: markdown
 ---
 
-This is the future source of the cleaning target declarations. It is not yet
-registered in `_targets.R` because inspecting filenames does not justify
-guessing a schema or transformation.
+This page declares the Wave 3 preparation targets tangled by `_targets.R`.
 
 ::: {.manual-prereq title="Approve The Curation Contract"}
 
@@ -18,10 +16,47 @@ rules, and disclosure controls.
 
 :::
 
-::: {.manual-procedure title="Prep Raw RMA_DEPSI Files"}
+::: {.manual-procedure title="Declare The Parquet Transformation Boundary"}
+
+Declare the shared file-to-file transformation used by this page and by the
+clinic-month inventory. Each caller supplies its dependencies and output path.
+
+The helper below opens Parquet inputs with automatic materialization into R
+disabled, applies the supplied transformation, and writes the result through
+DuckDB. Only the output path crosses the target boundary. Input paths, output
+paths, and transformation dependencies stay explicit at each call site.
+
+```{r}
+s0_pipeline_parquet_transform_fn <- function(
+  input_paths, output_path, transform, read_options = list()
+) {
+  input_paths <- unname(as.character(input_paths))
+  stopifnot(
+    length(input_paths) > 0L,
+    all(file.exists(input_paths)),
+    length(output_path) == 1L, !is.na(output_path), nzchar(output_path),
+    is.function(transform)
+  )
+
+  relation <- duckplyr::read_parquet_duckdb(
+    input_paths,
+    prudence = "stingy",
+    options = read_options
+  )
+  result <- transform(relation)
+
+  dir.create(dirname(output_path), recursive = TRUE, showWarnings = FALSE)
+  duckplyr::compute_parquet(result, output_path)
+  output_path
+}
+```
+
+:::
+
+::: {.manual-procedure title="Read One Raw RMA File With Explicit Types"}
 
 In this first section of the script, we take raw files and prepare them
-by aggregating them into a single CSV, one row per
+by aggregating them into a tracked Parquet file, one row per
 clinic-year-month, and one column per health outcome-age-sex.
 
 Applies only to 2020-2022 data.
@@ -36,7 +71,7 @@ library(openxlsx)
 library(duckplyr)
 library(cli)
 
-tar_load(pipeline_raw_input_files_paths)
+tar_load(s0_pipeline_inputs_raw_chr)
 ```
 
 
@@ -47,7 +82,7 @@ list allows us to force `DOUBLE` and `VARCHAR` types:
 
 
 ```{r}
-read_csv_nonlogical <- function(filepath){
+s0_clinic_RMA_read_nonlogical_fn <- function(filepath){
 
   readr_spec <- spec_csv(filepath) 
   spec_names <- names(readr_spec$cols)
@@ -88,13 +123,20 @@ read_csv_nonlogical <- function(filepath){
 
 ```
 
+:::
+
+::: {.manual-procedure title="Declare The Clinic-Month Maximum Reduction"}
+
+Define the reducer shared by the per-file and cross-file aggregation stages.
+Missing grouping keys fail before a result can be written.
+
 The reductions below use operations that `duckplyr` translates to DuckDB.
 DuckDB's `MAX()` ignores null values and returns null for an all-null group,
 which preserves the behavior of the previous `max_or_na()` helper without
 materializing columns in R.
 
 ```{r}
-summarise_group_max <- function(df) {
+s0_clinic_RMA_summarise_group_max_fn <- function(df) {
   grouping_columns <- c("organisationunitid", "periodname")
   missing_grouping_columns <- setdiff(grouping_columns, names(df))
   if (length(missing_grouping_columns)) {
@@ -114,13 +156,24 @@ summarise_group_max <- function(df) {
     )
 }
 
-process_csv_safely <- function(csv_path, output_path=here("data/intermediates"), drop_cols = c("organisationunitcode", "organisationunitdescription")) {
+```
+
+:::
+
+::: {.manual-procedure title="Write One Reduced Parquet Branch"}
+
+Read one source file, remove redundant columns, compute its clinic-month
+maxima, and write the branch artifact. The small row-count diagnostics are
+collected for the execution log; the measurement table stays in DuckDB.
+
+```{r}
+s0_clinic_RMA_process_csv_fn <- function(csv_path, output_path=here("data/intermediates"), drop_cols = c("organisationunitcode", "organisationunitdescription")) {
   stopifnot(length(csv_path) == 1L, file.exists(csv_path))
   
   cli_alert_info(paste("Working on:", csv_path))
   
   # Read file with type-safe reader
-  temp_df <- read_csv_nonlogical(csv_path)
+  temp_df <- s0_clinic_RMA_read_nonlogical_fn(csv_path)
   
   # Drop the extra columns if they exist
   temp_df <- temp_df %>%
@@ -148,7 +201,7 @@ process_csv_safely <- function(csv_path, output_path=here("data/intermediates"),
   ))
   
   # Description fields are assigned VARCHAR when the CSV relation is created.
-  result = summarise_group_max(temp_df)
+  result = s0_clinic_RMA_summarise_group_max_fn(temp_df)
   
   dir.create(dirname(output_path), recursive = TRUE, showWarnings = FALSE)
   compute_parquet(result, output_path)
@@ -157,7 +210,7 @@ process_csv_safely <- function(csv_path, output_path=here("data/intermediates"),
 }
 ```
 
-`process_csv_safely()` intentionally accepts exactly one path, and never holds other input tables in
+`s0_clinic_RMA_process_csv_fn()` intentionally accepts exactly one path, and never holds other input tables in
 memory. `_targets.R` selects the `RMA_W3_FULL` paths and defines a dynamic
 `map()` branch for each path outside this notebook. That makes each CSV
 independently schedulable and means the branch artifacts contain parquet files
@@ -180,13 +233,13 @@ rule for every non-grouping field; a later curation decision should define
 field-specific behavior for names, descriptions, and codes rather than treating
 a lexicographic character maximum as scientific metadata.
 
-::: {.callout-warning title="Current stopping point: declare the final DuckDB aggregation"}
+::: {.callout-warning title="Why aggregation stays in DuckDB"}
 
 The per-file reductions completed, but the final target was OOM-killed in a
 120 GiB Slurm allocation. The diagnostic evidence is that files can have zero
 duplicate clinic-month keys. In that situation, a per-file group maximum has
-nearly the same cardinality as the input, so the final target still needs to
-materialize all branch summaries at once. Increasing the requested memory is
+nearly the same cardinality as the input, so the previous R-based final target
+needed to materialize all branch summaries at once. Increasing the requested memory is
 not the next proposed experiment.
 
 The per-file target now implements a disk-backed DuckDB/duckplyr boundary. Its
@@ -197,9 +250,9 @@ stages are:
 2. execute each per-file clinic-month `MAX` reduction in DuckDB;
 3. write each branch result to Parquet without materializing it in R.
 
-The remaining implementation step is to read all branch Parquet paths as one
-DuckDB relation, execute the final clinic-month reduction, and persist that
-result through another file target.
+The final target below reads all branch Parquet paths as one DuckDB relation,
+executes the final clinic-month reduction, and persists that result through
+another file target.
 
 The aim is to preserve the original code's transformation logic as closely as
 possible. The change is the execution engine and storage boundary, not a
@@ -210,60 +263,24 @@ rule. DuckDB and duckplyr are declared runtime dependencies.
 
 :::
 
-When the per-file target is complete, its branches should be available:
+:::
 
-```{r}
-tar_branches(clinic_raw_data_RMA_W3_within_file_group_max_df)
-```
+::: {.manual-procedure title="Combine The Reduced Branches"}
 
-We use the function below to calculate the group maxes for the full
-dataset:
-```{r}
-write_group_max_parquet <- function(input_paths, output_path) {
-  
-  input_paths <- input_paths |>
-    as.character() |>
-    unname()
+Apply the same reduction to the branch files to obtain one tracked group-maximum
+artifact. No raw measurement table needs to be collected into R.
 
-  stopifnot(
-    length(input_paths) > 0L,
-    all(file.exists(input_paths))
-  )
-
-  relation <- read_parquet_duckdb(
-    input_paths,
-    options = list(union_by_name = TRUE)
-  )
-
-  result <- summarise_group_max(relation)
-
-  dir.create(
-    dirname(output_path),
-    recursive = TRUE,
-    showWarnings = FALSE
-  )
-
-  compute_parquet(result, output_path)
-
-  output_path
-}
-
-```
-
-Now, to calculate the group maxes:
+Calculate the group maxima across all branch artifacts with the shared helper.
+`union_by_name` preserves columns that occur in only some source files.
 
 ```{r}
 #| format: file
-clinic_RMA_W3_group_max_parquet_path <- write_group_max_parquet(
-  clinic_RMA_W3_parquet_paths,
-  "data/intermediates/RMA_W3_group_max.parquet"
+s0_clinic_RMA_W3_group_max_parquet <- s0_pipeline_parquet_transform_fn(
+  input_paths = s0_clinic_RMA_W3_within_file_max_parquet,
+  output_path = "data/intermediates/RMA_W3_group_max.parquet",
+  transform = s0_clinic_RMA_summarise_group_max_fn,
+  read_options = list(union_by_name = TRUE)
 )
-```
-
-The group max summary target looks like this:
-#TODO: how to skim() duckdb parquet
-```{r}
-tar_read(clinic_RMA_W3_group_max_df)
 ```
 
 :::
@@ -274,58 +291,62 @@ Our next step is to crosswalk the clinic data with GESIS DHIS data to get the
 exact questions for each measure.
 
 ```{r}
-pipeline_xwalk_raw_path <- pipeline_raw_input_files_paths |>
+#| format: file
+s0_gesis_xwalk_raw_csv <- s0_pipeline_inputs_raw_chr |>
   str_subset("mapping DHIS2 GESIS 2010 2022")
+```
 
-pipeline_xwalk_dhis_gesis_df <- read_csv(pipeline_raw_crosswalk_file) |>
+```{r}
+s0_gesis_xwalk_nonmissing_uid_df <- read_csv(s0_gesis_xwalk_raw_csv) |>
   select(UID...12, code_fs, TYPE, FS) |>
   rename(organisationunitid = UID...12) |> #correct the naming of organisationunitid
   distinct() |>                            #tidy up missingness
   filter(!is.na(organisationunitid))
 ```
 
-A quick skim of the crosswalk file:
+:::
 
-```{r}
-#library(skimr)
-```
+::: {.manual-procedure title="Write The Cleaned Wave 3 Table"}
+
+Use the descriptive crosswalk and the reviewed period-specific substitutions
+to produce the cleaned Parquet artifact.
 
 Lastly, we `left_join` the RMA wave 3 data with this crosswalk on Organisation.
 The last bit of cleaning correctly maps diagnoses that changed names slightly between wave 3 subwaves
 
 ```{r}
-clinic_RMA_W3_clean_parquet_path <- read_parquet_duckdb(clinic_RMA_W3_group_max_parquet_path) |>
-  left_join(as_duckdb_tibble(pipeline_xwalk_dhis_gesis_df), by = "organisationunitid") |>
-  mutate(
-    # rows of AME where periodcode > 202300 should be values of AME prem;
-    `T13: AME 0-6 mois` = if_else(
-      periodcode > 202300,  `T13: AME premiere heure 0-6 mois`, `T13: AME 0-6 mois`
-    ),
-    # etc
-    `T13: AME 1ère heure` = if_else(
-      periodcode > 202300, `T13: AME premiere heure 1ère heure`, `T13: AME 1ère heure`
-    ),
-    `MIDs pour groupe à risque (migrants/réfugiés/personnes déplacées)` = if_else(
-      periodcode > 202300, `CHU CHRR T26 MIDs pour groupe à risque (migrants/réfugiés/personnes déplacées)`, `MIDs pour groupe à risque (migrants/réfugiés/personnes déplacées)`
-    )
-  ) |>
-  # remove redundant
-  select(
-    -any_of(c(
-      "T13: AME premiere heure 0-6 mois",
-      "T13: AME premiere heure 1ère heure",
-      "CHU CHRR T26 MIDs pour groupe à risque (migrants/réfugiés/personnes déplacées)"
-    ))
-  ) |>
-  mutate(V1 = row_number() - 1L) |>
-  select(V1, everything()) %>%
-  {
-    path <- here("data/intermediates/clinic_RMA_W3_clean.parquet")
-
-    compute_parquet(., path)
-
-    path
+#| format: file
+s0_clinic_RMA_W3_clean_parquet <- s0_pipeline_parquet_transform_fn(
+  input_paths = s0_clinic_RMA_W3_group_max_parquet,
+  output_path = here("data/intermediates/clinic_RMA_W3_clean.parquet"),
+  transform = function(relation) {
+    relation |>
+      left_join(as_duckdb_tibble(s0_gesis_xwalk_nonmissing_uid_df), by = "organisationunitid") |>
+      mutate(
+        # rows of AME where periodcode > 202300 should be values of AME prem;
+        `T13: AME 0-6 mois` = if_else(
+          periodcode > 202300,  `T13: AME premiere heure 0-6 mois`, `T13: AME 0-6 mois`
+        ),
+        # etc
+        `T13: AME 1ère heure` = if_else(
+          periodcode > 202300, `T13: AME premiere heure 1ère heure`, `T13: AME 1ère heure`
+        ),
+        `MIDs pour groupe à risque (migrants/réfugiés/personnes déplacées)` = if_else(
+          periodcode > 202300, `CHU CHRR T26 MIDs pour groupe à risque (migrants/réfugiés/personnes déplacées)`, `MIDs pour groupe à risque (migrants/réfugiés/personnes déplacées)`
+        )
+      ) |>
+      # remove redundant
+      select(
+        -any_of(c(
+          "T13: AME premiere heure 0-6 mois",
+          "T13: AME premiere heure 1ère heure",
+          "CHU CHRR T26 MIDs pour groupe à risque (migrants/réfugiés/personnes déplacées)"
+        ))
+      ) |>
+      mutate(V1 = row_number() - 1L) |>
+      select(V1, everything())
   }
+)
 ```
 :::
 
@@ -334,6 +355,33 @@ work here, due to the fact that the data is now in a Parquet and row numbers
 are only computed at evaluation time.
 
 ::: {.manual-check title="Prove Curation Against The Contract"}
+
+Inspect the completed branches and the persisted summary in an authorized
+data session. The first expression lists tracked branches. The second
+collects only an aggregate row count from the completed artifact.
+
+```{r}
+tar_branches(s0_clinic_RMA_W3_within_file_max_parquet)
+```
+
+```{r}
+tar_read(s0_clinic_RMA_W3_group_max_parquet) |>
+  read_parquet_duckdb(prudence = "stingy") |>
+  summarise(clinic_month_rows = n()) |>
+  collect()
+```
+
+
+Run the synthetic Parquet regression check from the repository root:
+
+```sh
+scripts/mdg-healthshed-clinic-data exec Rscript tests/check-w3-parquet-transforms.R
+```
+
+It evaluates the two Parquet target commands with temporary inputs and compares
+their results against an independent in-memory reference. It covers differing
+source schemas, all-missing groups, maxima, crosswalk joins, and period-specific
+column corrections without building pipeline targets or reading staged data.
 
 Future checks must test the documented invariants and compare observed
 exceptions with reviewer-approved expectations. “The code ran” is not

@@ -1,0 +1,153 @@
+---
+title: "Execute the Pipeline"
+subtitle: "Keep rendering and scientific execution separate"
+execute:
+  eval: false
+engine: markdown
+---
+
+The graph inventories staged paths and dynamically branches the approved W3
+CSV preparation and legacy clinic-month inventory work. Branching is declared
+here rather than in the transformation notebooks: each notebook defines
+one-file transformation logic, while this graph defines dependencies and the
+scheduler can distribute independent branches. Clinic-month branches track one
+Parquet file per monthly member of the staged ZIP. Page 20 combines their paths
+into a single Parquet inventory before collecting the reduced identity table.
+Page 21 constructs the cross-wave diagnosis dictionary from the prepared
+Wave 3 schema and archived source dictionaries and translations.
+
+::: {.callout-note title="Track Data At Each Target Boundary"}
+
+The current graph executes each per-file maximum in DuckDB and writes the
+result to a branch-specific Parquet file. `targets` stores those file paths
+rather than attempting to serialize live duckplyr relations. Page 18 declares
+the final cross-file aggregation and cleaned Parquet output, included through
+`tar_tangle()`. In-memory tables remain ordinary data targets; source files
+and derived Parquet paths use `format = "file"` so their contents are tracked.
+
+:::
+
+::: {.manual-prereq title="Confirm The Execution Boundary"}
+
+The runtime image and frozen R package library must exist. Approved inputs must
+be staged under `data/inputs`. Rendering the Manual is not pipeline execution.
+
+:::
+
+:::: {.emit-source-r file="{{ emit.project_root }}/_targets.R"}
+::: {.manual-procedure title="Emit The Targets Graph"}
+
+```r
+library(targets)
+library(tarchetypes)
+
+tar_option_set(
+  packages = c(
+    "duckplyr", "assertr", "tibble", "here", "readr", "readxl", "stringi", "cli", "glue", "purrr", "stringr", "dplyr", "tidyr"
+  )
+)
+
+list(
+  tarchetypes::tar_tangle(
+    "notebooks/pipeline/16_page-stage-inputs.qmd"
+  ),
+  tarchetypes::tar_tangle(
+    "notebooks/pipeline/18_page-prep-w3.qmd"
+  ),
+  tar_target(
+    s0_clinic_RMA_W3_raw_csv,
+    s0_pipeline_inputs_raw_chr %>%
+      str_subset("RMA_W3_FULL"),
+    format = "file"
+  ),
+  tar_target(
+    s0_clinic_RMA_W3_within_file_max_parquet,
+    s0_clinic_RMA_process_csv_fn(
+      s0_clinic_RMA_W3_raw_csv,
+      file.path(
+        "data/intermediates/RMA_W3",
+        paste0(tar_name(), ".parquet")
+      )
+    ),
+    pattern = map(s0_clinic_RMA_W3_raw_csv),
+    format = "file"
+  ),
+  tarchetypes::tar_tangle(
+    "notebooks/pipeline/19_page-clean-mapping-dhis2-gesis.qmd"
+  ),
+  tarchetypes::tar_tangle(
+    "notebooks/pipeline/20_page-construct-clinic-ids.qmd"
+  ),
+  tarchetypes::tar_tangle(
+    "notebooks/pipeline/21_page-construct-diagnosis-dictionary.qmd"
+  ),
+  tar_target(
+    s2_clinic_months_deduplicated_parquet,
+    s2_clinic_months_write_member_fn(
+      s2_clinic_months_raw_zip,
+      s2_clinic_months_members_chr,
+      file.path(
+        "data/intermediates/clinic_months",
+        paste0(tar_name(), ".parquet")
+      )
+    ),
+    pattern = map(s2_clinic_months_members_chr),
+    format = "file"
+  )
+)
+```
+
+:::
+::::
+
+::: {.manual-procedure .emit-script-sh file="{{ emit.project_root }}/scripts/run-pipeline.R" mode="0755" title="Emit The Pipeline Entry Point"}
+
+```r
+#!/usr/bin/env Rscript
+
+script_arg <- grep("^--file=", commandArgs(trailingOnly = FALSE), value = TRUE)
+script_path <- if (length(script_arg)) sub("^--file=", "", script_arg[[1]]) else ""
+if (!nzchar(script_path)) {
+  stop("Could not determine the pipeline runner path.")
+}
+
+repository_root <- normalizePath(
+  file.path(dirname(script_path), ".."),
+  mustWork = TRUE
+)
+setwd(repository_root)
+targets::tar_make()
+```
+
+:::
+
+::: {.manual-procedure title="Execute The Declared Graph"}
+
+Run the graph explicitly after reviewing the target declarations. This builds
+the scientific products; rendering the preceding code only emits the runner
+and graph.
+
+```sh
+scripts/mdg-healthshed-clinic-data exec uvr run scripts/run-pipeline.R
+```
+
+:::
+
+::: {.manual-check title="Verify The Initial Graph"}
+
+```sh
+scripts/mdg-healthshed-clinic-data exec Rscript -e \
+  'stopifnot(all(c("s0_pipeline_inputs_raw_chr", "s0_clinic_RMA_W3_raw_csv", "s0_clinic_RMA_W3_within_file_max_parquet", "s2_clinic_months_deduplicated_parquet", "s2_clinic_months_inventory_parquet") %in% targets::tar_manifest()$name))'
+```
+
+The declaration check above can run before a build. After execution, confirm
+that no target reports an error and that the graph is current; neither command
+builds the targets again.
+
+```sh
+scripts/mdg-healthshed-clinic-data exec Rscript -e \
+  'errors <- targets::tar_meta(fields = error)$error
+   stopifnot(!any(!is.na(errors) & nzchar(errors)), length(targets::tar_outdated()) == 0L)'
+```
+
+:::

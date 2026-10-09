@@ -6,7 +6,7 @@ execute:
 engine: markdown
 ---
 
-The existing `data/raw` directory is the pipeline's immutable input boundary.
+The existing `data/inputs` directory is the pipeline's immutable input boundary.
 This first target records which staged files exist, but does not open them.
 
 ::: {.manual-prereq title="Confirm Staging Authority"}
@@ -30,14 +30,16 @@ inputs ready and the targets file added with `tar_tangle(<NOTEBOOK>)`.
 
 The root `_targets.R` tangles this assignment into the initial graph. It
 observes paths only when the pipeline is explicitly executed.
+Both the manifest and the staged files use `format = "file"`: the inventory
+returns paths, and `targets` tracks the contents of those files.
 
 ```{r}
 #| format: file
-pipeline_stagecoach_manifest_path <- here("stagecoach_manifest.yml")
-pipeline_raw_input_files_paths <- {
+s0_pipeline_stagecoach_yml <- here("stagecoach_manifest.yml")
+s0_pipeline_inputs_raw_chr <- {
 
   stopifnot({
-    file.exists(pipeline_stagecoach_manifest_path)
+    file.exists(s0_pipeline_stagecoach_yml)
   })
   input_dir <- here::here("data", "inputs")
   if (!dir.exists(input_dir)) {

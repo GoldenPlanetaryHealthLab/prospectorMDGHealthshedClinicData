@@ -10,12 +10,11 @@ This page quickly catalogs and summarizes the available data.
 
 ::: {.manual-prereq title="Inputs Staged Successfully"}
 
-```{r}
-library(targets)
-library(dplyr)
-library(skimr)
+The staged-input inventory target from page 16 must have completed. Confirm
+that its file paths can be read from the target store before inspecting data.
 
-tar_load(pipeline_raw_input_files_paths)
+```{r}
+stopifnot(all(file.exists(targets::tar_read(s0_pipeline_inputs_raw_chr))))
 ```
 
 :::
@@ -23,9 +22,17 @@ tar_load(pipeline_raw_input_files_paths)
 ::: {.manual-procedure title="Document The Input Data"}
 
 ```{r}
+library(targets)
+library(dplyr)
+library(skimr)
 
+tar_load(s0_pipeline_inputs_raw_chr)
 ```
-#TODO
+
+Use this target-backed inventory in an authorized data session to document
+the source schema, record grain, keys, reporting periods, and missing-value
+conventions. This scaffold does not yet declare source-specific analysis;
+record the reviewed contract before adding readers or curation targets.
 :::
 
 ::: {.manual-check title="Confirm The Inspection Decision"}

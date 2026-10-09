@@ -1,0 +1,1441 @@
+---
+title: "Map the Legacy Clinic Pipeline to Notebooks"
+subtitle: "Responsibilities, data handoffs, and migration context for every archived script"
+date: 2026-10-26
+toc: true
+execute:
+  eval: false
+engine: markdown
+---
+
+## How to use this map
+
+The legacy source is `sandbox/madagascar_clinic_data_cleaning/scripts/`.
+This page maps all 11 files in that directory to the pipeline notebooks that
+carry, or would carry, their responsibilities. The summaries below come from
+reading those files and the current notebooks; the legacy scripts were not
+executed to prepare this map. Counts recorded in legacy comments are historical
+observations, not newly verified results.
+
+Source links use GitHub line anchors pinned to the local legacy checkout's
+commit `31e0769683e133e136b09ac0c6608c5a12657a9a`. The line ranges and file contents were
+checked locally against that commit; the GitHub URLs were not accessed. Pinning
+the revision keeps these references stable if the upstream branch changes.
+References to commented code are identified as such in the descriptions.
+
+Artifact paths in the script summaries retain the legacy layout and spelling
+so that missing or inconsistent handoffs remain visible. They describe the
+old workflow; replacement storage locations still follow the new project's
+staging and release contracts.
+
+**Existing, in development** means a replacement notebook contains relevant
+code, not that migration or equivalence testing is complete. **Proposed** means
+the destination notebook does not yet exist. Proposed names describe a possible
+continuation of the current notebook sequence; they do not create targets or
+settle how many execution steps each notebook should contain.
+
+Each implementation notebook should explain the scientific operation before
+its code: what one row represents, which input supplies each decision, what
+changes between stages, and what evidence would establish that the result is
+correct. A notebook can contain several targets while retaining one coherent
+responsibility.
+
+## Workflow data storage convention
+
+Across our workflows, keep all data in `targets` objects or in Parquet files
+tracked as file targets. In-memory tables, lists, and spatial `sf` objects
+remain ordinary targets. When a transformation persists data outside the
+target store, it writes Parquet and returns the path from a target declared
+with `format = "file"`. A path stored in an ordinary character target does
+not itself track the file's contents. A `_parquet` suffix documents the
+format; it does not replace the file-target declaration.
+
+Staged source files retain their original CSV, Excel, ZIP, or spatial formats
+and provenance, and are also tracked as file targets. Temporary extraction
+and scratch files can exist within a target's execution; downstream stages
+consume the returned object or tracked Parquet artifact. Diagnostic notebook
+queries use `tar_read()` or `tar_load()` and do not create separate persistent
+data copies. Ordinary targets may use RDS internally in the target store;
+the convention concerns how workflow data is handed between stages.
+
+In tangled notebooks, `#| format: file` applies to every assignment in that
+code chunk. Keep path declarations in separate chunks from in-memory data
+transformations so tables are not accidentally declared as file paths.
+
+The legacy filenames below remain historical evidence. Replacement handoffs
+follow this convention, including recommendations for notebooks still to be
+implemented.
+
+| Pages | Data boundary |
+| --- | --- |
+| [16 — Stage inputs](../16_page-stage-inputs.qmd) | Manifest and staged-file inventory are file targets. |
+| [17 — Inspect sources](../17_page-inspect-source-data.qmd) | Inspection reads the target-backed inventory; no persistent data copies are declared. |
+| [18 — Prepare Wave 3](../18_page-prep-w3.qmd) | Raw CSV paths are file targets; reduced and cleaned tables are tracked Parquet files; the small descriptive crosswalk is an ordinary data target. |
+| [19 — Clean mapping](../19_page-clean-mapping-dhis2-gesis.qmd) | Reviewed source paths are file targets; mapping stages are ordinary data targets reused downstream. |
+| [20 — Construct clinic IDs](../20_page-construct-clinic-ids.qmd) | Raw inputs and Parquet inventories are file targets; ID transformations are ordinary data targets; the persisted crosswalk is one Parquet file target. |
+| [21 — Construct dictionary](../21_page-construct-diagnosis-dictionary.qmd) | Small dictionaries and translation provenance stay in targets; the prepared Wave 3 schema is read without collecting measurements; the final dictionary is a Parquet file target. |
+| [Release packaging](../../releases/19_page-package-release.qmd), [execution](../../releases/20_page-execute-pipeline.qmd), and [verification](../../releases/21_page-verify-release.qmd) | The graph tracks data objects and Parquet artifacts; future packaging and verification consume those products and retain metadata and evidence in targets. |
+| Setup and infrastructure pages | Declare configuration and runtime artifacts; they do not persist scientific data. |
+
+Check the graph's storage declarations and the clinic-ID Parquet round trip
+with synthetic data from the repository root:
+
+```sh
+scripts/mdg-healthshed-clinic-data exec Rscript tests/check-data-storage-convention.R
+```
+
+## Script-to-notebook crosswalk
+
+Existing notebook links are relative to this page. Proposed filenames are
+shown as text because those files have not been created. Unless stated
+otherwise, destinations are under `notebooks/pipeline/`.
+
+| Legacy file | Replacement notebook or responsibility | Migration state |
+| --- | --- | --- |
+| [0_prep_w3_kevin_translated.R][legacy-w3] | [18_page-prep-w3.qmd](../18_page-prep-w3.qmd): prepare the wide Wave 3 table | Existing, in development |
+| [1_clean_mapping_dhis2_gesis.R][legacy-mapping] | [19_page-clean-mapping-dhis2-gesis.qmd](../19_page-clean-mapping-dhis2-gesis.qmd): clean the year-aware facility mapping | Existing, in development |
+| [2_wave1-2_construct_clinicID.R][legacy-identity] | [20_page-construct-clinic-ids.qmd](../20_page-construct-clinic-ids.qmd): construct longitudinal clinic identities | Existing, in development |
+| [3_construct_dictionary.R][legacy-dictionary] | [21_page-construct-diagnosis-dictionary.qmd](../21_page-construct-diagnosis-dictionary.qmd): define comparable diagnosis variables across waves | Existing, in development |
+| [4A_clean_clinic_diagnosis.R][legacy-diagnosis] | `22_page-clean-clinic-diagnosis.qmd`: apply the identity and diagnosis mappings to measurements | Proposed |
+| [4B_clean_clinic_diagnosis.slurm][legacy-slurm] | [Execute the Pipeline](../../releases/20_page-execute-pipeline.qmd), supported by the [runtime runner](../../infrastructure/15_page-runner.qmd): launch scientific execution | Existing execution framework; diagnosis scheduling still to migrate |
+| [5_clean_sect2022_construct_healthsheds.R][legacy-sheds] | `23_page-construct-healthsheds.qmd`: reconcile 2022 sectorization and build clinic catchments | Proposed |
+| [6_locate_clinics.R][legacy-location] | `24_page-locate-clinics.qmd`: compare coordinate sources and select clinic locations | Proposed |
+| [7_combine_clinic_metadata.R][legacy-metadata] | `25_page-combine-clinic-metadata.qmd`: assemble reporting histories and spatial metadata | Proposed |
+| [999_utility_functions.R][legacy-utilities] | Explain helpers in their owning notebooks: the CSV reader in [18](../18_page-prep-w3.qmd), spatial matching helpers in proposed `23_page-construct-healthsheds.qmd` | CSV reader adapted; spatial helpers not migrated |
+| [data_checks.R][legacy-checks] | [17_page-inspect-source-data.qmd](../17_page-inspect-source-data.qmd) for source comparisons; assertions in the relevant transformation notebooks; proposed `26_page-validate-migration.qmd` for comparisons between legacy and replacement outputs | Inspection scaffold exists; consolidated validation not migrated |
+
+[16_page-stage-inputs.qmd](../16_page-stage-inputs.qmd) supplies the common
+input inventory. It replaces the scattered assumptions about local input
+directories across the legacy scripts, rather than replacing one particular
+scientific script.
+
+## How the responsibilities connect
+
+Three different kinds of mapping are involved. The **facility mapping** links
+a year-specific GESIS code to a DHIS2 facility UID. The **clinic identity
+crosswalk** follows a clinic through code and name changes. The **diagnosis
+dictionary** defines comparable measurement variables across reporting systems.
+The first two identify who reported; the third defines what was reported.
+
+The spatial branch assigns administrative areas called fokontany (FKT) to
+clinics and unions their polygons into healthsheds. These are based on the
+2022 sectorization. Their use alongside earlier reporting data does not itself
+establish historical catchment boundaries.
+
+The diagram shows the intended scientific handoffs, including proposed
+notebooks. It is a responsibility map, not a claim that all these dependencies
+are already implemented in `_targets.R`.
+
+```{mermaid}
+flowchart TD
+  W3["18: Prepare Wave 3"] --> D["21 proposed: Diagnosis dictionary"]
+  M["19: Clean facility mapping"] --> I["20: Construct clinic IDs"]
+  M --> H["23 proposed: Sectorization and healthsheds"]
+  W3 --> C["22 proposed: Clean diagnosis data"]
+  D --> C
+  I --> C
+  I --> L["24 proposed: Locate clinics"]
+  H --> L
+  C -->|Reporting history| F["25 proposed: Combine clinic metadata"]
+  I --> F
+  H --> F
+  L --> F
+```
+
+The Wave 3 preparation script also reads the original facility mapping to
+attach descriptive columns. It does not read the cleaned mapping produced by
+script 1. That separate use is described below because it affects join
+cardinality and should remain visible during migration.
+
+## 0 — Prepare the Wave 3 source table
+
+**Source:** [0_prep_w3_kevin_translated.R][legacy-w3].
+**Destination:** [18_page-prep-w3.qmd](../18_page-prep-w3.qmd).
+
+This script translates the earlier Wave 3 preparation into R. It recursively
+reads the RMA CSV exports, adjusts inferred logical columns to numeric so that
+sparsely populated measurements can be read, drops two organisation-unit
+description/code fields, and combines the tables. It then groups by
+`organisationunitid` and `periodname`, taking the maximum of each remaining
+field and replacing numeric negative infinity from all-missing groups with
+missing values. This is a maximum rule, not an addition of reports.
+See [CSV type handling, lines 25–38][w3-reader];
+[file discovery, column removal, and combination, lines 43–81][w3-ingest];
+[maximum reduction, lines 161–168][w3-max].
+
+Next, it reads the original DHIS2–GESIS mapping, selects facility UID, GESIS
+code, type, and name, removes exact duplicates and missing UIDs, and joins
+those attributes to the Wave 3 data by UID alone. It adds the legacy `V1` row
+index. Finally, for periods after `202300`, it substitutes three renamed
+breastfeeding and mosquito-net fields into their earlier column names and
+drops the replacement columns.
+See [crosswalk preparation, lines 191–212][w3-crosswalk];
+[UID join and row index, lines 233–243][w3-join];
+[period-specific substitutions, lines 264–272][w3-substitutions].
+
+**Handoff:** the script writes
+`data/raw/from_Kevin/wave3_with_keys_may2_v3.csv`. Scripts 3 and 4A instead read
+`wave3_with_keys.csv`. The prepared table supplies both measurements and the
+column names/order used by the diagnosis dictionary.
+See [script 0 output, lines 274–275][w3-output];
+[script 3 input and column numbering, lines 31–48][dictionary-w3-input];
+[script 4A input, line 249][diagnosis-w3-input].
+
+**Context for notebook 18:** explain the two reductions now used to avoid
+holding all source tables in R: maximum within each file, then maximum across
+the file summaries. Explain all-missing behavior separately from zero values.
+The UID-only descriptive join can repeat a row when a UID has several mapping
+records; grouping the mapping by UID in the legacy script did not make it
+unique. Record the expected cardinality rather than assuming one UID implies
+one output row. The script's opening comment limits scope to 2020–2022, but its
+reader is recursive and its final substitutions explicitly address 2023; the
+actual supported input period needs an explicit contract.
+See [stated scope, lines 1–6][w3-scope];
+[recursive reader, lines 51–53][w3-recursion];
+[2023 substitutions, lines 264–272][w3-substitutions].
+
+The replacement notebook already contains the per-file DuckDB reader and
+reducer, cross-file reduction, descriptive join, and substitutions. Its
+stopping-point prose and crosswalk input variable names are not yet consistent
+with all of that code. Treat it as a migration in progress.
+
+## 1 — Clean the DHIS2–GESIS facility mapping
+
+**Source:** [1_clean_mapping_dhis2_gesis.R][legacy-mapping].
+**Destination:** [19_page-clean-mapping-dhis2-gesis.qmd](../19_page-clean-mapping-dhis2-gesis.qmd).
+
+This script prepares the bridge between historical GESIS facility codes and
+DHIS2 UIDs. It reads the original mapping and gives the four UID columns
+explicit region, district, commune, and facility names. It removes 2022 and
+the invalid `Belalanda` code, applies reviewed GESIS-code corrections, and
+fills a known missing facility UID.
+See [source mapping and exclusions, lines 11–18][mapping-input];
+[code checks, corrections, and known UID fill, lines 25–58][mapping-corrections].
+
+The remaining work applies the reviewed workbooks and CSVs: fill other missing
+UIDs; interpret annotations for UID-years associated with multiple GESIS
+codes as keep, rename, or delete decisions; add reviewed codes absent from the
+original mapping; and apply individual corrections discovered while comparing
+the mapping with diagnosis data. Deletions use the relevant year, code, and
+UID so that an unrelated record sharing a code is not removed accidentally.
+See [additional UID fills, lines 64–71][mapping-fill];
+[annotation interpretation, lines 83–89][mapping-decisions];
+[keyed deletions and renames, lines 143–163][mapping-apply];
+[missing-code additions, lines 175–196][mapping-additions];
+[individual corrections, lines 201–231][mapping-manual].
+
+**Handoff:** `data/intermediate/mapping_gesis_dhis2_clean.csv`. Script 2 uses
+it to assign clinic identities, and script 5 uses its 2018 records to recover
+historical sectorization links. The new notebook exposes
+`s1_gesis_xwalk_clean_df` for downstream targets.
+See [legacy mapping output, lines 277–278][mapping-output];
+[script 2 mapping use, lines 57–79][identity-mapping-input];
+[script 5 historical mapping use, lines 309–328][sheds-mapping-input].
+
+**Context for notebook 19:** each correction needs its source evidence, join
+keys, expected effect, and a diagnostic. A GESIS code may legitimately map to
+different UIDs over time, and a UID-year may retain multiple GESIS codes; a
+global one-to-one assertion would change the legacy interpretation. The
+notebook already separates the eight legacy stages and retains multiplicity
+and name checks. Those checks document exceptions to interpret, not a reason
+to merge or discard records automatically.
+See [legacy multiplicity and name diagnostics, lines 235–274][mapping-diagnostics].
+
+## 2 — Construct longitudinal clinic identities for Waves 1–2
+
+**Source:** [2_wave1-2_construct_clinicID.R][legacy-identity].
+**Destination:** [20_page-construct-clinic-ids.qmd](../20_page-construct-clinic-ids.qmd).
+
+The script starts from an inventory of distinct clinic records in each monthly
+file. The six identifying fields are clinic name, year, month, commune code,
+facility code, and source-file number (`fname`). Its active code reads an
+already saved inventory; the code that originally built that inventory is
+commented out.
+See [commented inventory construction and active read, lines 22–37][identity-inventory].
+
+It corrects facility codes using the reviewed workbook and joins the cleaned
+mapping by corrected code and mapping year. In 2015, January–March use old
+GESIS codes and later months use new codes, except that records from `fname ==
+1` retain the old codes. Three explicit exceptions prevent known incorrect
+UID assignments. Within a corrected-code/name pair, it fills an unambiguous
+UID, then fills missing type and mapped name from the group's mode. The mode
+helper resolves ties by first occurrence, so input order matters.
+See [code corrections, lines 42–50][identity-codes];
+[2015 mapping and three exceptions, lines 63–79][identity-year-join];
+[UID and attribute propagation, lines 98–125][identity-fill];
+[mode tie behavior, lines 7–15][identity-mode].
+
+The initial `clinic_ID` is the UID when available, otherwise corrected GESIS
+code plus cleaned clinic name. The script marks reviewed deletions with a
+missing ID, reconciles identities using verified shortened GESIS codes
+("snips"), and then uses commune/name groups to reconcile remaining identities.
+Four ambiguous snips and the 2014 `110543027` exception remain excluded from
+the relevant reconciliation rules.
+See [provisional identity, lines 143–156][identity-initial];
+[reviewed deletions, lines 158–169][identity-deletions];
+[verified snips and exclusions, lines 177–205][identity-snips];
+[commune/name reconciliation and exception, lines 209–221][identity-commune].
+
+**Handoff:** `data/intermediate/w2010_2019_clinicID.rds` and `.csv`, retaining
+original matching fields, corrected code, mapped type, and `ID_checked`. That
+flag records whether any mapped type in the identity group contains `CSB`;
+it is not a general certification that the identity is correct. Scripts 4A,
+6, and 7 consume this crosswalk.
+See [ID_checked definition and crosswalk outputs, lines 223–233][identity-output].
+
+**Context for notebook 20:** distinguish source inventory, code correction,
+year-aware UID assignment, UID propagation, provisional identity, reviewed
+deletion, and the two reconciliation steps. The current notebook rebuilds the
+inventory from the staged ZIP in DuckDB, decoding Windows-1252 before reduction
+and preserving file/row order. It contains both the newer Parquet correction
+and mapping targets and the longer R transformation that repeats those
+operations from the inventory. This duplication is an open refactoring
+boundary: document which intermediate each later step should consume before
+removing either route. Compare identities and exception records with the
+legacy result, including missing IDs and mode ties.
+
+## 3 — Construct the diagnosis dictionary across waves
+
+**Source:** [3_construct_dictionary.R][legacy-dictionary].
+**Replacement:** [21_page-construct-diagnosis-dictionary.qmd](../21_page-construct-diagnosis-dictionary.qmd), existing and in development.
+
+This script defines comparable variables across Wave 1, Wave 2, Wave 3A
+(2020), and Wave 3B (2021–2022). It combines the earlier-wave dictionary,
+reviewed cross-wave diagnosis mappings, actual Wave 3 column names, a separate
+2020 anemia export, and supplementary diagnoses. It replaces the original
+Wave 1 diarrhea/pneumonia definitions and adds AVC and ULGEN entries that were
+absent from the main dictionary.
+See [source dictionaries and replacement diagnoses, lines 31–66][dictionary-inputs];
+[AVC, ULGEN, and diarrhea/pneumonia additions, lines 69–92][dictionary-supplements].
+
+It interprets mapping notation such as alternatives, ranges, and sums; joins
+source descriptions to column identifiers; and aggregates source variables
+into common definitions. The within-Wave-3 mapping handles changed age bands
+and disease definitions, including anemia, severe acute malnutrition, and
+suspected versus confirmed diabetes. It retains earlier-wave variables without
+a Wave 3 match, excludes designated ignored categories, and assigns output
+variable names such as `V1`, `V2`, and so on. These `V` variables identify
+harmonized measurements; they have a different role from the Wave 3 source
+table's `V1` row index.
+See [within-Wave-3 definition changes, lines 105–162][dictionary-w3-map];
+[common-definition aggregation, lines 178–205][dictionary-aggregate];
+[mapping notation and wave joins, lines 208–277][dictionary-expressions];
+[unmatched variables and V identifiers, lines 280–299][dictionary-variables].
+
+The later stages enrich the dictionary with French and English descriptions,
+diagnostic-code descriptions, reporting-table descriptions, available waves,
+and output-file groups. They use existing translated material, live
+`gtranslate` calls, and manual wording corrections. The `filename` column
+partitions variables into 40 groups for diagnosis output.
+See [existing translations and live diagnostic-code translations, lines 307–357][dictionary-translations];
+[description assembly, wave availability, and output groups, lines 446–486][dictionary-enrichment];
+[reporting-table translations and final wording corrections, lines 514–561][dictionary-tables].
+
+**Handoff:** the active final write is `scratch/dictionary_test2.csv`, while
+script 4A expects `data/clean/diagnosis_dictionary_translated.csv`. The missing
+promotion or rename step is not established by this script. The dictionary's
+per-wave expressions and `filename` assignments drive measurement cleaning.
+See [dictionary scratch output, lines 580–581][dictionary-output];
+[script 4A dictionary input, lines 29–31][diagnosis-dictionary-input].
+
+**Context for the replacement:** explain source dictionaries and supplements,
+cross-wave equivalence rules, expression construction, and descriptive
+enrichment as separate stages. Wave 3 `X1`, `X2`, etc. are assigned from the
+prepared table's column order, even though several joins now match on
+descriptions. Record that schema explicitly so a changed reader or column
+order cannot silently change a diagnosis. Preserve translation provenance
+rather than treating a fresh network translation as a fixed input. Checks
+should establish that referenced columns exist, summed terms are distinct,
+and each source-expression mapping is used as intended.
+See [positional X identifiers, lines 31–48][dictionary-w3-input];
+[mapping uniqueness and repeated-summand checks, lines 563–578][dictionary-diagnostics].
+
+The replacement notebook now records the prepared Parquet schema in
+`s3_w3_column_dictionary_df`, appending only missing anemia column names.
+It reduces replacement diarrhea/pneumonia inputs to unique definitions in
+DuckDB before collecting them. `s3_diagnosis_dictionary_df` is the small
+in-memory handoff, and `s3_diagnosis_dictionary_parquet` persists it as a file
+target. The graph declares these stages; it has not been executed as part of
+this migration.
+
+Translations reuse the archived original description translations and the
+bilingual `data/clean/diagnosis_dictionary_translated.csv` member in the staged
+ZIP. `s3_diagnosis_translation_provenance_df` records those source members.
+Grouped diagnostic-code phrases are matched exactly after assembly; this
+replaces the legacy live translation calls without splitting phrases on
+punctuation. Conflicting lookup pairs fail, missing required code/table
+translations appear in `s3_diagnosis_translation_gaps_df` and stop the final
+handoff, and missing general English descriptions remain visible for review.
+The archived dictionary supplies translations only, not harmonized IDs or
+mapping expressions.
+
+
+## 4A — Clean measurements and combine reporting waves
+
+**Source:** [4A_clean_clinic_diagnosis.R][legacy-diagnosis].
+**Proposed destination:** `22_page-clean-clinic-diagnosis.qmd`.
+
+This is the main measurement transformation. It consumes the clinic-ID
+crosswalk, diagnosis dictionary, monthly tall Waves 1–2 files, prepared Wave 3
+data, and supplementary AVC, diarrhea/pneumonia, and anemia exports. The
+identity work determines which clinic a report belongs to; the dictionary
+determines how its measurements become comparable variables.
+See [identity and dictionary dependencies, lines 29–51][diagnosis-references];
+[earlier-wave source files and supplements, lines 108–128][diagnosis-supplements].
+
+For Waves 1–2, it replaces the superseded Wave 1 diarrhea/pneumonia records,
+adds supplements, normalizes variable names, joins clinic IDs, and excludes
+the explicitly problematic UID `qCHtCHkwqtQ`. It drops clinic-month/file groups
+whose total reported value is not positive. Duplicate handling distinguishes
+identical repeats, differences caused only by missing values, and distinct
+values that the legacy rules sum. Unhandled conflicts receive the `-99`
+sentinel. It then pivots measurements wide, adds expected but absent columns,
+and evaluates the dictionary separately for the two waves.
+See [supplements, identity join, exclusions, and reporting filter, lines 121–154][diagnosis-identity];
+[duplicate classification and reductions, lines 160–196][diagnosis-duplicates];
+[wide conversion and dictionary evaluation, lines 198–236][diagnosis-pivot].
+
+For Wave 3, it inserts the separate 2020 anemia data, assigns the positional
+`X` names expected by the dictionary, drops exact duplicate records, converts
+negative values in three designated variables to missing, and removes rows
+without positive measurements while excluding refrigerator-temperature fields
+from that reporting check. It applies Wave 3A expressions to 2020 and Wave 3B
+expressions to the later periods.
+See [2020 anemia insertion, lines 271–287][diagnosis-anemia];
+[column numbering, deduplication, negatives, and reporting filter, lines 293–324][diagnosis-w3-clean];
+[Wave 3A and 3B evaluation, lines 329–344][diagnosis-w3-map].
+
+Finally, it combines the waves and resolves overlapping reports using the
+expected source file for each period. It prefers that file when present;
+otherwise it keeps the closest available file number. The same selection
+logic supplies the reporting-history table.
+See [reporting-history selection, lines 350–373][diagnosis-tracker];
+[combined outputs and overlapping-file selection, lines 382–418][diagnosis-combine].
+
+**Handoff:** `data/clean/by_diagnosis/<filename>.feather`, separate
+`<filename>_wrong_fname.feather` files for discarded overlapping reports, and
+`data/clean/by_diagnosis/clinic_reporting_track.feather`. The tracking table
+records which file supplied each clinic-month, using zero for no retained
+report. Script 7 expects the tracker at
+`data/intermediate/clinic_reporting_track.feather`; the source scripts do not
+establish the intervening move or copy.
+See [script 4A output directory, lines 22–25][diagnosis-output-dir];
+[tracker values and write, lines 350–373][diagnosis-tracker];
+[retained and rejected diagnosis outputs, lines 404–418][diagnosis-partitions];
+[script 7 tracker input, line 21][metadata-tracker-input].
+
+**Context for the replacement:** document earlier-wave cleaning, Wave 3
+cleaning, dictionary application, report selection, and output partitioning
+separately. The duplicate rules here differ from the maximum rule in script 0.
+Missing values, entered zeros, the temporary `-1` missing-value sentinel, and
+the `-99` conflict sentinel have different meanings. In sums, earlier-wave
+`-1` values and Wave 3 missing values are replaced with zero; this does not
+justify replacing every missing measurement with zero. Preserve the excluded
+UID, negative-value rules, and `fname` tie behavior as explicit decisions to
+review during migration.
+See [wave-specific missing values in sums, lines 53–72][diagnosis-sum-missing];
+[temporary -1 sentinel, lines 198–200][diagnosis-pivot-missing].
+
+## 4B — Submit the diagnosis job to Slurm
+
+**Source:** [4B_clean_clinic_diagnosis.slurm][legacy-slurm].
+**Destination:** [Execute the Pipeline](../../releases/20_page-execute-pipeline.qmd)
+and the [runtime runner](../../infrastructure/15_page-runner.qmd).
+
+The launcher requests one node, four tasks, eight hours, and 48,000 MB on the
+shared partition. It loads R 4.3, adjusts the user's R library path, and runs
+script 4A with `R CMD BATCH`. It also configures job logs and email
+notifications. It contributes execution settings rather than an additional
+scientific transformation.
+See [resources, logs, and notification settings, lines 2–10][slurm-allocation];
+[R environment and batch command, lines 12–17][slurm-execution].
+
+**Handoff:** execution of script 4A and its log files. The scientific artifacts
+are produced by 4A, not by a separate cleaning operation in this launcher.
+
+**Context for the replacement:** the execution page owns how the targets graph
+is launched, while the runner supplies the project runtime. Record the Slurm
+allocation and target-worker settings when diagnosis work is added; four
+requested tasks do not alone configure a parallel targets backend. The
+legacy launcher's allocation and 4A's `future` worker configuration must be
+considered together when reproducing its execution.
+See [script 4A worker and globals settings, lines 18–20][diagnosis-workers].
+
+## 5 — Reconcile sectorization and construct 2022 healthsheds
+
+**Source:** [5_clean_sect2022_construct_healthsheds.R][legacy-sheds].
+**Proposed destination:** `23_page-construct-healthsheds.qmd`.
+
+This script connects the 2022 sectorization's FKT assignments to administrative
+polygons, then unions the assigned polygons for each clinic. Its inputs include
+the sectorization table, OCHA/BNGRC boundaries and code lookup, reviewed matching
+files, manual geolocation corrections, the 2018 sectorization, and the cleaned
+GESIS–DHIS2 mapping.
+See [spatial sources and sectorization schema, lines 54–100][sheds-inputs];
+[2018 sectorization and cleaned facility mapping, lines 309–328][sheds-mapping-input].
+
+It first repairs geometry and separates Nosy Mitsio from a mainland polygon.
+It reconciles duplicated FKT codes while preserving the reviewed population
+totals, validates original codes, and fills missing matches from several
+rounds of reviewed fuzzy and manual matching. It attaches polygons and uses
+their topological relationships to identify isolated assignments. Some
+isolated matches are removed while explicitly protected manual matches remain.
+See [geometry repair and Nosy Mitsio split, lines 56–88][sheds-geometry];
+[duplicate FKT and population rules, lines 102–121][sheds-duplicates];
+[reviewed matching rounds and geometry joins, lines 123–228][sheds-matching];
+[topology checks and isolated-match removal, lines 230–275][sheds-isolated].
+
+Later passes recover assignments using the 2018 sectorization, apply further
+manual matches and unmatches, and assign some remaining polygons through a
+close commune-name match when that commune has one clinic and the assignment
+does not worsen contiguity. Subsequent reviewed corrections move FKT between
+clinics, resolve duplicates, and split coastal islands into separately
+assigned geometry. The script records matching provenance in `match_type` and
+rebuilds healthsheds after successive correction passes.
+See [2018 recovery, lines 304–404][sheds-historical];
+[manual matches and unmatches, lines 406–459][sheds-manual];
+[commune matches and contiguity guard, lines 481–565][sheds-commune];
+[reviewed reassignments and duplicates, lines 585–664][sheds-reviewed];
+[coastal-island splits, lines 666–720][sheds-islands];
+[final reassignments and aggregation, lines 722–786][sheds-final-fixes].
+
+The `sect_to_shed()` helper unions assigned polygons by facility UID,
+calculates population from distinct FKT UID/population pairs, and records
+matched-area counts, connected components, and polygon parts. Reviewed shared
+assignments can produce overlapping healthsheds; this is not simply a
+non-overlapping partition of Madagascar.
+See [population, geometry, components, and polygon parts, lines 10–44][sheds-aggregation];
+[reviewed shared assignments, lines 102–105][sheds-overlaps].
+
+**Handoff:** `data/intermediate/sectorization2022_cleaned.feather`,
+`data/intermediate/sectorization2022_cleaned_shapefile`, and
+`data/clean/healthsheds2022` plus `healthsheds2022.rds`. It also writes review
+maps and unmatched-clinic tables under `scratch/`. Scripts 6 and 7 consume
+the cleaned sectorization and healthsheds.
+See [review maps and unmatched-clinic export, lines 805–967][sheds-review-outputs];
+[sectorization and healthshed outputs, lines 969–1000][sheds-outputs].
+
+**Context for the replacement:** organize the narrative around source geometry,
+matching evidence, assignment corrections, catchment aggregation, and residual
+exceptions. Preserve the precedence of correction rounds, population counting,
+overlap policy, island splits, and the distinction between connected components
+and polygon parts. The legacy comments report residual non-contiguous
+healthsheds even after all polygons are assigned; complete coverage and
+contiguity are separate properties. A shapefile is a group of companion files,
+so artifact tracking must cover the complete dataset.
+See [historical residual-contiguity and coverage observations, lines 788–803][sheds-residuals].
+
+## 6 — Compare location sources and select clinic coordinates
+
+**Source:** [6_locate_clinics.R][legacy-location].
+**Proposed destination:** `24_page-locate-clinics.qmd`.
+
+This script assembles candidate coordinates from the cleaned sectorization,
+MDDSS, WHO and UNICEF master lists, and a separate GPS source, using the
+clinic-ID crosswalk to connect historical GESIS codes to UIDs. It cleans
+coordinate formats, applies specific UID and duplicate-record corrections,
+and uses closest-name matches where a GESIS code has multiple possible
+identity matches. It also identifies likely clinic FKT by name and reported
+distance within the sectorization.
+See [source reads and sectorization coordinates, lines 50–103][location-inputs];
+[MDDSS identity and closest-name joins, lines 105–136][location-mdss];
+[WHO corrections and coordinates, lines 138–180][location-who];
+[UNICEF and GPS candidates, lines 182–211][location-unicef-gps];
+[FKT name/distance selection, lines 228–256][location-fkt].
+
+It converts candidates to spatial points and tests whether each lies inside
+the matched FKT or the clinic's healthshed. The selection rule first prefers
+WHO, sectorization, UNICEF, then MDDSS points contained in the matched FKT;
+it also considers GPS points contained in the healthshed. It then considers
+other points contained in the healthshed in the listed source order. If no
+point qualifies, it falls back to the matched FKT centroid, then the
+healthshed centroid, and finally an explicit missing-location state.
+See [point conversion, containment, and source comparison, lines 273–312][location-containment];
+[coordinate-source precedence and centroid fallbacks, lines 314–329][location-selection].
+
+**Handoff:** `data/intermediate/clinic_LL.rds`, retaining candidate coordinates,
+containment evidence, FKT geometry, and the selected-source label `which_use`.
+Labels ending in `2` indicate selection through the later healthshed-based
+test. Script 7 uses these labels to extract the final coordinates.
+See [selected-source labels, lines 314–329][location-selection];
+[location artifact write, lines 331–334][location-output].
+
+**Context for the replacement:** explain candidate ingestion, identity matching,
+spatial comparison, and selection separately. The introductory source list is
+not the final selection policy; the actual `which_use` conditions are the
+operative rule. Name similarity helps join candidate records but does not
+independently establish that a coordinate is correct. Keep source provenance
+and distinguish a reported facility point from an inferred centroid. Document
+the coordinate reference system and preserve explicit unresolved cases.
+
+## 7 — Combine reporting and spatial clinic metadata
+
+**Source:** [7_combine_clinic_metadata.R][legacy-metadata].
+**Proposed destination:** `25_page-combine-clinic-metadata.qmd`.
+
+This script brings the measurement and spatial branches together. It reads
+the reporting tracker from 4A, clinic identities from 2, sectorization and
+healthsheds from 5, and candidate/selected coordinates from 6. Its two products
+have different row definitions.
+See [metadata dependencies, lines 21–29][metadata-inputs].
+
+The reporting metadata has one clinic-year-month record derived from the
+tracker. It adds the original GESIS database code for earlier records and
+uses the clinic UID for reported months from 2020 onward when that code is
+otherwise missing. `fname` remains available to show reporting source and
+absence of a retained report.
+See [monthly reporting and database-code rules, lines 37–53][metadata-temporal].
+
+The spatial metadata summarizes reporting duration, first and last reporting
+month, and number of reporting months by clinic. It prefers 2022 sectorization
+for clinic name, type, status, and administrative attributes, then falls back
+to the latest historical clinic-ID record. It adds healthshed geometry,
+extracts coordinates from the chosen source or a centroid, applies the
+legacy public/private fallback rules, and joins reviewed neighbor-clinic
+pairings for facilities without their own healthshed. It records whether a
+healthshed exists and which GPS source was used.
+See [reporting summary and attribute precedence, lines 67–93][metadata-summary];
+[geometry join and coordinate extraction, lines 95–122][metadata-coordinates];
+[ownership fallback, neighbor pairing, and provenance, lines 124–138][metadata-fallbacks].
+
+**Handoff:** `data/clean/clinic_reporting_metadata.csv` and
+`data/clean/clinic_spatial_metadata.csv`. Geometry is dropped before writing
+the spatial CSV; the healthshed geometry remains a separate spatial product.
+See [metadata exports and geometry removal, lines 148–154][metadata-output].
+
+**Context for the replacement:** define temporal and clinic-level outputs
+separately and document source precedence for each field. Public/private
+fallbacks based on `ID_checked` and absence from 2022 sectorization are legacy
+heuristics, not observations of ownership in every year. Check that every
+location label emitted by script 6 has a corresponding extraction rule here:
+the legacy script 6 can select UNICEF, but script 7's coordinate cases do not
+include UNICEF. Document that discrepancy before choosing whether parity or
+a corrected result is the migration criterion.
+See [script 6 UNICEF selection, lines 314–329][location-selection];
+[script 7 coordinate cases without UNICEF, lines 98–112][metadata-coordinate-cases].
+
+## Shared utilities — Make helper semantics visible where used
+
+**Source:** [999_utility_functions.R][legacy-utilities].
+**Destinations:** [18_page-prep-w3.qmd](../18_page-prep-w3.qmd) and proposed
+`23_page-construct-healthsheds.qmd`, according to the helper's role.
+
+The utility file defines a Malagasy-to-French cardinal-direction lookup,
+`grouped_stringdist_fulljoin()`, and `read_csv_nonlogical()`. The grouped join
+nests records within administrative groups, generates fuzzy string matches,
+allows a caller-supplied rule to select candidates, and optionally unnests
+the result. Its method and thresholds affect which spatial matches are
+considered. The CSV reader changes inferred logical columns to numeric to
+protect sparse measurement columns.
+See [direction lookup, lines 1–9][utilities-directions];
+[grouped fuzzy join and parameters, lines 12–44][utilities-matching];
+[sparse-column reader, lines 47–62][utilities-reader].
+
+**Handoff:** functions and a lookup table sourced into an R session rather
+than a persisted data product. Script 5 calls the grouped matching helper.
+Other scripts duplicate the CSV reader, and scripts 2 and 6 define their own
+mode helpers outside this utility file.
+See [script 5 grouped matching call, lines 356–367][sheds-helper-call];
+[script 2 mode helper, lines 7–15][identity-mode];
+[script 6 mode helper, lines 12–20][location-mode].
+
+**Context for the replacements:** document helper behavior next to its first
+scientific use, including grouping keys, thresholds, missing-value behavior,
+and tie rules. The CSV-reader responsibility already has a DuckDB adaptation
+in notebook 18. Script 5 sources `scripts/0_utility_functions.R`, but the
+archived file here is named `999_utility_functions.R`; record the actual
+dependency when migrating rather than reproducing an unresolved source path.
+A shared code module can be extracted later if repeated use warrants it.
+See [mismatched legacy utility source path, line 54][sheds-helper-source].
+
+## Exploratory checks — Recover questions and reproducible comparisons
+
+**Source:** [data_checks.R][legacy-checks].
+**Destinations:** [17_page-inspect-source-data.qmd](../17_page-inspect-source-data.qmd),
+checks in the notebooks owning each transformation, and proposed
+`26_page-validate-migration.qmd`.
+
+This is a collection of investigations rather than one ordered production
+stage. It compares files and column names between 2021–2022 exports, 2023
+exports, and a later 2023 delivery; compares clinic/period coverage and values;
+and explores CSV type inference under different readers and sampling limits.
+Later sections compare old and rebuilt Wave 3 tables and ordered versus
+unordered diagnosis dictionaries, tracing differences in missing values,
+column types, names, and individual measurements back to source exports.
+Several investigations are repeated with different local file paths.
+See [export and column inventories, lines 10–116][checks-schema];
+[coverage and value comparisons, lines 119–266][checks-coverage];
+[reader and type-inference experiments, lines 268–338][checks-types];
+[Wave 3 comparisons and source tracing, lines 357–613][checks-w3];
+[dictionary comparisons and repeated investigations, lines 653–902][checks-dictionaries].
+
+The final section also performs a data transformation: it splits a combined
+2021–2022 mumps export into separate year files and writes a 2021 subset
+containing the male 2–11-month variable plus metadata. Those writes go into
+the legacy raw directory. They should be accounted for as derived artifacts
+with a source dependency in the replacement workflow, rather than remaining
+an undocumented prerequisite.
+See [mumps source, year split, and exports, lines 912–935][checks-mumps-split];
+[male 2–11-month subset and export, lines 938–954][checks-mumps-subset].
+
+**Handoff:** mostly printed comparisons and interactive inspection, plus the
+three mumps CSV outputs. There is no single reusable validation report or
+uniform pass/fail contract in this file.
+
+**Context for the replacements:** put source schema and coverage questions in
+notebook 17, preserve focused invariants with the transformation they test,
+and use the proposed validation notebook to record comparisons between
+equivalent legacy and replacement artifacts. Identify the exact source
+versions, align records by scientific keys, and compare missingness as well
+as values. Account for legitimate schema/format changes separately from
+scientific differences. Turning every exploratory statement into an
+automated assertion would preserve unfinished investigations as assumptions.
+
+## Assignment-to-target inventory
+
+This inventory maps the legacy assignments to named responsibilities in the
+replacement graph. It is a design index; no targets are created or rewired
+by these tables.
+
+Identifiers use `script::variable`, for example `1::mapping`. The script keys
+match the filenames in the crosswalk; `999` denotes the utilities and `checks`
+denotes `data_checks.R`. A repeated variable is qualified by its stage because
+an in-place reassignment can represent a different scientific operation.
+Function-local values are listed with their owning operation, and short
+setup/read/normalization steps may share one target. Columns created inside
+`mutate()`, `summarise()`, or `:=` belong to the assigned table; the important
+column stages are named in the rows rather than proposed as individual targets.
+Commented-out alternatives are not active assignments; the commented inventory
+builder in script 2 is retained as provenance for its active inventory read.
+
+**Existing** means the exact name is declared in the current pipeline notebooks
+or `_targets.R`; it does not establish that the target has completed. A row
+can map to an existing target that already groups several legacy operations.
+Where the new pipeline changes storage or avoids a large intermediate, the
+mapping identifies the owning transformation, not an identical R object.
+**Recommended** names describe results or responsibilities still to be
+introduced or separated from a coarse target. Names shared across scripts
+identify the same producer/consumer handoff, not duplicate proposed targets.
+Recommended suffixes describe the intended R value or replacement Parquet format;
+implementation and branching remain to be decided.
+
+Helper definitions are grouped with their owning data responsibilities in the
+legacy inventory below. In the current notebooks, `tar_tangle()` also turns
+top-level function assignments into targets; those use the `_fn` suffix.
+Diagnostic and exploratory objects are identified explicitly. Their inclusion preserves the question being asked;
+it does not promote every scratch expression to a validated scientific rule.
+The input inventories and current file selectors remain the common staging
+boundary. Rows for legacy final writes are included even when the write call has no
+assigned return value. Their replacement handoffs reuse ordinary data targets
+or name tracked Parquet artifacts.
+
+### Target naming convention
+
+Use `script-stage_domain_contextual-name_[modification-in-pipeline]_R-data-type`,
+with underscores between words. The modification is optional. For example,
+`s0_clinic_RMA_W3_group_max_parquet` is the script 0 clinic/RMA Wave 3 group
+maximum artifact, and `s1_gesis_xwalk_clean_df` is the script 1 cleaned GESIS
+crosswalk in R.
+
+The stage identifies the producing legacy script, not the notebook number or
+the consuming script: `s0` through `s7`, with `s4a` for measurement cleaning.
+Exploratory checks use `schecks`. Shared utility operations keep the stage of
+their owning transformation. Common staging inputs use `s0_pipeline`.
+
+| Suffix | Value represented |
+| --- | --- |
+| `df` | In-memory data frame or tibble |
+| `sf` | Spatial data frame with geometry |
+| `chr` | Character vector, such as a source-path inventory or ZIP member names; file-path inventories still require `format = "file"` |
+| `list` | Collection of tables, evidence, or plots |
+| `matrix` | Comparison matrix |
+| `fn` | Function assigned at the top level and tracked by `tar_tangle()` |
+| `parquet` | Derived data-file paths tracked with `format = "file"` |
+| `csv`, `xlsx`, `zip`, `yml` | Original source or manifest paths tracked with `format = "file"`; source formats are preserved |
+
+A file suffix describes the artifact format; `format = "file"` still determines
+whether `targets` tracks file contents. Renaming a target changes its cache
+identity. Subsequent builds may recompute renamed targets, and branch files
+named with `tar_name()` will use the new names.
+
+### Shared staging, selectors, and helper targets
+
+These current graph nodes support the scientific responsibilities indexed
+below. Keeping them here makes the naming convention cover the complete graph.
+
+| Target name | Responsibility |
+| --- | --- |
+| `s0_pipeline_stagecoach_yml` | Track the staging manifest. |
+| `s0_pipeline_inputs_raw_chr` | Inventory staged input paths. |
+| `s1_gesis_code_corrections_raw_xlsx` | Select the reviewed GESIS correction workbook for script 1. |
+| `s1_gesis_uid_fills_raw_xlsx` | Select the reviewed UID-fill workbook. |
+| `s1_gesis_multiple_codes_raw_csv` | Select the multiple-GESIS review CSV. |
+| `s1_gesis_uid_additions_raw_csv` | Select the missing-code review CSV for script 1. |
+| `s2_clinic_months_raw_zip` | Track the legacy monthly-data ZIP. |
+| `s2_clinic_months_members_chr` | List monthly CSV member names for branching. |
+| `s2_clinic_months_deduplicated_parquet` | Track one reduced identity artifact per month. |
+| `s2_gesis_code_corrections_raw_xlsx` | Select the correction workbook for script 2. |
+| `s2_gesis_code_deletions_raw_csv` | Select the reviewed deletion CSV for script 2. |
+| `s2_gesis_snips_verified_csv` | Select the verified GESIS-snip CSV. |
+| `s0_clinic_RMA_read_nonlogical_fn` | Read sparse RMA fields with explicit types. |
+| `s0_clinic_RMA_summarise_group_max_fn` | Reduce clinic-period groups to maxima. |
+| `s0_clinic_RMA_process_csv_fn` | Prepare one RMA CSV and write Parquet. |
+| `s0_pipeline_parquet_transform_fn` | Open Parquet inputs in DuckDB, apply a transformation, and write the output artifact. |
+| `s2_clinic_ids_mode_fn` | Select the modal clinic identity attribute. |
+| `s2_clinic_ids_first_fn` | Select the first value with an empty-input fallback. |
+| `s2_pipeline_input_select_single_fn` | Require exactly one staged input match. |
+| `s2_clinic_months_identity_columns_fn` | Define the monthly identity columns. |
+| `s2_clinic_months_list_members_fn` | Select and order monthly archive members. |
+| `s2_clinic_months_reduce_csv_fn` | Decode and deduplicate one extracted monthly CSV in DuckDB. |
+| `s2_clinic_months_write_member_fn` | Extract one member, call the reducer, and write its Parquet artifact. |
+| `s3_dictionary_archive_member_fn` | Resolve one exact dictionary member in the tracked ZIP. |
+| `s3_dictionary_archive_read_fn` | Extract one input temporarily and materialize only the reader's result. |
+| `s3_dictionary_read_csv_fn` | Read a small UTF-8 source dictionary with legacy syntactic names. |
+| `s3_diagnosis_multiple_gsub_fn` | Apply the reviewed wording replacements in order. |
+| `s3_diagnosis_aggregate_to_wave_fn` | Aggregate cross-wave definitions with the reviewed missing-component rules. |
+| `s3_diagnosis_translation_lookup_fn` | Retain unambiguous archived French/English pairs. |
+| `s3_diagnosis_validate_fn` | Report reused expressions, repeated summands, and unknown source terms. |
+| `s3_diagnosis_parquet_stats_fn` | Inspect file size and scalar row count without collecting the dictionary. |
+
+### Script 0 — Wave 3 preparation
+
+| Legacy assignment(s) | What the assigned value represents | Target name | Status | Source lines |
+| --- | --- | --- | --- | --- |
+| `0::csv_dir`; `0::process_csv_files::csv_files` | Locate the Wave 3 source CSVs; replace the hard-coded directory with staged paths. | `s0_clinic_RMA_W3_raw_csv` | Existing | [21][assign-0-21-21], [51–53][assign-0-51-53] |
+| `0::read_csv_nonlogical`; `0::read_csv_nonlogical::test`; `0::drop_cols` | CSV schema correction and columns to omit; helper/configuration owned by file preparation. | `s0_clinic_RMA_W3_within_file_max_parquet` | Existing | [25–48][assign-0-25-48] |
+| `0::process_csv_files`; `0::process_csv_files::li`; `0::process_csv_files::temp_df`; `0::process_csv_files::df`; `0::df` | Read, trim, and combine sources. Existing branches replace this all-files accumulation with per-file preparation. | `s0_clinic_RMA_W3_within_file_max_parquet` | Existing | [51–81][assign-0-51-81], [145][assign-0-145-145] |
+| `0::process_csv_files::dups` | Within-file duplicate diagnostic, grouped with file preparation rather than a separate scientific output. | `s0_clinic_RMA_W3_within_file_max_parquet` | Existing | [67–72][assign-0-67-72] |
+| `0::df_small` | Small selected-column inspection view; not consumed by the production reduction. | `s0_w3_source_preview_df` | Recommended | [151–152][assign-0-151-152] |
+| `0::dt`; `0::dt_out`; `0::df_out` | Representation conversions, clinic-period maxima, and all-missing repair form one reduction. | `s0_clinic_RMA_W3_group_max_parquet` | Existing | [162–167][assign-0-162-167] |
+| `0::crosswalk_file` | Resolve the original facility crosswalk input. | `s0_gesis_xwalk_raw_csv` | Existing | [192–193][assign-0-192-193] |
+| `0::crosswalk (read, distinct, nonmissing UID, grouping)` | Prepare descriptive UID/code/type/name records; preserve the legacy grouping and multiplicity interpretation. | `s0_gesis_xwalk_nonmissing_uid_df` | Existing | [195–212][assign-0-195-212] |
+| `0::with_keys (join, V1, period-specific column updates, and redundant-column removal)` | Join descriptions, assign the row index, substitute later-period fields, and remove redundant columns. | `s0_clinic_RMA_W3_clean_parquet` | Existing | [234–243][assign-0-234-243], [264–272][assign-0-264-272] |
+| `0::with_keys -> CSV export` | Persist the prepared table; the existing Parquet artifact replaces the legacy CSV handoff. | `s0_clinic_RMA_W3_clean_parquet` | Existing | [274–275][assign-0-274-275] |
+
+### Script 1 — Facility mapping
+
+| Legacy assignment(s) | What the assigned value represents | Target name | Status | Source lines |
+| --- | --- | --- | --- | --- |
+| `1::mapping (read and initial filter)` | Read/rename UID levels and exclude 2022 and Belalanda. | `s1_gesis_xwalk_filtered_df` | Existing | [11–18][assign-1-11-18] |
+| `1::gesis_correct` | Reviewed old-to-corrected GESIS codes and associated UID evidence. | `s1_gesis_code_corrections_df` | Existing | [25–28][assign-1-25-28] |
+| `1::mapping (code correction and known UID)` | Apply reviewed code fixes and the known Ankilivalo UID fill together. | `s1_gesis_xwalk_corrected_df` | Existing | [48–58][assign-1-48-58] |
+| `1::uid_fill` | Reviewed additional UID fills. | `s1_gesis_uid_fills_df` | Existing | [64–65][assign-1-64-65] |
+| `1::mapping (additional UID fills)` | Join reviewed fills without changing unrelated rows. | `s1_gesis_xwalk_uid_filled_df` | Existing | [67–71][assign-1-67-71] |
+| `1::mult_gesis` | Translate review annotations into keep/rename/delete decisions. | `s1_gesis_multiple_codes_reviewed_df` | Existing | [83–89][assign-1-83-89] |
+| `1::mapping (multiple-code reconciliation)` | Apply keyed deletions and reviewed UID/name replacements. | `s1_gesis_xwalk_multiple_codes_reconciled_df` | Existing | [143–163][assign-1-143-163] |
+| `1::uid_add` | Expand reviewed missing GESIS entries into the required mapping years. | `s1_gesis_uid_additions_expanded_df` | Existing | [175–193][assign-1-175-193] |
+| `1::mapping (append missing codes)` | Append the reviewed additions. | `s1_gesis_xwalk_uid_added_df` | Existing | [195–196][assign-1-195-196] |
+| `1::mapping (individual corrections)` | Apply the remaining reviewed code/year/UID exceptions. | `s1_gesis_xwalk_clean_df` | Existing | [201–231][assign-1-201-231] |
+| `1::mapping -> CSV export` | Reuse the cleaned mapping data target for downstream handoffs; no separate CSV copy is needed. | `s1_gesis_xwalk_clean_df` | Existing | [277–278][assign-1-277-278] |
+
+### Script 2 — Clinic identities
+
+| Legacy assignment(s) | What the assigned value represents | Target name | Status | Source lines |
+| --- | --- | --- | --- | --- |
+| `2::my_mode`; `2::my_mode::x`; `2::my_mode::val`; `2::my_first` | Mode and empty-first helper behavior; grouped dependencies of identity correction. | `s2_clinic_ids_corrected_df` | Existing | [7–15][assign-2-7-15], [98–101][assign-2-98-101] |
+| `2::unique_clinic_month (load and type preparation)` | Six-field inventory; the new pipeline rebuilds it instead of relying on the pre-existing RDS. | `s2_clinic_months_inventory_parquet`; `s2_clinic_months_inventory_df` | Existing | [22–37][assign-2-22-37] |
+| `2::gesis_correct` | Reviewed facility-code corrections, also used by the mapping-cleaning notebook. | `s2_gesis_code_corrections_df` | Existing | [42–45][assign-2-42-45] |
+| `2::unique_clinic_month (correct codes)` | Attach corrected GESIS codes and retain unchanged codes otherwise. | `s2_clinic_months_corrected_df` | Existing | [47–50][assign-2-47-50] |
+| `2::mapping` | Reuse the cleaned crosswalk from notebook 19; no independent reread target is needed. | `s1_gesis_xwalk_clean_df` | Existing | [57][assign-2-57-57] |
+| `2::unique_clinic_month (map year and UID join)` | Choose old/new 2015 mapping and apply the three excluded or cleared UID matches. | `s2_gesis_xwalk_identity_df`; `s2_clinic_months_gesis_mapped_df` | Existing | [63–79][assign-2-63-79] |
+| `2::unique_clinic_month (group UID and attributes)` | Fill unambiguous UIDs, mapped type, and mapped name within the documented groups. | `s2_clinic_month_uid_filled_df` | Existing | [102–125][assign-2-102-125] |
+| `2::unique_clinic_month (clean_name and clinic_ID)` | Define provisional UID-based or corrected-code/name-based identity. | `s2_clinic_month_provisional_ids_df` | Existing | [144–156][assign-2-144-156] |
+| `2::gesis_delete` | Reviewed GESIS codes whose records should have missing clinic IDs. | `s2_clinic_gesis_deletion_codes_chr` | Existing | [161–164][assign-2-161-164] |
+| `2::unique_clinic_month (reviewed deletions)` | Apply code/year deletion rules after the provisional-ID stage. | `s2_clinic_ids_corrected_df` | Existing | [166–169][assign-2-166-169] |
+| `2::snips` | Read and normalize the verified shortened GESIS codes. | `s2_clinic_verified_snips_df` | Existing | [177–181][assign-2-177-181] |
+| `2::unique_clinic_month (snip reconciliation)` | Apply verified snip matches while excluding the four ambiguous snips. | `s2_clinic_ids_snip_reconciled_df` | Existing | [188–205][assign-2-188-205] |
+| `2::unique_clinic_month (commune/name reconciliation)` | Reconcile the snip-stage output by commune/name, preserving the 2014 exception. | `s2_clinic_ids_reconciled_df` | Existing | [209–221][assign-2-209-221] |
+| `2::unique_clinic_month -> final selected columns` | Derive ID_checked and retain the identity crosswalk columns. | `s2_clinic_ids_df` | Existing | [224–230][assign-2-224-230] |
+| `2::unique_clinic_month -> RDS / CSV exports` | Persist one tracked Parquet copy of the clinic-ID data target, replacing the legacy RDS and CSV handoffs. | `s2_clinic_ids_parquet` | Existing | [231–233][assign-2-231-233] |
+
+### Script 3 — Diagnosis dictionary
+
+| Legacy assignment(s) | What the assigned value represents | Target name | Status | Source lines |
+| --- | --- | --- | --- | --- |
+| `3::multiple_gsub` | Translation-cleanup helper; belongs with the normalized translation table. | `s3_diagnosis_translations_df` | Existing | [14–25][assign-3-14-25] |
+| `3::w3 (measurement-table read)` | Reuse the prepared Wave 3 artifact as the schema source rather than proposing another large-table copy. | `s0_clinic_RMA_W3_clean_parquet` | Existing | [31][assign-3-31-31] |
+| `3::w3_anemia` | Read only the supplemental anemia column schema; measurement rows are not collected. | `s3_w3_anemia_columns_chr` | Existing | [34–36][assign-3-34-36] |
+| `3::diag_map` | Reviewed cross-wave diagnosis matching source with obsolete columns removed. | `s3_diagnosis_mapping_source_df` | Existing | [38–39][assign-3-38-39] |
+| `3::w3 (description/X-name table)` | Replace the measurement object with the source-description to positional X-name mapping. | `s3_w3_column_dictionary_df` | Existing | [44–48][assign-3-44-48] |
+| `3::wave1_2_dict` | Earlier-wave dictionary with superseded diarrhea/pneumonia definitions excluded. | `s3_diagnosis_wave12_dictionary_df` | Existing | [57–61][assign-3-57-61] |
+| `3::diar_pneu` | Unique corrected diarrhea/pneumonia variable definitions. | `s3_diagnosis_diar_pneu_variables_df` | Existing | [64–66][assign-3-64-66] |
+| `3::addtl_dict` | Supplementary AVC, ULGEN, and replacement diarrhea/pneumonia definitions. | `s3_diagnosis_supplementary_dictionary_df` | Existing | [69–92][assign-3-69-92] |
+| `3::diag_map_w3` | Reviewed and corrected Wave 3A-to-3B expressions, including changed age bands. | `s3_diagnosis_wave3_mapping_df` | Existing | [105–164][assign-3-105-164] |
+| `3::aggregate_to_target_wave`; `3::other_waves`; `3::target_col`; `3::target_desc`; `3::other_col` | Aggregation helper and its local column selectors; grouped under common-definition construction. | `s3_diagnosis_common_map_df` | Existing | [178–205][assign-3-178-205] |
+| `3::full_map` | Parse cross-wave match notation, join source variables, and aggregate comparable definitions. | `s3_diagnosis_common_map_df` | Existing | [208–277][assign-3-208-277] |
+| `3::final_map` | Append unmatched earlier-wave variables and assign harmonized V identifiers. | `s3_diagnosis_variable_map_df` | Existing | [280–299][assign-3-280-299] |
+| `3::trans (read and normalize)` | Existing French/English translations with one retained translation per description and wording substitutions. | `s3_diagnosis_translations_df` | Existing | [307–321][assign-3-307-321] |
+| `3::cCode_dict (read and wave filter)` | Load diagnostic-code workbooks and retain the representative Wave 1/2 sources. | `s3_diagnosis_code_dictionary_source_df` | Existing | [324–333][assign-3-324-333] |
+| `3::cCode_dict (translate and wording fixes)` | Reuse the archived, already reviewed English diagnostic-code phrases after assembling their French groups; no live translation. | `s3_diagnosis_variable_code_descriptions_df` | Existing | [335–356][assign-3-335-356] |
+| `3::cCode_dict (new_cCode aliases and append)` | Add alternative diagnostic-code spellings while retaining original codes. | `s3_diagnosis_code_dictionary_df` | Existing | [361–399][assign-3-361-399] |
+| `3::check_col`; `3::var_cCode_descriptions` | Match wave-specific variables to diagnostic codes and combine their descriptions; check_col is callback-local. | `s3_diagnosis_variable_code_descriptions_df` | Existing | [405–443][assign-3-405-443] |
+| `3::final_map_translated (initial assembly)` | Attach descriptions, available waves, and output-file groups to the variable map. | `s3_diagnosis_dictionary_described_df` | Existing | [446–486][assign-3-446-486] |
+| `3::w3_descriptions (initial assembly)` | Wave 3A/3B source descriptions for each harmonized variable. | `s3_diagnosis_wave3_descriptions_df` | Existing | [489–507][assign-3-489-507] |
+| `3::w3_tables` | French/English reporting-table descriptions. | `s3_diagnosis_wave3_tables_df` | Existing | [514–536][assign-3-514-536] |
+| `3::w3_descriptions (table enrichment)` | Join reporting-table descriptions onto the variable descriptions. | `s3_diagnosis_wave3_descriptions_enriched_df` | Existing | [538–542][assign-3-538-542] |
+| `3::final_map_translated (Wave 3 join and final wording)` | Append Wave 3 descriptions and the final two manual translations. | `s3_diagnosis_dictionary_df` | Existing | [544–561][assign-3-544-561] |
+| `3::final_map_translated -> dictionary export` | Persist the constructed dictionary as a Parquet file target, replacing the scratch-versus-clean CSV handoff. | `s3_diagnosis_dictionary_parquet` | Existing | [580–581][assign-3-580-581] |
+
+### Script 4A — Measurement cleaning
+
+| Legacy assignment(s) | What the assigned value represents | Target name | Status | Source lines |
+| --- | --- | --- | --- | --- |
+| `4A::out_dir` | Parquet file targets for retained measurements and rejected overlaps; the reporting tracker has its own file target. | `s4a_diagnosis_output_parquet` | Recommended | [22–25][assign-4a-22-25] |
+| `4A::clinicID` | Reuse the existing clinic-identity product. | `s2_clinic_ids_df` | Existing | [29][assign-4a-29-29] |
+| `4A::diag_map (read)` | Select harmonized variables, wave expressions, and output groups from the dictionary. | `s3_diagnosis_dictionary_df` | Existing | [30–31][assign-4a-30-31] |
+| `4A::wave1_2_dict`; `4A::wave_col` | Expected source-column inventory by wave; wave_col is a local selector. | `s4a_diagnosis_wave12_expected_columns_df` | Recommended | [38–51][assign-4a-38-51] |
+| `4A::diag_map (expression rewrite)` | Prepare wave-specific expression rules for missing summands. | `s4a_diagnosis_evaluation_rules_df` | Recommended | [53–72][assign-4a-53-72] |
+| `4A::drop_na_if`; `4A::x_drop` | Unique-nonmissing reducer and its local result; grouped with duplicate handling. | `s4a_diagnosis_wave12_deduplicated_df` | Recommended | [77–84][assign-4a-77-84] |
+| `4A::addtl_diag_w1_2` | Combine AVC and corrected Wave 1 diarrhea/pneumonia measurements. | `s4a_diagnosis_wave12_supplements_df` | Recommended | [108–110][assign-4a-108-110] |
+| `4A::x_month`; `4A::x_year`; `4A::month_df (source read)` | Extract a monthly member date and read/replace/add the relevant measurements. | `s4a_diagnosis_wave12_month_inputs_df` | Recommended | [113–128][assign-4a-113-128] |
+| `4A::month_df (identity join, exclusion, variable normalization)` | Attach identities, remove the designated UID, and normalize measurement names. | `s4a_diagnosis_wave12_identified_df` | Recommended | [132–148][assign-4a-132-148] |
+| `4A::month_df (tot and reporting filter)` | Retain clinic-month/file groups with positive total reported values. | `s4a_diagnosis_wave12_reporting_df` | Recommended | [150–151][assign-4a-150-151] |
+| `4A::month_df (dist_numeric, dist, is_dup, dup_handling, reduction)` | Classify repeats and reduce by unique, unique-nonmissing, sum, or conflict sentinel. | `s4a_diagnosis_wave12_deduplicated_df` | Recommended | [158–196][assign-4a-158-196] |
+| `4A::month_df (missing-value encoding)`; `4A::waves_wide (pivot and non-NULL filter)` | Encode missing values and pivot the two waves separately. | `s4a_diagnosis_wave12_wide_df` | Recommended | [198–212][assign-4a-198-212] |
+| `4A::add_cols`; `4A::diag_map_col`; `4A::all_col_df`; `4A::waves_wide (evaluate)` | Add expected absent columns and evaluate the wave-specific dictionary; short callback locals stay together. | `s4a_diagnosis_wave12_month_mapped_df` | Recommended | [215–236][assign-4a-215-236] |
+| `4A::w1_2_dt (mapped list and list_rbind)` | Collect mapped monthly results into the earlier-wave product. | `s4a_diagnosis_wave12_mapped_df` | Recommended | [113–116][assign-4a-113-116], [234–238][assign-4a-234-238] |
+| `4A::w3 (read)` | Reuse the prepared Wave 3 input. | `s0_clinic_RMA_W3_clean_parquet` | Existing | [249][assign-4a-249-249] |
+| `4A::w3_anemia` | Read the same anemia supplement used to define the dictionary schema. | `s3_w3_anemia_source_df` | Recommended | [271–274][assign-4a-271-274] |
+| `4A::w3 (anemia insertion)` | Replace missing 2020 anemia columns and retain the later-year records. | `s4a_diagnosis_wave3_anemia_corrected_df` | Recommended | [279–287][assign-4a-279-287] |
+| `4A::w3 (X names and exact deduplication)` | Assign the dictionary-compatible column identifiers and remove exact duplicate records. | `s4a_diagnosis_wave3_deduplicated_df` | Recommended | [293–302][assign-4a-293-302] |
+| `4A::w3 (negative repairs)`; `4A::w3_diag_cols`; `4A::w3$tot`; `4A::w3 (reporting filter)` | Repair designated negatives and retain reporting rows using the selected measurement columns. | `s4a_diagnosis_wave3_reporting_df` | Recommended | [313–324][assign-4a-313-324] |
+| `4A::w3_mapped` | Apply Wave 3A/3B expressions and attach clinic/year/month/source-file identifiers. | `s4a_diagnosis_wave3_mapped_df` | Recommended | [329–344][assign-4a-329-344] |
+| `4A::clinic_track`; `4A::clinic_track$fname_correct`; `4A::clinic_track$any_fname_correct` | Combine reporting histories and derive period-specific source-file preference flags. | `s4a_clinic_reporting_candidates_df` | Recommended | [350–360][assign-4a-350-360] |
+| `4A::clinic_track -> selected wide tracker export` | Select preferred reports, pivot monthly source-file history, and write a tracked Parquet file. | `s4a_clinic_reporting_track_parquet` | Recommended | [362–373][assign-4a-362-373] |
+| `4A::out_vars`; `4A::df_out`; `4A::df_out$fname_correct`; `4A::df_out$any_fname_correct` | Combine harmonized waves for each dictionary output group and mark source-file preference. | `s4a_diagnosis_output_candidates_df` | Recommended | [382–402][assign-4a-382-402] |
+| `4A::df_out -> retained export`; `4A::df_out -> wrong_fname export` | Keep preferred/closest reports and separately save rejected overlaps as tracked Parquet files. | `s4a_diagnosis_output_parquet` | Recommended | [404–418][assign-4a-404-418] |
+
+### Script 4B — Slurm launcher
+
+This file contains no R variable assignments. Its shell assignment to
+`R_LIBS_USER` and its resource directives belong to the existing runtime and
+execution notebooks, rather than to a scientific data target. The job executes
+the responsibilities mapped under script 4A, including recommended
+`s4a_diagnosis_output_parquet` and `s4a_clinic_reporting_track_parquet`.
+See [the launcher][legacy-slurm].
+
+### Script 5 — Sectorization and healthsheds
+
+| Legacy assignment(s) | What the assigned value represents | Target name | Status | Source lines |
+| --- | --- | --- | --- | --- |
+| `5::sect_to_shed` | Shared aggregation helper, including population, geometry, and component-count columns. | `s5_healthshed_clinic_final_sf` | Recommended | [10–44][assign-5-10-44] |
+| `5::fkt_shape (read/repair and first island split)` | Read valid FKT geometry and split Nosy Mitsio from the mainland. | `s5_fkt_shapes_initial_sf` | Recommended | [56–74][assign-5-56-74] |
+| `5::ocha_map (read and initial island-code extension)` | Administrative-code lookup aligned with the initial island split. | `s5_fkt_code_lookup_initial_df` | Recommended | [76–88][assign-5-76-88] |
+| `5::sect` | Read the 2022 sectorization, name fields, and adjust the initial island code. | `s5_sectorization_2022_source_df` | Recommended | [91–100][assign-5-91-100] |
+| `5::dup_fkt_instat` | Reviewed duplicate-FKT decisions. | `s5_sectorization_duplicate_reviews_df` | Recommended | [103–105][assign-5-103-105] |
+| `5::sect_filled (population reconciliation)` | Apply duplicate decisions while retaining the reviewed population accounting. | `s5_sectorization_population_reconciled_df` | Recommended | [111–121][assign-5-111-121] |
+| `5::match_check`; `5::manual_match`; `5::manual2`; `5::match_check_v2`; `5::match_check_v3` | Short reviewed-match reads and normalization grouped into one evidence collection. | `s5_sectorization_fkt_match_reviews_list` | Recommended | [127–140][assign-5-127-140] |
+| `5::sect_filled (ordered match fills)` | Fill valid and reviewed FKT codes and assign match_type in precedence order. | `s5_sectorization_fkt_matches_df` | Recommended | [142–208][assign-5-142-208] |
+| `5::sect_filled (direct clinic matches)` | Append manual assignments made to clinics rather than existing FKT rows. | `s5_sectorization_direct_matches_df` | Recommended | [211–221][assign-5-211-221] |
+| `5::sect_filled (polygon join)` | Attach the lookup PCODE and corresponding FKT geometry. | `s5_sectorization_initial_geometry_sf` | Recommended | [224–228][assign-5-224-228] |
+| `5::sect_filled (topology diagnostics)` | Calculate neighbor counts, connected components, and isolated-match flags. | `s5_sectorization_initial_topology_sf` | Recommended | [233–259][assign-5-233-259] |
+| `5::empty_geom` | Empty-geometry fallback value; grouped with the healthshed aggregation that uses it. | `s5_healthshed_clinic_initial_sf` | Recommended | [260][assign-5-260-260], [285][assign-5-285-285] |
+| `5::sect_filled (remove isolated matches)` | Unlink qualifying isolated FKT while preserving protected manual assignments. | `s5_sectorization_contiguity_filtered_sf` | Recommended | [264–275][assign-5-264-275] |
+| `5::sheds` | Initial clinic healthsheds and aggregation diagnostics. | `s5_healthshed_clinic_initial_sf` | Recommended | [285][assign-5-285-285] |
+| `5::unmatched_fkt (initial subset and lookup enrichment)` | Unassigned administrative polygons prepared for historical recovery. | `s5_fkt_unmatched_initial_sf` | Recommended | [299–307][assign-5-299-307] |
+| `5::sect2018` | Normalized 2018 sectorization with stable source-row identifiers. | `s5_sectorization_2018_source_df` | Recommended | [309–314][assign-5-309-314] |
+| `5::mapping` | Reuse the cleaned facility mapping for the 2018 bridge. | `s1_gesis_xwalk_clean_df` | Existing | [316][assign-5-316-316] |
+| `5::matches2018 (joins and spatial flags)` | Candidate historical assignments with existing-clinic and adjacency evidence. | `s5_sectorization_2018_candidates_sf` | Recommended | [318–347][assign-5-318-347] |
+| `5::matches2018_in2022` | Historical candidates reconciled with unmatched 2022 FKT by grouped name distance. | `s5_sectorization_2018_matches_sf` | Recommended | [349–369][assign-5-349-369] |
+| `5::sect_filled_v2 (historical fills)` | Apply the accepted historical matches to the sectorization. | `s5_sectorization_historical_filled_sf` | Recommended | [391–404][assign-5-391-404] |
+| `5::manual3`; `5::manual4`; `5::unmatch` | Group the next manual-match and unmatch source tables. | `s5_sectorization_followup_reviews_list` | Recommended | [407–410][assign-5-407-410] |
+| `5::sect_filled_v2 (manual revisions and geometry rejoin)` | Apply follow-up unmatches/matches and refresh administrative geometry. | `s5_sectorization_reviewed_v2_sf` | Recommended | [412–459][assign-5-412-459] |
+| `5::sheds_v2` | Healthsheds following the historical and manual revisions. | `s5_healthshed_clinic_v2_sf` | Recommended | [461][assign-5-461-461] |
+| `5::unmatched_fkt2` | Remaining unassigned polygons after those revisions. | `s5_fkt_unmatched_v2_sf` | Recommended | [476–477][assign-5-476-477] |
+| `5::district_map` | Reviewed district-code bridge used for commune matching. | `s5_sectorization_district_lookup_df` | Recommended | [483][assign-5-483-483] |
+| `5::fkt_to_fs_by_commune` | Candidate assignments through a close commune match where the commune has one clinic. | `s5_sectorization_commune_candidates_sf` | Recommended | [484–503][assign-5-484-503] |
+| `5::by_commune_adj` | Evaluate whether commune-based additions worsen connected-component counts. | `s5_sectorization_commune_topology_sf` | Recommended | [506–529][assign-5-506-529] |
+| `5::sect_filled_v3 (accepted commune additions and geometry refresh)` | Append acceptable commune assignments and refresh geometry. | `s5_sectorization_commune_filled_sf` | Recommended | [540–563][assign-5-540-563] |
+| `5::sheds_v3` | Healthsheds after the commune fill. | `s5_healthshed_clinic_v3_sf` | Recommended | [565][assign-5-565-565] |
+| `5::unmatched_fkt3` | Residual coverage diagnostic after commune matching. | `s5_fkt_unmatched_v3_sf` | Recommended | [580–581][assign-5-580-581] |
+| `5::noncontig_fixes` | Reviewed FKT-to-clinic reassignments with the required source attributes. | `s5_sectorization_noncontiguous_reviews_df` | Recommended | [586–613][assign-5-586-613] |
+| `5::sect_filled_v4 (initial reviewed reassignments)` | Remove superseded records and append the reviewed non-contiguous fixes. | `s5_sectorization_reassigned_v4_sf` | Recommended | [616–625][assign-5-616-625] |
+| `5::unmatched_fkt_fixes`; `5::sect_filled_v4 (unmatched fixes)` | Read and apply the reviewed fixes for previously unmatched FKT; one short review/application stage. | `s5_sectorization_unmatched_fixed_sf` | Recommended | [627–641][assign-5-627-641] |
+| `5::misc_fixes`; `5::sect_filled_v4 (miscellaneous fixes)` | Read and apply reviewed duplicate removals and corrected administrative codes. | `s5_sectorization_misc_fixed_sf` | Recommended | [643–664][assign-5-643-664] |
+| `5::island_fixes` | Explicit coastal-island assignments to clinic UIDs. | `s5_sectorization_island_assignments_df` | Recommended | [666–672][assign-5-666-672] |
+| `5::fkt_shape (coastal-island split)` | Separate island and mainland geometry with new PCODEs. | `s5_fkt_shapes_final_sf` | Recommended | [674–700][assign-5-674-700] |
+| `5::ocha_map (coastal-island lookup extension)` | Add the new island PCODE/administrative-code pairs. | `s5_fkt_code_lookup_final_df` | Recommended | [702–705][assign-5-702-705] |
+| `5::sect_filled_v4 (island rows)` | Attach island assignments and preserve their review provenance. | `s5_sectorization_islands_fixed_sf` | Recommended | [707–720][assign-5-707-720] |
+| `5::noncontig_fixes2 (read/trim)` | Last reviewed set of polygon reassignments. | `s5_sectorization_final_reassignment_reviews_df` | Recommended | [739–740][assign-5-739-740] |
+| `5::sect_filled_v4 (unlink old assignments)` | Clear the old links targeted by the final review. | `s5_sectorization_final_unlinked_sf` | Recommended | [745–752][assign-5-745-752] |
+| `5::noncontig_fixes2 (replacement rows)` | Construct the new clinic/FKT records with source attributes and match provenance. | `s5_sectorization_final_reassignment_rows_df` | Recommended | [755–768][assign-5-755-768] |
+| `5::sect_filled_v4 (append replacements and refresh geometry)` | Append reviewed replacement rows and attach final codes/geometries. | `s5_sectorization_2022_clean_sf` | Recommended | [770–783][assign-5-770-783] |
+| `5::sheds_v4` | Final 2022 clinic healthsheds with population and topology diagnostics. | `s5_healthshed_clinic_final_sf` | Recommended | [786][assign-5-786-786] |
+| `5::test`; `5::callback::x`; `5::callback::near_sheds` | Non-contiguous healthshed review plots, including the short per-clinic plot-local objects. | `s5_healthshed_clinic_noncontiguous_review_list` | Recommended | [807–878][assign-5-807-878] |
+| `5::test2`; `5::callback::x`; `5::callback::near_sheds` | Multiple-polygon review plots with their per-clinic geometry and neighboring sheds. | `s5_healthshed_clinic_multipart_review_list` | Recommended | [883–955][assign-5-883-955] |
+| `5::sect_filled_v4 -> table / shapefile`; `5::sheds_v4 -> shapefile / RDS` | Retain cleaned sectorization and healthshed geometry as ordinary spatial data targets for downstream reuse. | `s5_sectorization_2022_clean_sf`; `s5_healthshed_clinic_final_sf` | Recommended | [969–1000][assign-5-969-1000] |
+
+### Script 6 — Clinic locations
+
+| Legacy assignment(s) | What the assigned value represents | Target name | Status | Source lines |
+| --- | --- | --- | --- | --- |
+| `6::mode`; `6::mode::x`; `6::mode::val`; `6::unique_nonNA`; `6::unique_nonNA::x` | Helper definitions and locals; unique_nonNA supports candidate assembly, while mode is not called in active steps. | `s6_clinic_location_sectorization_df` | Recommended | [12–26][assign-6-12-26] |
+| `6::clinic_ID` | Reuse the earlier-wave clinic-ID crosswalk. | `s2_clinic_ids_df` | Existing | [50][assign-6-50-50] |
+| `6::sect` | Read cleaned sectorization geometry and normalize shapefile field names. | `s5_sectorization_2022_clean_sf` | Recommended | [61–65][assign-6-61-65] |
+| `6::sheds` | Reuse the final healthshed product. | `s5_healthshed_clinic_final_sf` | Recommended | [67][assign-6-67-67] |
+| `6::mdss` | MDDSS candidate coordinates with zero/zero records excluded. | `s6_clinic_location_mdss_source_df` | Recommended | [69–70][assign-6-69-70] |
+| `6::who_ll (read)`; `6::unicef_ll`; `6::gps_ll` | Three short location-source reads, grouped as a named source collection. | `s6_clinic_location_other_sources_list` | Recommended | [83–90][assign-6-83-90] |
+| `6::clinic_ll (sectorization candidates)` | Reduce sectorization records to clinic attributes and parse its point coordinates. | `s6_clinic_location_sectorization_df` | Recommended | [94–103][assign-6-94-103] |
+| `6::clinic_ll (MDDSS join and closest-name filter)` | Map MDDSS GESIS codes to IDs and retain the best clinic-name candidates. | `s6_clinic_location_mdss_joined_df` | Recommended | [110–136][assign-6-110-136] |
+| `6::who_ll (reviewed corrections)` | Apply UID fixes, remove ambiguous duplicates, and normalize WHO coordinates. | `s6_clinic_location_who_clean_df` | Recommended | [141–173][assign-6-141-173] |
+| `6::clinic_ll (WHO join)` | Add reviewed WHO candidates, including clinics absent from sectorization. | `s6_clinic_location_who_joined_df` | Recommended | [175–177][assign-6-175-177] |
+| `6::clinic_ll (UNICEF join)` | Parse and append UNICEF candidates by UID. | `s6_clinic_location_unicef_joined_df` | Recommended | [183–189][assign-6-183-189] |
+| `6::clinic_ll (GPS join)` | Join GPS candidates through historical codes and closest names. | `s6_clinic_location_gps_joined_df` | Recommended | [194–210][assign-6-194-210] |
+| `6::clinic_ll (FKT geometry join)` | Identify the best unique FKT candidate by clinic/FKT name and distance. | `s6_clinic_location_fkt_matched_df` | Recommended | [231–257][assign-6-231-257] |
+| `6::new_name`; `6::out`; `6::clinic_ll_sf (point conversion)` | Create candidate point geometries; callback naming and temporary frames stay inside this stage. | `s6_clinic_location_points_sf` | Recommended | [273–288][assign-6-273-288] |
+| `6::clinic_ll_sf (containment evidence)` | Join healthsheds and calculate FKT/healthshed containment for candidate coordinates. | `s6_clinic_location_containment_sf` | Recommended | [291–300][assign-6-291-300] |
+| `6::clinic_ll_sf (which_use)` | Choose the preferred source or explicit centroid/missing fallback. | `s6_clinic_locations_selected_sf` | Recommended | [316–329][assign-6-316-329] |
+| `6::clinic_ll_sf -> RDS export` | Retain candidates, selection evidence, and source labels in the selected-locations spatial data target. | `s6_clinic_locations_selected_sf` | Recommended | [331–334][assign-6-331-334] |
+
+### Script 7 — Combined clinic metadata
+
+| Legacy assignment(s) | What the assigned value represents | Target name | Status | Source lines |
+| --- | --- | --- | --- | --- |
+| `7::unique_nonNA`; `7::unique_nonNA::x` | Reduce nonmissing source attributes; helper dependency of clinic-level metadata. | `s7_clinic_metadata_attributes_df` | Recommended | [14–18][assign-7-14-18] |
+| `7::clinic_track` | Reuse the reporting tracker from diagnosis cleaning, resolving the documented handoff mismatch. | `s4a_clinic_reporting_track_parquet` | Recommended | [21][assign-7-21-21] |
+| `7::clinicID` | Reuse the identity crosswalk. | `s2_clinic_ids_df` | Existing | [23][assign-7-23-23] |
+| `7::healthsheds` | Reuse the final healthshed geometries. | `s5_healthshed_clinic_final_sf` | Recommended | [25][assign-7-25-25] |
+| `7::clinic_LL` | Reuse candidate locations and chosen-source evidence. | `s6_clinic_locations_selected_sf` | Recommended | [27][assign-7-27-27] |
+| `7::sect2022` | Reuse the cleaned 2022 sectorization attributes. | `s5_sectorization_2022_clean_sf` | Recommended | [29][assign-7-29-29] |
+| `7::clinic_time (reshape/join and database-code fallback)` | Create clinic-year-month source histories and fill reported post-2019 codes from UIDs. | `s7_clinic_reporting_metadata_df` | Recommended | [37–53][assign-7-37-53] |
+| `7::clinic_cross (reporting summary and source precedence)` | Summarize reporting and choose clinic attributes from sectorization or the latest historical record. | `s7_clinic_metadata_attributes_df` | Recommended | [67–93][assign-7-67-93] |
+| `7::clinic_cross (healthshed and selected coordinates)` | Join healthsheds and extract coordinates from the selected source. | `s7_clinic_metadata_located_df` | Recommended | [95–113][assign-7-95-113] |
+| `7::clinic_cross (healthshed-centroid fallback)` | Fill coordinates from the healthshed centroid where explicitly selected. | `s7_clinic_metadata_centroid_filled_df` | Recommended | [116–122][assign-7-116-122] |
+| `7::clinic_cross (public/private fallback)` | Apply the legacy ownership inference for recent reporting clinics absent from sectorization. | `s7_clinic_metadata_classified_df` | Recommended | [125–127][assign-7-125-127] |
+| `7::merge_clinics` | Reviewed neighbor-clinic pairings for clinics missing FKT/healthsheds. | `s7_clinic_neighbor_pairings_df` | Recommended | [130–131][assign-7-130-131] |
+| `7::clinic_cross (pairings, has_healthshed, gps_source)` | Attach reviewed neighbors and finalize geometry-availability and coordinate-source fields. | `s7_clinic_spatial_metadata_df` | Recommended | [134–138][assign-7-134-138] |
+| `7::clinic_cross -> CSV`; `7::clinic_time -> CSV` | Persist spatial attributes and reporting metadata as tracked Parquet files. | `s7_clinic_spatial_metadata_parquet`; `s7_clinic_reporting_metadata_parquet` | Recommended | [149–154][assign-7-149-154] |
+
+### Script 999 — Shared utilities
+
+| Legacy assignment(s) | What the assigned value represents | Target name | Status | Source lines |
+| --- | --- | --- | --- | --- |
+| `999::malagasy_french_directions` | Cardinal-direction lookup; group with spatial match evidence if retained. | `s5_sectorization_fkt_match_reviews_list` | Recommended | [2–9][assign-999-2-9] |
+| `999::grouped_stringdist_fulljoin`; `999::out (nested join and optional unnest)` | Fuzzy-matching helper and intermediate result; used by historical/commune matching owners. | `s5_sectorization_2018_matches_sf`; `s5_sectorization_commune_candidates_sf` | Recommended | [13–44][assign-999-13-44] |
+| `999::read_csv_nonlogical`; `999::test` | Sparse-column reader and local schema adjustments, already adapted by notebook 18. | `s0_clinic_RMA_W3_within_file_max_parquet` | Existing | [49–62][assign-999-49-62] |
+
+### Script checks — Exploratory checks and supplements
+
+| Legacy assignment(s) | What the assigned value represents | Target name | Status | Source lines |
+| --- | --- | --- | --- | --- |
+| `checks::filenames_old`; `checks::ldf_old`; `checks::shortnames_old`; `checks::names(ldf_old)` | Inventory/read/name the older export tables. | `schecks_source_export_tables_list` | Recommended | [10–14][assign-checks-10-14] |
+| `checks::filenames_new`; `checks::ldf_new`; `checks::shortnames_new`; `checks::names(ldf_new)` | Inventory/read/name the newer export tables; grouped with the older sources. | `schecks_source_export_tables_list` | Recommended | [16–20][assign-checks-16-20] |
+| `checks::get_column_names`; `checks::old_columns`; `checks::new_columns` | Collect per-file source-column inventories. | `schecks_source_export_columns_list` | Recommended | [26–29][assign-checks-26-29], [51–52][assign-checks-51-52] |
+| `checks::compare_columns (both definitions)`; `checks::common_files`; `checks::all_files`; `checks::results`; `checks::old`; `checks::new`; `checks::comparison_results` | Compare schema presence across all source files; function-local lists belong to this comparison. | `schecks_source_schema_comparison_df` | Recommended | [31–48][assign-checks-31-48], [55–75][assign-checks-55-75] |
+| `checks::filenames_newest`; `checks::ldf_newest`; `checks::shortnames_newest`; `checks::names(ldf_newest)` | Read/name the later 2023 delivery as another member of the source collection. | `schecks_source_export_tables_list` | Recommended | [113–117][assign-checks-113-117] |
+| `checks::temp_old_2022`; `checks::temp_new_2022` | Select comparable nutrition-table records and filter the older source to 2022. | `schecks_source_nutrition_2022_comparison_inputs_list` | Recommended | [119–122][assign-checks-119-122] |
+| `checks::org_ids_old`; `checks::org_ids_new`; `checks::ids_only_in_old`; `checks::ids_only_in_new`; `checks::ids_in_both` | Clinic coverage sets for the paired source exports. | `schecks_source_clinic_coverage_comparison_list` | Recommended | [129–135][assign-checks-129-135] |
+| `checks::cols_old`; `checks::cols_new`; `checks::cols_only_in_old`; `checks::cols_only_in_new`; `checks::cols_in_both` | Field coverage sets for the paired tables. | `schecks_source_field_coverage_comparison_list` | Recommended | [159–165][assign-checks-159-165] |
+| `checks::temp_new_2023 (selection and filter)` | Select 2023 records from the chronic-disease table. | `schecks_source_2023_period_comparison_inputs_list` | Recommended | [188–189][assign-checks-188-189] |
+| `checks::temp_newest (selection and reassignment)` | Later-delivery period comparison. The reassignment reads temp_new_2022, so its intent needs review. | `schecks_source_2023_period_comparison_inputs_list` | Recommended | [194–196][assign-checks-194-196] |
+| `checks::missing_in_old`; `checks::missing_in_new` | Bidirectional full-row source differences, kept distinct from key-only coverage. | `schecks_source_row_comparison_df` | Recommended | [199–202][assign-checks-199-202] |
+| `checks::common_rows`; `checks::columns_to_compare_old (create and suffix)` | Align shared clinic-period rows and identify source-field pairs. | `schecks_source_value_comparison_inputs_list` | Recommended | [213–219][assign-checks-213-219] |
+| `checks::discrepancies` | Shared-key records with at least one compared field differing. | `schecks_source_value_discrepancies_df` | Recommended | [222–230][assign-checks-222-230] |
+| `checks::difference_columns`; `checks::new_col`; `checks::diff_col_name`; `checks::difference_columns[[diff_col_name]]` | Construct per-field difference evidence; loop-local field names remain internal. | `schecks_source_value_difference_details_list` | Recommended | [235–249][assign-checks-235-249] |
+| `checks::non_id_columns`; `checks::summary_table`; `checks::summary_table_filtered` | Count and retain fields with observed differences. | `schecks_source_value_difference_summary_df` | Recommended | [254–264][assign-checks-254-264] |
+| `checks::test1`; `checks::test2`; `checks::test3`; `checks::test4 (reader experiment)` | Compare sampling sizes and base/readr import behavior; these names are reused later. | `schecks_csv_reader_comparison_list` | Recommended | [270–273][assign-checks-270-273] |
+| `checks::logical_cols`; `checks::logical_data`; `checks::first_logical_col` | Inspect inferred logical columns and their values. | `schecks_csv_logical_column_diagnostics_list` | Recommended | [279–280][assign-checks-279-280], [303–307][assign-checks-303-307] |
+| `checks::read_csv_nonlogical (both definitions)`; `checks::read_csv_nonlogical::test` | Repeated reader helper and schema local; grouped with the reader experiment. | `schecks_csv_reader_comparison_list` | Recommended | [328–341][assign-checks-328-341], [624–637][assign-checks-624-637] |
+| `checks::old_w3`; `checks::new_w3 (measurement reads)` | Legacy/rebuilt Wave 3 tables selected for comparison. | `schecks_w3_legacy_comparison_inputs_list` | Recommended | [357–358][assign-checks-357-358] |
+| `checks::old_w3`; `checks::new_w3 (drop index, align columns, sort)` | Prepare comparable measurement tables while preserving the need to validate keys. | `schecks_w3_legacy_comparison_aligned_list` | Recommended | [370–373][assign-checks-370-373], [386–387][assign-checks-386-387] |
+| `checks::problem_columns (construct and filter)` | Parse all.equal output and remove duplicate type/mode messages. | `schecks_w3_legacy_problem_columns_df` | Recommended | [403–426][assign-checks-403-426], [440][assign-checks-440-440] |
+| `checks::file_columns` | Map source files to their original column names. | `schecks_source_file_column_inventory_df` | Recommended | [451–464][assign-checks-451-464] |
+| `checks::test (source-file trace)` | Find source files containing the columns flagged by comparison. | `schecks_w3_legacy_problem_sources_df` | Recommended | [472–473][assign-checks-472-473] |
+| `checks::new_w3`; `checks::old_w3 (logical-to-numeric updates)` | Normalize types for the subsequent numeric comparison. | `schecks_w3_legacy_numeric_comparison_inputs_list` | Recommended | [481–482][assign-checks-481-482] |
+| `checks::test (matrix equality attempt)` | Exploratory equality matrix; the code compares old_w3 with itself, so retain the question rather than adopt it as proof. | `schecks_w3_legacy_numeric_comparison_matrix` | Recommended | [499–505][assign-checks-499-505] |
+| `checks::equals_na`; `checks::mismatches`; `checks::out`; `checks::all_mismatches`; `checks::rownames(all_mismatches)` | NA-aware comparison helper, per-column mismatch details, combined evidence, and row-name cleanup. | `schecks_w3_legacy_value_mismatches_df` | Recommended | [515–554][assign-checks-515-554], [556][assign-checks-556-556] |
+| `checks::test1`; `checks::test2 (explicit-numeric/base reads)`; `checks::test1 (schema)`; `checks::test2 (schema read)` | Additional reader/source tracing experiments; group the short read/schema steps. | `schecks_csv_reader_comparison_list` | Recommended | [564–568][assign-checks-564-568], [578–589][assign-checks-578-589] |
+| `checks::kevin_w3`; `checks::orig_w3`; `checks::old_w3`; `checks::new_w3 (dictionary reads)` | Alternative dictionary versions; the reused w3 names now identify dictionaries, not measurements. | `schecks_dictionary_legacy_comparison_inputs_list` | Recommended | [653–656][assign-checks-653-656] |
+| `checks::old_w3`; `checks::new_w3 (second sorting block)` | Copied comparison preparation; organisationunitid/periodcode keys need review for dictionary inputs. | `schecks_dictionary_legacy_comparison_aligned_list` | Recommended | [686–687][assign-checks-686-687] |
+| `checks::problem_columns (second construction/filter)` | Repeated difference-message parsing applied in the dictionary-comparison investigation. | `schecks_dictionary_legacy_problem_columns_df` | Recommended | [703–726][assign-checks-703-726], [740][assign-checks-740-740] |
+| `checks::file_columns (second construction)` | Repeated source file/column inventory; reuse the same named responsibility. | `schecks_source_file_column_inventory_df` | Recommended | [751–764][assign-checks-751-764] |
+| `checks::test (second source-file trace)` | Trace dictionary-comparison problem fields to source files. | `schecks_dictionary_legacy_problem_sources_df` | Recommended | [772–773][assign-checks-772-773] |
+| `checks::new_w3`; `checks::old_w3 (second numeric conversion)`; `checks::test (second matrix attempt)` | Repeated numeric-normalization/equality experiment; review applicability to dictionary fields before implementation. | `schecks_dictionary_legacy_numeric_comparison_matrix` | Recommended | [781–782][assign-checks-781-782], [799–805][assign-checks-799-805] |
+| `checks::equals_na`; `checks::mismatches`; `checks::out`; `checks::all_mismatches`; `checks::rownames(all_mismatches) (second block)` | Repeated NA-aware mismatch construction; keep separate ownership from the measurement-table comparison. | `schecks_dictionary_legacy_value_mismatches_df` | Recommended | [815–854][assign-checks-815-854], [856][assign-checks-856-856] |
+| `checks::test1`; `checks::test2 (repeated source readers and schema)` | Repeated explicit-numeric/base/schema reads grouped with the CSV-reader investigation. | `schecks_csv_reader_comparison_list` | Recommended | [864–868][assign-checks-864-868], [878–889][assign-checks-878-889] |
+| `checks::input_path`; `checks::file1` | Identify and read the combined-year mumps supplement. | `schecks_mumps_source_df` | Recommended | [912–915][assign-checks-912-915] |
+| `checks::file_2021`; `checks::file_2022` | Split the mumps supplement by reporting year; both short filters share one target. | `schecks_mumps_by_year_list` | Recommended | [918–919][assign-checks-918-919] |
+| `checks::target_col`; `checks::metadata_cols`; `checks::file_2021_males_2_11m` | Select the 2021 male 2–11-month variable with its source metadata. | `schecks_mumps_2021_males_2_11m_df` | Recommended | [939–943][assign-checks-939-943] |
+| `checks::file_2021 -> CSV`; `checks::file_2022 -> CSV`; `checks::file_2021_males_2_11m -> CSV` | Track the three related derived outputs as Parquet files outside the raw source tree. | `schecks_mumps_output_parquet` | Recommended | [922–935][assign-checks-922-935], [948–954][assign-checks-948-954] |
+
+Notebook 19 now exposes the manual corrections as
+`s1_gesis_xwalk_manual_codes_corrected_df`,
+`s1_gesis_xwalk_manual_2015_corrected_df`,
+`s1_gesis_xwalk_manual_historical_corrected_df`, and
+`s1_gesis_xwalk_manual_uid_added_df` before producing
+`s1_gesis_xwalk_clean_df`. Each stage has its own procedure and preserves the
+reviewed transformation sequence.
+
+Notebook 20 similarly exposes collection, code correction, mapping, UID fill,
+provisional identity, deletion, snip, and commune reconciliation as named
+targets. These are successive stages of one route, rather than parallel
+implementations of the same corrections. Target declarations belong in the
+procedure blocks; the final check reads their outputs and runs the synthetic
+regression commands.
+
+## Handoffs to resolve as the notebooks develop
+
+These observations explain where a literal script-for-script translation
+would leave important behavior implicit. They are review items, not changes
+implemented by this page.
+
+| Handoff or decision | Evidence in the current source | What the owning notebook needs to record |
+| --- | --- | --- |
+| Prepared Wave 3 artifact | Script 0 writes a dated filename; scripts 3 and 4A read the generic `wave3_with_keys.csv` ([0:274–275][w3-output]; [3:31–48][dictionary-w3-input]; [4A:249–249][diagnosis-w3-input]) | Which prepared artifact and source schema supply both dictionary construction and measurement cleaning |
+| Reporting tracker artifact | Script 4A writes under `data/clean/by_diagnosis/`; script 7 reads under `data/intermediate/` ([4A:22–25][diagnosis-output-dir]; [4A:350–373][diagnosis-tracker]; [7:21][metadata-tracker-input]) | The authoritative reporting-tracker artifact and its dependency in metadata assembly |
+| Diagnosis dictionary artifact | Legacy script 3 writes a scratch CSV while 4A reads a different clean CSV; page 21 now declares `s3_diagnosis_dictionary_df` and its tracked Parquet copy ([3:580–581][dictionary-output]; [4A:29–31][diagnosis-dictionary-input]) | Measurement cleaning should consume the page-21 data target and recorded X schema, rather than repeat the legacy filename assumption |
+| Raw versus cleaned facility mapping | Script 0 reads the original mapping; scripts 2 and 5 read the cleaned mapping ([0:191–212][w3-crosswalk]; [2:57–79][identity-mapping-input]; [5:309–328][sheds-mapping-input]) | Why each join uses that version, its year rules, and its expected cardinality |
+| Clinic-ID transformation route | Notebook 20 builds a Parquet inventory, applies corrections and mapping once through named data targets, and persists the final crosswalk as Parquet | Keep one owner for each correction and consume the data target or its tracked Parquet artifact downstream |
+| Positional diagnosis names | Script 3 assigns `X` names from Wave 3 column order; 4A independently recreates them ([3:31–48][dictionary-w3-input]; [4A:293–324][diagnosis-w3-clean]) | A shared, recorded column-name mapping that permits comparison after storage changes |
+| Missing values and duplicates | Script 0 takes maxima; 4A uses conditional deduplication, summation, and sentinels ([0:161–168][w3-max]; [4A:160–196][diagnosis-duplicates]; [4A:53–72][diagnosis-sum-missing]) | Which rule applies at each row definition, and why |
+| Spatial source dependency | Script 5 sources `0_utility_functions.R`; the available utility file is `999_utility_functions.R` ([5:54–54][sheds-helper-source]; [999:1–62][legacy-utilities]) | The actual helper implementation and matching parameters |
+| Coordinate extraction | Script 6 can select UNICEF; script 7 has no corresponding coordinate case ([6:314–329][location-selection]; [7:98–112][metadata-coordinate-cases]) | Whether to preserve the legacy missing result or adopt an explicitly reviewed correction |
+| Mumps supplements | `data_checks.R` writes derived year/subset files back into the raw tree ([data_checks:912–935][checks-mumps-split]; [data_checks:938–954][checks-mumps-subset]) | The source export, transformation, and derived-output destination |
+| Output validation | Legacy scripts mix diagnostic queries, comments, and scratch exports ([1:235–274][mapping-diagnostics]; [3:563–578][dictionary-diagnostics]; [data_checks:357–613][checks-w3]) | Which evidence establishes equivalence, which differences are intentional, and which remain unresolved |
+
+The summaries and source links preserve the context needed to work through
+these decisions notebook by notebook. Revisit the migration-state column when
+a destination is created or its equivalence evidence is recorded.
+
+<!-- Source permalinks are constructed and checked against the local Git snapshot. -->
+
+[legacy-w3]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/0_prep_w3_kevin_translated.R#L1-L275
+[legacy-mapping]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/1_clean_mapping_dhis2_gesis.R#L1-L278
+[legacy-identity]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/2_wave1-2_construct_clinicID.R#L1-L234
+[legacy-dictionary]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/3_construct_dictionary.R#L1-L586
+[legacy-diagnosis]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/4A_clean_clinic_diagnosis.R#L1-L422
+[legacy-slurm]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/4B_clean_clinic_diagnosis.slurm#L1-L17
+[legacy-sheds]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L1-L1169
+[legacy-location]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/6_locate_clinics.R#L1-L547
+[legacy-metadata]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/7_combine_clinic_metadata.R#L1-L156
+[legacy-utilities]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/999_utility_functions.R#L1-L62
+[legacy-checks]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L1-L957
+[w3-reader]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/0_prep_w3_kevin_translated.R#L25-L38
+[w3-ingest]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/0_prep_w3_kevin_translated.R#L43-L81
+[w3-max]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/0_prep_w3_kevin_translated.R#L161-L168
+[w3-crosswalk]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/0_prep_w3_kevin_translated.R#L191-L212
+[w3-join]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/0_prep_w3_kevin_translated.R#L233-L243
+[w3-substitutions]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/0_prep_w3_kevin_translated.R#L264-L272
+[w3-output]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/0_prep_w3_kevin_translated.R#L274-L275
+[dictionary-w3-input]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/3_construct_dictionary.R#L31-L48
+[diagnosis-w3-input]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/4A_clean_clinic_diagnosis.R#L249-L249
+[w3-scope]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/0_prep_w3_kevin_translated.R#L1-L6
+[w3-recursion]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/0_prep_w3_kevin_translated.R#L51-L53
+[mapping-input]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/1_clean_mapping_dhis2_gesis.R#L11-L18
+[mapping-corrections]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/1_clean_mapping_dhis2_gesis.R#L25-L58
+[mapping-fill]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/1_clean_mapping_dhis2_gesis.R#L64-L71
+[mapping-decisions]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/1_clean_mapping_dhis2_gesis.R#L83-L89
+[mapping-apply]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/1_clean_mapping_dhis2_gesis.R#L143-L163
+[mapping-additions]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/1_clean_mapping_dhis2_gesis.R#L175-L196
+[mapping-manual]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/1_clean_mapping_dhis2_gesis.R#L201-L231
+[mapping-output]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/1_clean_mapping_dhis2_gesis.R#L277-L278
+[identity-mapping-input]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/2_wave1-2_construct_clinicID.R#L57-L79
+[sheds-mapping-input]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L309-L328
+[mapping-diagnostics]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/1_clean_mapping_dhis2_gesis.R#L235-L274
+[identity-inventory]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/2_wave1-2_construct_clinicID.R#L22-L37
+[identity-codes]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/2_wave1-2_construct_clinicID.R#L42-L50
+[identity-year-join]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/2_wave1-2_construct_clinicID.R#L63-L79
+[identity-fill]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/2_wave1-2_construct_clinicID.R#L98-L125
+[identity-mode]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/2_wave1-2_construct_clinicID.R#L7-L15
+[identity-initial]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/2_wave1-2_construct_clinicID.R#L143-L156
+[identity-deletions]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/2_wave1-2_construct_clinicID.R#L158-L169
+[identity-snips]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/2_wave1-2_construct_clinicID.R#L177-L205
+[identity-commune]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/2_wave1-2_construct_clinicID.R#L209-L221
+[identity-output]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/2_wave1-2_construct_clinicID.R#L223-L233
+[dictionary-inputs]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/3_construct_dictionary.R#L31-L66
+[dictionary-supplements]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/3_construct_dictionary.R#L69-L92
+[dictionary-w3-map]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/3_construct_dictionary.R#L105-L162
+[dictionary-aggregate]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/3_construct_dictionary.R#L178-L205
+[dictionary-expressions]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/3_construct_dictionary.R#L208-L277
+[dictionary-variables]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/3_construct_dictionary.R#L280-L299
+[dictionary-translations]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/3_construct_dictionary.R#L307-L357
+[dictionary-enrichment]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/3_construct_dictionary.R#L446-L486
+[dictionary-tables]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/3_construct_dictionary.R#L514-L561
+[dictionary-output]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/3_construct_dictionary.R#L580-L581
+[diagnosis-dictionary-input]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/4A_clean_clinic_diagnosis.R#L29-L31
+[dictionary-diagnostics]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/3_construct_dictionary.R#L563-L578
+[diagnosis-references]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/4A_clean_clinic_diagnosis.R#L29-L51
+[diagnosis-supplements]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/4A_clean_clinic_diagnosis.R#L108-L128
+[diagnosis-identity]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/4A_clean_clinic_diagnosis.R#L121-L154
+[diagnosis-duplicates]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/4A_clean_clinic_diagnosis.R#L160-L196
+[diagnosis-pivot]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/4A_clean_clinic_diagnosis.R#L198-L236
+[diagnosis-anemia]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/4A_clean_clinic_diagnosis.R#L271-L287
+[diagnosis-w3-clean]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/4A_clean_clinic_diagnosis.R#L293-L324
+[diagnosis-w3-map]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/4A_clean_clinic_diagnosis.R#L329-L344
+[diagnosis-tracker]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/4A_clean_clinic_diagnosis.R#L350-L373
+[diagnosis-combine]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/4A_clean_clinic_diagnosis.R#L382-L418
+[diagnosis-output-dir]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/4A_clean_clinic_diagnosis.R#L22-L25
+[diagnosis-partitions]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/4A_clean_clinic_diagnosis.R#L404-L418
+[metadata-tracker-input]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/7_combine_clinic_metadata.R#L21-L21
+[diagnosis-sum-missing]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/4A_clean_clinic_diagnosis.R#L53-L72
+[diagnosis-pivot-missing]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/4A_clean_clinic_diagnosis.R#L198-L200
+[slurm-allocation]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/4B_clean_clinic_diagnosis.slurm#L2-L10
+[slurm-execution]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/4B_clean_clinic_diagnosis.slurm#L12-L17
+[diagnosis-workers]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/4A_clean_clinic_diagnosis.R#L18-L20
+[sheds-inputs]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L54-L100
+[sheds-geometry]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L56-L88
+[sheds-duplicates]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L102-L121
+[sheds-matching]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L123-L228
+[sheds-isolated]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L230-L275
+[sheds-historical]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L304-L404
+[sheds-manual]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L406-L459
+[sheds-commune]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L481-L565
+[sheds-reviewed]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L585-L664
+[sheds-islands]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L666-L720
+[sheds-final-fixes]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L722-L786
+[sheds-aggregation]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L10-L44
+[sheds-overlaps]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L102-L105
+[sheds-review-outputs]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L805-L967
+[sheds-outputs]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L969-L1000
+[sheds-residuals]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L788-L803
+[location-inputs]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/6_locate_clinics.R#L50-L103
+[location-mdss]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/6_locate_clinics.R#L105-L136
+[location-who]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/6_locate_clinics.R#L138-L180
+[location-unicef-gps]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/6_locate_clinics.R#L182-L211
+[location-fkt]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/6_locate_clinics.R#L228-L256
+[location-containment]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/6_locate_clinics.R#L273-L312
+[location-selection]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/6_locate_clinics.R#L314-L329
+[location-output]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/6_locate_clinics.R#L331-L334
+[metadata-inputs]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/7_combine_clinic_metadata.R#L21-L29
+[metadata-temporal]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/7_combine_clinic_metadata.R#L37-L53
+[metadata-summary]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/7_combine_clinic_metadata.R#L67-L93
+[metadata-coordinates]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/7_combine_clinic_metadata.R#L95-L122
+[metadata-fallbacks]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/7_combine_clinic_metadata.R#L124-L138
+[metadata-output]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/7_combine_clinic_metadata.R#L148-L154
+[metadata-coordinate-cases]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/7_combine_clinic_metadata.R#L98-L112
+[utilities-directions]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/999_utility_functions.R#L1-L9
+[utilities-matching]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/999_utility_functions.R#L12-L44
+[utilities-reader]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/999_utility_functions.R#L47-L62
+[sheds-helper-call]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L356-L367
+[location-mode]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/6_locate_clinics.R#L12-L20
+[sheds-helper-source]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L54-L54
+[checks-schema]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L10-L116
+[checks-coverage]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L119-L266
+[checks-types]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L268-L338
+[checks-w3]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L357-L613
+[checks-dictionaries]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L653-L902
+[checks-mumps-split]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L912-L935
+[checks-mumps-subset]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L938-L954
+
+<!-- Assignment inventory source ranges, checked against the same local Git revision. -->
+
+[assign-0-21-21]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/0_prep_w3_kevin_translated.R#L21-L21
+[assign-0-51-53]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/0_prep_w3_kevin_translated.R#L51-L53
+[assign-0-25-48]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/0_prep_w3_kevin_translated.R#L25-L48
+[assign-0-51-81]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/0_prep_w3_kevin_translated.R#L51-L81
+[assign-0-145-145]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/0_prep_w3_kevin_translated.R#L145-L145
+[assign-0-67-72]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/0_prep_w3_kevin_translated.R#L67-L72
+[assign-0-151-152]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/0_prep_w3_kevin_translated.R#L151-L152
+[assign-0-162-167]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/0_prep_w3_kevin_translated.R#L162-L167
+[assign-0-192-193]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/0_prep_w3_kevin_translated.R#L192-L193
+[assign-0-195-212]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/0_prep_w3_kevin_translated.R#L195-L212
+[assign-0-234-243]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/0_prep_w3_kevin_translated.R#L234-L243
+[assign-0-264-272]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/0_prep_w3_kevin_translated.R#L264-L272
+[assign-0-274-275]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/0_prep_w3_kevin_translated.R#L274-L275
+[assign-1-11-18]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/1_clean_mapping_dhis2_gesis.R#L11-L18
+[assign-1-25-28]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/1_clean_mapping_dhis2_gesis.R#L25-L28
+[assign-1-48-58]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/1_clean_mapping_dhis2_gesis.R#L48-L58
+[assign-1-64-65]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/1_clean_mapping_dhis2_gesis.R#L64-L65
+[assign-1-67-71]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/1_clean_mapping_dhis2_gesis.R#L67-L71
+[assign-1-83-89]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/1_clean_mapping_dhis2_gesis.R#L83-L89
+[assign-1-143-163]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/1_clean_mapping_dhis2_gesis.R#L143-L163
+[assign-1-175-193]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/1_clean_mapping_dhis2_gesis.R#L175-L193
+[assign-1-195-196]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/1_clean_mapping_dhis2_gesis.R#L195-L196
+[assign-1-201-231]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/1_clean_mapping_dhis2_gesis.R#L201-L231
+[assign-1-277-278]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/1_clean_mapping_dhis2_gesis.R#L277-L278
+[assign-2-7-15]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/2_wave1-2_construct_clinicID.R#L7-L15
+[assign-2-98-101]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/2_wave1-2_construct_clinicID.R#L98-L101
+[assign-2-22-37]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/2_wave1-2_construct_clinicID.R#L22-L37
+[assign-2-42-45]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/2_wave1-2_construct_clinicID.R#L42-L45
+[assign-2-47-50]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/2_wave1-2_construct_clinicID.R#L47-L50
+[assign-2-57-57]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/2_wave1-2_construct_clinicID.R#L57-L57
+[assign-2-63-79]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/2_wave1-2_construct_clinicID.R#L63-L79
+[assign-2-102-125]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/2_wave1-2_construct_clinicID.R#L102-L125
+[assign-2-144-156]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/2_wave1-2_construct_clinicID.R#L144-L156
+[assign-2-161-164]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/2_wave1-2_construct_clinicID.R#L161-L164
+[assign-2-166-169]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/2_wave1-2_construct_clinicID.R#L166-L169
+[assign-2-177-181]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/2_wave1-2_construct_clinicID.R#L177-L181
+[assign-2-188-205]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/2_wave1-2_construct_clinicID.R#L188-L205
+[assign-2-209-221]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/2_wave1-2_construct_clinicID.R#L209-L221
+[assign-2-224-230]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/2_wave1-2_construct_clinicID.R#L224-L230
+[assign-2-231-233]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/2_wave1-2_construct_clinicID.R#L231-L233
+[assign-3-14-25]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/3_construct_dictionary.R#L14-L25
+[assign-3-31-31]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/3_construct_dictionary.R#L31-L31
+[assign-3-34-36]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/3_construct_dictionary.R#L34-L36
+[assign-3-38-39]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/3_construct_dictionary.R#L38-L39
+[assign-3-44-48]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/3_construct_dictionary.R#L44-L48
+[assign-3-57-61]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/3_construct_dictionary.R#L57-L61
+[assign-3-64-66]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/3_construct_dictionary.R#L64-L66
+[assign-3-69-92]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/3_construct_dictionary.R#L69-L92
+[assign-3-105-164]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/3_construct_dictionary.R#L105-L164
+[assign-3-178-205]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/3_construct_dictionary.R#L178-L205
+[assign-3-208-277]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/3_construct_dictionary.R#L208-L277
+[assign-3-280-299]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/3_construct_dictionary.R#L280-L299
+[assign-3-307-321]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/3_construct_dictionary.R#L307-L321
+[assign-3-324-333]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/3_construct_dictionary.R#L324-L333
+[assign-3-335-356]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/3_construct_dictionary.R#L335-L356
+[assign-3-361-399]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/3_construct_dictionary.R#L361-L399
+[assign-3-405-443]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/3_construct_dictionary.R#L405-L443
+[assign-3-446-486]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/3_construct_dictionary.R#L446-L486
+[assign-3-489-507]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/3_construct_dictionary.R#L489-L507
+[assign-3-514-536]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/3_construct_dictionary.R#L514-L536
+[assign-3-538-542]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/3_construct_dictionary.R#L538-L542
+[assign-3-544-561]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/3_construct_dictionary.R#L544-L561
+[assign-3-580-581]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/3_construct_dictionary.R#L580-L581
+[assign-4a-22-25]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/4A_clean_clinic_diagnosis.R#L22-L25
+[assign-4a-29-29]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/4A_clean_clinic_diagnosis.R#L29-L29
+[assign-4a-30-31]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/4A_clean_clinic_diagnosis.R#L30-L31
+[assign-4a-38-51]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/4A_clean_clinic_diagnosis.R#L38-L51
+[assign-4a-53-72]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/4A_clean_clinic_diagnosis.R#L53-L72
+[assign-4a-77-84]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/4A_clean_clinic_diagnosis.R#L77-L84
+[assign-4a-108-110]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/4A_clean_clinic_diagnosis.R#L108-L110
+[assign-4a-113-128]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/4A_clean_clinic_diagnosis.R#L113-L128
+[assign-4a-132-148]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/4A_clean_clinic_diagnosis.R#L132-L148
+[assign-4a-150-151]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/4A_clean_clinic_diagnosis.R#L150-L151
+[assign-4a-158-196]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/4A_clean_clinic_diagnosis.R#L158-L196
+[assign-4a-198-212]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/4A_clean_clinic_diagnosis.R#L198-L212
+[assign-4a-215-236]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/4A_clean_clinic_diagnosis.R#L215-L236
+[assign-4a-113-116]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/4A_clean_clinic_diagnosis.R#L113-L116
+[assign-4a-234-238]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/4A_clean_clinic_diagnosis.R#L234-L238
+[assign-4a-249-249]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/4A_clean_clinic_diagnosis.R#L249-L249
+[assign-4a-271-274]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/4A_clean_clinic_diagnosis.R#L271-L274
+[assign-4a-279-287]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/4A_clean_clinic_diagnosis.R#L279-L287
+[assign-4a-293-302]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/4A_clean_clinic_diagnosis.R#L293-L302
+[assign-4a-313-324]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/4A_clean_clinic_diagnosis.R#L313-L324
+[assign-4a-329-344]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/4A_clean_clinic_diagnosis.R#L329-L344
+[assign-4a-350-360]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/4A_clean_clinic_diagnosis.R#L350-L360
+[assign-4a-362-373]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/4A_clean_clinic_diagnosis.R#L362-L373
+[assign-4a-382-402]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/4A_clean_clinic_diagnosis.R#L382-L402
+[assign-4a-404-418]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/4A_clean_clinic_diagnosis.R#L404-L418
+[assign-5-10-44]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L10-L44
+[assign-5-56-74]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L56-L74
+[assign-5-76-88]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L76-L88
+[assign-5-91-100]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L91-L100
+[assign-5-103-105]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L103-L105
+[assign-5-111-121]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L111-L121
+[assign-5-127-140]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L127-L140
+[assign-5-142-208]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L142-L208
+[assign-5-211-221]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L211-L221
+[assign-5-224-228]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L224-L228
+[assign-5-233-259]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L233-L259
+[assign-5-260-260]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L260-L260
+[assign-5-285-285]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L285-L285
+[assign-5-264-275]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L264-L275
+[assign-5-299-307]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L299-L307
+[assign-5-309-314]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L309-L314
+[assign-5-316-316]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L316-L316
+[assign-5-318-347]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L318-L347
+[assign-5-349-369]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L349-L369
+[assign-5-391-404]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L391-L404
+[assign-5-407-410]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L407-L410
+[assign-5-412-459]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L412-L459
+[assign-5-461-461]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L461-L461
+[assign-5-476-477]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L476-L477
+[assign-5-483-483]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L483-L483
+[assign-5-484-503]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L484-L503
+[assign-5-506-529]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L506-L529
+[assign-5-540-563]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L540-L563
+[assign-5-565-565]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L565-L565
+[assign-5-580-581]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L580-L581
+[assign-5-586-613]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L586-L613
+[assign-5-616-625]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L616-L625
+[assign-5-627-641]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L627-L641
+[assign-5-643-664]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L643-L664
+[assign-5-666-672]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L666-L672
+[assign-5-674-700]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L674-L700
+[assign-5-702-705]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L702-L705
+[assign-5-707-720]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L707-L720
+[assign-5-739-740]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L739-L740
+[assign-5-745-752]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L745-L752
+[assign-5-755-768]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L755-L768
+[assign-5-770-783]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L770-L783
+[assign-5-786-786]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L786-L786
+[assign-5-807-878]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L807-L878
+[assign-5-883-955]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L883-L955
+[assign-5-969-1000]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R#L969-L1000
+[assign-6-12-26]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/6_locate_clinics.R#L12-L26
+[assign-6-50-50]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/6_locate_clinics.R#L50-L50
+[assign-6-61-65]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/6_locate_clinics.R#L61-L65
+[assign-6-67-67]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/6_locate_clinics.R#L67-L67
+[assign-6-69-70]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/6_locate_clinics.R#L69-L70
+[assign-6-83-90]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/6_locate_clinics.R#L83-L90
+[assign-6-94-103]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/6_locate_clinics.R#L94-L103
+[assign-6-110-136]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/6_locate_clinics.R#L110-L136
+[assign-6-141-173]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/6_locate_clinics.R#L141-L173
+[assign-6-175-177]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/6_locate_clinics.R#L175-L177
+[assign-6-183-189]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/6_locate_clinics.R#L183-L189
+[assign-6-194-210]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/6_locate_clinics.R#L194-L210
+[assign-6-231-257]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/6_locate_clinics.R#L231-L257
+[assign-6-273-288]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/6_locate_clinics.R#L273-L288
+[assign-6-291-300]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/6_locate_clinics.R#L291-L300
+[assign-6-316-329]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/6_locate_clinics.R#L316-L329
+[assign-6-331-334]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/6_locate_clinics.R#L331-L334
+[assign-7-14-18]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/7_combine_clinic_metadata.R#L14-L18
+[assign-7-21-21]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/7_combine_clinic_metadata.R#L21-L21
+[assign-7-23-23]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/7_combine_clinic_metadata.R#L23-L23
+[assign-7-25-25]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/7_combine_clinic_metadata.R#L25-L25
+[assign-7-27-27]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/7_combine_clinic_metadata.R#L27-L27
+[assign-7-29-29]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/7_combine_clinic_metadata.R#L29-L29
+[assign-7-37-53]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/7_combine_clinic_metadata.R#L37-L53
+[assign-7-67-93]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/7_combine_clinic_metadata.R#L67-L93
+[assign-7-95-113]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/7_combine_clinic_metadata.R#L95-L113
+[assign-7-116-122]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/7_combine_clinic_metadata.R#L116-L122
+[assign-7-125-127]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/7_combine_clinic_metadata.R#L125-L127
+[assign-7-130-131]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/7_combine_clinic_metadata.R#L130-L131
+[assign-7-134-138]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/7_combine_clinic_metadata.R#L134-L138
+[assign-7-149-154]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/7_combine_clinic_metadata.R#L149-L154
+[assign-999-2-9]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/999_utility_functions.R#L2-L9
+[assign-999-13-44]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/999_utility_functions.R#L13-L44
+[assign-999-49-62]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/999_utility_functions.R#L49-L62
+[assign-checks-10-14]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L10-L14
+[assign-checks-16-20]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L16-L20
+[assign-checks-26-29]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L26-L29
+[assign-checks-51-52]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L51-L52
+[assign-checks-31-48]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L31-L48
+[assign-checks-55-75]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L55-L75
+[assign-checks-113-117]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L113-L117
+[assign-checks-119-122]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L119-L122
+[assign-checks-129-135]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L129-L135
+[assign-checks-159-165]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L159-L165
+[assign-checks-188-189]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L188-L189
+[assign-checks-194-196]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L194-L196
+[assign-checks-199-202]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L199-L202
+[assign-checks-213-219]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L213-L219
+[assign-checks-222-230]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L222-L230
+[assign-checks-235-249]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L235-L249
+[assign-checks-254-264]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L254-L264
+[assign-checks-270-273]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L270-L273
+[assign-checks-279-280]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L279-L280
+[assign-checks-303-307]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L303-L307
+[assign-checks-328-341]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L328-L341
+[assign-checks-624-637]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L624-L637
+[assign-checks-357-358]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L357-L358
+[assign-checks-370-373]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L370-L373
+[assign-checks-386-387]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L386-L387
+[assign-checks-403-426]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L403-L426
+[assign-checks-440-440]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L440-L440
+[assign-checks-451-464]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L451-L464
+[assign-checks-472-473]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L472-L473
+[assign-checks-481-482]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L481-L482
+[assign-checks-499-505]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L499-L505
+[assign-checks-515-554]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L515-L554
+[assign-checks-556-556]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L556-L556
+[assign-checks-564-568]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L564-L568
+[assign-checks-578-589]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L578-L589
+[assign-checks-653-656]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L653-L656
+[assign-checks-686-687]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L686-L687
+[assign-checks-703-726]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L703-L726
+[assign-checks-740-740]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L740-L740
+[assign-checks-751-764]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L751-L764
+[assign-checks-772-773]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L772-L773
+[assign-checks-781-782]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L781-L782
+[assign-checks-799-805]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L799-L805
+[assign-checks-815-854]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L815-L854
+[assign-checks-856-856]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L856-L856
+[assign-checks-864-868]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L864-L868
+[assign-checks-878-889]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L878-L889
+[assign-checks-912-915]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L912-L915
+[assign-checks-918-919]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L918-L919
+[assign-checks-939-943]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L939-L943
+[assign-checks-922-935]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L922-L935
+[assign-checks-948-954]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R#L948-L954

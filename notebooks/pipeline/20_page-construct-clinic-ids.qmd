@@ -1,0 +1,575 @@
+---
+title: "Construct Clinic IDs"
+subtitle: "Carry reviewed clinic identities across GESIS changes"
+execute:
+  eval: false
+engine: markdown
+---
+
+Before DHIS2, there was GESIS.
+
+This page builds the clinic-month identity crosswalk from the
+legacy monthly inventory of conditions; the cleaned DHIS2–GESIS mapping; and the reviewed
+GESIS corrections. The reviewed rules below remain explicit so their effects
+can be checked before the resulting IDs are used downstream.
+
+::: {.manual-prereq title="Make The Legacy Monthly Inventory Available"}
+
+This stage begins by reading in a set of raw data "from Kevin" that is used
+to define "unique clinic months".
+
+The cleaned mapping is the `s1_gesis_xwalk_clean_df` target from the
+preceding page.
+
+:::
+
+::: {.manual-procedure title="Declare Identity And Input Helpers"}
+
+`targets` tracks the source archive and the rebuilt Parquet inventory as files,
+while the mapping dependency uses the preceding page's in-memory data target.
+The selectors resolve reviewed inputs from the staged-input inventory rather
+than relying on the old script's working directory.
+
+The combined inventory reuses `s0_pipeline_parquet_transform_fn` from page 18.
+It reads with `prudence = "stingy"`, writes the ordered relation, and returns
+the tracked output path.
+
+```{r}
+library(targets)
+library(dplyr)
+library(readr)
+library(readxl)
+library(stringr)
+library(stringi)
+library(duckplyr)
+
+s2_clinic_ids_mode_fn <- function(x, na.rm = FALSE) {
+  if (na.rm) x <- x[!is.na(x)]
+  values <- unique(x)
+  values[which.max(tabulate(match(x, values)))]
+}
+
+s2_clinic_ids_first_fn <- function(x) {
+  if (length(x) == 0L) NA else dplyr::first(x)
+}
+
+```
+
+Require one staged match for each reviewed input, so an ambiguous selection
+fails before the corresponding data is read.
+
+```{r}
+s2_pipeline_input_select_single_fn <- function(paths, pattern) {
+  matches <- stringr::str_subset(paths, pattern)
+  if (length(matches) != 1L) {
+    stop("Expected one staged input matching /", pattern, "/; found ", length(matches), ".")
+  }
+  matches
+}
+```
+
+:::
+
+::: {.manual-procedure title="Select Monthly Archive Members"}
+
+The archived legacy script selects the six identity columns and removes
+duplicates within each monthly CSV before combining files. Keeping the health
+measurement columns would repeat every identity for each reported measurement.
+We perform that reduction in DuckDB and write one Parquet artifact per member.
+
+Only `YYYY_MM.csv` members in `mdg_tall_split/` are selected. This reproduces the
+legacy numeric-filename selection for this freeze and excludes `missing_date.csv`,
+`diar_pneu_fix.csv`, `AVC.csv`, and macOS metadata. Sorting the members reproduces
+the legacy `list.files()` order.
+
+The 120 monthly CSVs in the May 2025 freeze use Windows-1252. A complete byte
+scan found `9C`, `A8`, `E0`, `E8`, `E9`, `EB`, and `F4` outside ASCII. For example,
+`Ampitafà` contains byte `E0`, and `Sœurs` contains `9C`; the latter distinguishes
+Windows-1252 from ISO-8859-1 (Latin-1). A UTF-8 process locale does not change
+these file bytes, and Latin-1 is not a valid substitute for this archive.
+
+Use DuckDB's official [encodings extension](https://duckdb.org/docs/current/core_extensions/encodings)
+with `encoding = "CP1252"`. `INSTALL` reuses the installed extension after the
+first download; a new runtime or DuckDB version needs network access for that
+download. `LOAD` runs on duckplyr's own connection in each worker. Decoding
+happens in DuckDB before reduction, leaving UTF-8 names in Parquet without
+loading the tall CSV into R or skipping invalid rows. The staged archive stays
+unchanged.
+
+```{r}
+s2_clinic_months_identity_columns_fn <- function() {
+  c("cNom", "cAnnee", "cPeriode", "cCodeNiv", "cCodeStru", "fname")
+}
+
+s2_clinic_months_list_members_fn <- function(archive_path) {
+  members <- utils::unzip(archive_path, list = TRUE)$Name
+  members <- members[
+    grepl("(^|/)mdg_tall_split/[0-9]{4}_[0-9]{2}\\.csv$", members) &
+      !grepl("(^|/)__MACOSX/", members)
+  ]
+  stopifnot(length(members) > 0L, !anyDuplicated(basename(members)))
+  sort(members, method = "radix")
+}
+
+```
+
+:::
+
+::: {.manual-procedure title="Decode And Reduce One Monthly CSV"}
+
+Extract a member into a private temporary directory, decode its identity
+fields, and keep the first occurrence of each identity. Only the reduced
+Parquet path leaves the branch. The temporary CSV is removed on exit.
+
+```{r}
+s2_clinic_months_reduce_csv_fn <- function(csv_path, source_file) {
+  # Read text first: read.csv() keeps empty clinic names but treats NA as missing.
+  # Cast only the five numeric identity fields, matching the archived integers.
+  column_types <- c(
+    cNom = "VARCHAR", cAnnee = "VARCHAR", cPeriode = "VARCHAR",
+    cCodeNiv = "VARCHAR", cCodeStru = "VARCHAR", cCode = "VARCHAR",
+    fname = "VARCHAR", Variable = "VARCHAR", Value = "VARCHAR"
+  )
+  identity_columns <- s2_clinic_months_identity_columns_fn()
+  integer_columns <- setdiff(identity_columns, "cNom")
+  duckplyr::db_exec("INSTALL encodings")
+  duckplyr::db_exec("LOAD encodings")
+  result <- read_csv_duckdb(
+    csv_path,
+    prudence = "stingy",
+    options = list(
+      header = TRUE, delim = ",", quote = "\"", escape = "\"",
+      types = list(column_types), nullstr = "NA", encoding = "CP1252"
+    )
+  ) |>
+    select(all_of(identity_columns)) |>
+    mutate(
+      across(
+        all_of(integer_columns),
+        ~ as.integer(if_else(.x == "", NA_character_, .x))
+      ),
+      .inventory_row = row_number()
+    ) |>
+    summarise(.inventory_row = min(.inventory_row), .by = all_of(identity_columns)) |>
+    mutate(.inventory_file = source_file) |>
+    arrange(.inventory_row)
+
+  result
+}
+```
+
+The branch writer owns extraction and cleanup. It passes the extracted CSV
+to the reducer and returns the completed Parquet path.
+
+```{r}
+s2_clinic_months_write_member_fn <- function(archive_path, member, output_path) {
+  stopifnot(
+    length(archive_path) == 1L, file.exists(archive_path),
+    length(member) == 1L,
+    !grepl("^/|(^|/)\\.\\.(/|$)", member)
+  )
+
+  extraction_dir <- tempfile("clinic-month-")
+  dir.create(extraction_dir)
+  on.exit(unlink(extraction_dir, recursive = TRUE), add = TRUE)
+  csv_path <- utils::unzip(archive_path, files = member, exdir = extraction_dir)
+  stopifnot(length(csv_path) == 1L, file.exists(csv_path))
+
+  result <- s2_clinic_months_reduce_csv_fn(csv_path, basename(member))
+
+  dir.create(dirname(output_path), recursive = TRUE, showWarnings = FALSE)
+  compute_parquet(result, output_path)
+  output_path
+}
+
+```
+
+:::
+
+::: {.manual-procedure title="Build The Ordered Monthly Inventory"}
+
+Select the source archive and its monthly members for dynamic branching.
+
+```{r}
+#| format: file
+s2_clinic_months_raw_zip <- s2_pipeline_input_select_single_fn(
+  s0_pipeline_inputs_raw_chr,
+  "(^|/)madagascar_clinic_data_cleaning\\.zip$"
+)
+```
+
+```{r}
+s2_clinic_months_members_chr <- s2_clinic_months_list_members_fn(
+  s2_clinic_months_raw_zip
+)
+```
+
+The execution page declares a dynamic branch per archive member, producing
+`s2_clinic_months_deduplicated_parquet`. Each branch extracts into its own temporary
+directory and deletes the CSV after the Parquet write finishes. `prudence =
+"stingy"` prevents accidental fallback that would materialize raw data in R.
+Only artifact paths cross the `targets` boundary.
+
+The combined inventory deliberately retains repeats across files, matching the
+legacy procedure. `.inventory_file` and `.inventory_row` record file order and
+the first source-row position for each identity. They preserve first-occurrence
+tie breaking in the downstream mode calculations; SQL grouping alone does not
+guarantee that order.
+
+```{r}
+#| format: file
+s2_clinic_months_inventory_parquet <- s0_pipeline_parquet_transform_fn(
+  input_paths = s2_clinic_months_deduplicated_parquet,
+  output_path = here::here("data", "intermediates", "unique_clinic_months_v1-2.parquet"),
+  transform = function(relation) {
+    relation |> arrange(.inventory_file, .inventory_row)
+  }
+)
+```
+
+:::
+
+::: {.manual-procedure title="Select Reviewed Identity Inputs"}
+
+The correction workbook, reviewed deletions, and verified snips are selected
+here for the identity transformations below:
+
+```{r}
+#| format: file
+s2_gesis_code_corrections_raw_xlsx <- s2_pipeline_input_select_single_fn(
+  s0_pipeline_inputs_raw_chr,
+  "CSB1 CSB2 PUBLIC PRIVATE\\.xlsx$"
+)
+```
+
+```{r}
+#| format: file
+s2_gesis_code_deletions_raw_csv <- s2_pipeline_input_select_single_fn(
+  s0_pipeline_inputs_raw_chr,
+  "VERIFIER clinic_codes_in_gesis_but_not_in_mapping\\.csv$"
+)
+
+s2_gesis_snips_verified_csv <- s2_pipeline_input_select_single_fn(
+  s0_pipeline_inputs_raw_chr,
+  "GESIS_snips_public_multipleLongGESIS VERIFIED\\.csv$"
+)
+```
+
+:::
+
+::: {.manual-procedure title="Collect The Reduced Identity Inventory"}
+
+Collect only the six identity fields, in original file and row order. This
+order determines the first occurrence when the modal identity has a tie.
+The tall measurement tables remain in DuckDB and Parquet.
+
+```{r}
+s2_clinic_months_inventory_df <- read_parquet_duckdb(
+  s2_clinic_months_inventory_parquet, prudence = "stingy"
+) |>
+  arrange(.inventory_file, .inventory_row) |>
+  select(all_of(s2_clinic_months_identity_columns_fn())) |>
+  collect() |>
+  mutate(across(!c(cAnnee, cPeriode, fname), as.character))
+```
+
+:::
+
+::: {.manual-procedure title="Read And Apply Reviewed Code Corrections"}
+
+Read the correction workbook as character codes, then retain the original
+code wherever no replacement was reviewed. Assign the mapping year here:
+January–March 2015 and records with `fname == 1` use the old mapping; later
+2015 records use the new mapping.
+
+```{r}
+s2_gesis_code_corrections_df <- readxl::read_excel(s2_gesis_code_corrections_raw_xlsx) |>
+  filter(!is.na(`NEW CODE`), `NEW CODE` != "NEW CODE") |>
+  setNames(c("old_code", "correct_code", "uid", "name", "status", "note")) |>
+  unique()
+```
+
+The corrected inventory carries the selected mapping year into the next join.
+
+```{r}
+s2_clinic_months_corrected_df <- s2_clinic_months_inventory_df |>
+  left_join(
+    s2_gesis_code_corrections_df |> select(cCodeStru = old_code, correct_cCodeStru = correct_code)
+  ) |>
+  mutate(correct_cCodeStru = coalesce(correct_cCodeStru, cCodeStru)) |>
+  mutate(
+    map_year = case_when(
+      cAnnee == 2015 & cPeriode <= 3 ~ "OLD GESIS 2015",
+      cAnnee == 2015 & fname == 1 ~ "OLD GESIS 2015",
+      cAnnee == 2015 & cPeriode > 3 ~ "NEW GESIS 2015",
+      TRUE ~ as.character(cAnnee)
+    )
+  )
+```
+
+:::
+
+::: {.manual-procedure title="Join The Year-Aware Facility Mapping"}
+
+Prepare the identity mapping with its three reviewed exceptions: exclude the
+2012–2013 UID match and the invalid old-2015 code, then clear the disputed
+2014 UID. Join this mapping on corrected GESIS code and mapping year.
+
+```{r}
+s2_gesis_xwalk_identity_df <- s1_gesis_xwalk_clean_df |>
+  filter(!(fs_uid == "gIAGmHMV9MS" & cAnnee %in% c("2013", "2012"))) |>
+  filter(!(code_fs == "630242008" & cAnnee == "OLD GESIS 2015")) |>
+  mutate(fs_uid = ifelse(code_fs == 110543027 & cAnnee == "2014", "", fs_uid)) |>
+  transmute(
+    map_year = cAnnee,
+    correct_cCodeStru = as.character(code_fs),
+    TYPE,
+    fs_uid,
+    map_name = FS
+  )
+```
+
+Keep unmatched identities for the UID-fill and name-fallback stages.
+
+```{r}
+s2_clinic_months_gesis_mapped_df <- s2_clinic_months_corrected_df |>
+  left_join(
+    s2_gesis_xwalk_identity_df,
+    by = c("correct_cCodeStru", "map_year")
+  )
+```
+
+:::
+
+::: {.manual-procedure title="Fill Unambiguous UIDs And Mapping Attributes"}
+
+Within each corrected-code/name group, fill the UID only when the nonmissing
+values identify one candidate. Then fill missing type and mapped name from
+their modes within the UID/code/name group. Retain the existing tie behavior.
+
+```{r}
+s2_clinic_month_uid_filled_df <- s2_clinic_months_gesis_mapped_df |>
+  mutate(
+    group_uid = {
+      values <- unique(na.omit(fs_uid))
+      case_when(
+        length(values) == 1L ~ s2_clinic_ids_first_fn(values),
+        length(values) == 2L & any(values == "") ~ s2_clinic_ids_first_fn(setdiff(values, ""))
+      )
+    },
+    .by = c(correct_cCodeStru, cNom)
+  ) |>
+  mutate(
+    fs_uid = ifelse(is.na(fs_uid) | fs_uid == "", group_uid, fs_uid)
+  ) |>
+  group_by(fs_uid, correct_cCodeStru, cNom) |>
+  mutate(across(c(TYPE, map_name), list(uid = ~ {
+    mode <- s2_clinic_ids_mode_fn(.x, na.rm = TRUE)
+    if (dplyr::n_distinct(mode) == 1L) mode else NA
+  }))) |>
+  ungroup() |>
+  mutate(TYPE = coalesce(TYPE, TYPE_uid), map_name = coalesce(map_name, map_name_uid)) |>
+  select(-TYPE_uid, -map_name_uid, -group_uid)
+```
+
+:::
+
+::: {.manual-procedure title="Assign Provisional IDs And Apply Reviewed Deletions"}
+
+Use the mapped name when present; otherwise normalize the already-decoded
+UTF-8 clinic name to ASCII. Prefer a DHIS2 UID and fall back to corrected
+code plus cleaned name when the UID is missing.
+
+```{r}
+s2_clinic_month_provisional_ids_df <- s2_clinic_month_uid_filled_df |>
+  mutate(
+    clean_name = ifelse(
+      is.na(map_name),
+      cNom |>
+        stringi::stri_trans_general(id = "Latin-ASCII") |>
+        str_trim() |>
+        str_squish() |>
+        stringr::str_remove("^CSB2|^CSB1|^CSB|CBS") |>
+        tolower(),
+      map_name
+    ),
+    clinic_ID = ifelse(
+      is.na(fs_uid) | fs_uid == "",
+      paste0(correct_cCodeStru, " - ", clean_name),
+      fs_uid
+    )
+  )
+```
+
+Read the reviewed deletion codes and clear the designated IDs without
+dropping their rows. The code/year exception for `610351004` is retained.
+
+```{r}
+s2_clinic_gesis_deletion_codes_chr <- read_csv(s2_gesis_code_deletions_raw_csv, show_col_types = FALSE) |>
+  filter(NOTE == "DELETE") |>
+  pull(clinic_code) |>
+  as.character()
+```
+
+```{r}
+s2_clinic_ids_corrected_df <- s2_clinic_month_provisional_ids_df |>
+  mutate(
+    clinic_ID = case_when(
+      correct_cCodeStru == "610351004" & cAnnee == 2016 ~ NA_character_,
+      correct_cCodeStru %in% s2_clinic_gesis_deletion_codes_chr ~ NA_character_,
+      TRUE ~ clinic_ID
+    )
+  )
+```
+
+:::
+
+::: {.manual-procedure title="Reconcile Verified GESIS Snips"}
+
+Read the reviewed shortened GESIS codes. Exclude the four ambiguous snips
+before joining, then use the modal UID or clinic ID only for verified
+groups with more than one identity.
+
+```{r}
+s2_clinic_verified_snips_df <- read_delim(s2_gesis_snips_verified_csv, delim=";", show_col_types = FALSE) |>
+  filter(!is.na(GESIS_short)) |>
+  mutate(GESIS_short = as.character(GESIS_short)) |>
+  transmute(
+    GESIS_snip = GESIS_short,
+    verified_snip = `VERIFIED (1 CORRECT – 0 INCORRECT)`
+  )
+```
+
+The first reconciliation leaves the commune/name rules for the next step.
+
+```{r}
+s2_clinic_ids_snip_reconciled_df <- s2_clinic_ids_corrected_df |>
+  mutate(
+    GESIS_snip = paste0(str_sub(correct_cCodeStru, 1, 4), str_sub(correct_cCodeStru, 7, 9))
+  ) |>
+  left_join(
+    s2_clinic_verified_snips_df |>
+      filter(!GESIS_snip %in% c("1104006", "1104060", "5205039", "5202030")) |>
+      filter(verified_snip == "1"),
+    by = "GESIS_snip"
+  ) |>
+  group_by(GESIS_snip) |>
+  mutate(
+    clinic_ID = case_when(
+      n_distinct(clinic_ID) > 1 & any(fs_uid != "") & verified_snip == "1" ~
+        s2_clinic_ids_first_fn(s2_clinic_ids_mode_fn(setdiff(fs_uid, ""), na.rm = TRUE)),
+      n_distinct(clinic_ID) > 1 & verified_snip == "1" ~
+        s2_clinic_ids_first_fn(s2_clinic_ids_mode_fn(clinic_ID, na.rm = TRUE)),
+      TRUE ~ clinic_ID
+    )
+  ) |>
+  ungroup()
+```
+
+:::
+
+::: {.manual-procedure title="Reconcile Commune And Clinic Names"}
+
+Combine the commune code with the cleaned clinic name and reconcile the
+remaining multiple IDs within that group. Preserve the reviewed 2014
+exception for GESIS code `110543027`.
+
+```{r}
+s2_clinic_ids_reconciled_df <- s2_clinic_ids_snip_reconciled_df |>
+  mutate(
+    commune_name = paste0(cCodeNiv, " - ", gsub("^CSB1 |^CSB2 |^CSB ", "", clean_name))
+  ) |>
+  group_by(commune_name) |>
+  mutate(
+    clinic_ID = case_when(
+      correct_cCodeStru == "110543027" & cAnnee == 2014 ~ clinic_ID,
+      n_distinct(clinic_ID) > 1 & any(fs_uid != "") ~
+        s2_clinic_ids_first_fn(s2_clinic_ids_mode_fn(setdiff(fs_uid, ""), na.rm = TRUE)),
+      n_distinct(clinic_ID) > 1 ~ s2_clinic_ids_first_fn(s2_clinic_ids_mode_fn(clinic_ID, na.rm = TRUE)),
+      TRUE ~ clinic_ID
+    )
+  ) |>
+  ungroup()
+```
+
+:::
+
+::: {.manual-procedure title="Write The Clinic ID Crosswalk"}
+
+The final crosswalk keeps the legacy columns and `ID_checked` indicator. Rows
+without a clinic ID are retained in the intermediate artifact for review; the
+31 expected removals are not silently dropped here.
+
+```{r}
+s2_clinic_ids_df <- s2_clinic_ids_reconciled_df |>
+  group_by(clinic_ID) |>
+  mutate(ID_checked = any(grepl("CSB", TYPE))) |>
+  ungroup() |>
+  select(
+    clinic_ID, cAnnee, cPeriode, cCodeNiv, cCodeStru,
+    correct_cCodeStru, cNom, fname,
+    type_map = TYPE, ID_checked
+  )
+```
+
+```{r}
+#| format: file
+s2_clinic_ids_parquet <- {
+  path <- here::here("data", "intermediates", "w2010_2019_clinicID.parquet")
+  dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
+  compute_parquet(as_duckdb_tibble(s2_clinic_ids_df), path)
+  path
+}
+```
+
+Downstream transformations can consume `s2_clinic_ids_df` directly. The
+Parquet copy is tracked with `format = "file"` for disk-based consumers and
+inspection. It preserves the crosswalk columns and missing values without
+adding a CSV row-index column. The legacy RDS and CSV exports are replaced
+by this single Parquet artifact.
+
+:::
+
+::: {.manual-check title="Verify Inventory, IDs, And Parquet Persistence"}
+
+Confirm that the completed crosswalk has the expected columns and inspect
+missing IDs and type coverage. These queries read completed targets; they do
+not create or modify pipeline data. Run them in an authorized data session.
+
+```{r}
+tar_read(s2_clinic_ids_df) |>
+  summarise(
+    rows = n(),
+    clinics = n_distinct(clinic_ID, na.rm = TRUE),
+    missing_ids = sum(is.na(clinic_ID)),
+    checked_rows = sum(ID_checked, na.rm = TRUE)
+  )
+```
+
+The 31 missing-ID removals noted in the legacy workflow are historical
+expectations for review, rather than a newly established assertion.
+
+Verify ordering, cross-file repeats, and Parquet storage with synthetic data:
+
+```sh
+scripts/mdg-healthshed-clinic-data exec Rscript tests/check-clinic-month-parquet-transforms.R
+scripts/mdg-healthshed-clinic-data exec Rscript tests/check-data-storage-convention.R
+```
+
+Run the encoding regression check from the repository root:
+
+```sh
+scripts/mdg-healthshed-clinic-data exec uvr run tests/check-clinic-month-encoding.R
+```
+
+The fixture places French characters after the CSV sniffing sample and checks
+Windows-1252 decoding, quoted fields, missing values, deduplication, and original
+row order against `read.csv(fileEncoding = "CP1252")`. To also compare the complete
+January 2010 and January 2015 members against that independent reader:
+
+```sh
+scripts/mdg-healthshed-clinic-data exec uvr run tests/check-clinic-month-encoding.R -- \
+  data/inputs/01_gold_mine/gdn_datafreeze_may2025/madagascar_clinic_data_cleaning.zip
+```
+
+:::

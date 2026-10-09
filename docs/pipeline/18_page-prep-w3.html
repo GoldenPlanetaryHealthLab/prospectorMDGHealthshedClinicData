@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>14&nbsp; Curate the Healthshed Clinic Data – Madagascar Healthshed Clinic Data Curation Manual</title>
+<title>15&nbsp; Curate the Healthshed Clinic Data – Madagascar Healthshed Clinic Data Curation Manual</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -68,7 +68,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="../site_libs/quarto-search/fuse.min.js"></script>
 <script src="../site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="../">
-<link href="../pipeline/19_page-package-release.html" rel="next">
+<link href="../pipeline/19_page-clean-mapping-dhis2-gesis.html" rel="next">
 <link href="../pipeline/17_page-inspect-source-data.html" rel="prev">
 <script src="../site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
@@ -122,7 +122,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../pipeline/16_page-stage-inputs.html">Pipeline</a></li><li class="breadcrumb-item"><a href="../pipeline/18_page-prep-w3.html"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Curate the Healthshed Clinic Data</span></a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../pipeline/16_page-stage-inputs.html">Pipeline</a></li><li class="breadcrumb-item"><a href="../pipeline/18_page-prep-w3.html"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Curate the Healthshed Clinic Data</span></a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
@@ -170,20 +170,26 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="../pipeline/mapping/legacy-pipeline-map.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Map the Legacy Clinic Pipeline to Notebooks</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="../01_misc-render-isolated.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Render In Isolation</span></span></a>
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Render In Isolation</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../02_misc-project-contract.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Project Contract</span></span></a>
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Project Contract</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../03_misc-data-governance.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Data Governance</span></span></a>
+ <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Data Governance</span></span></a>
   </div>
 </li>
       </ul>
@@ -200,37 +206,37 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../infrastructure/10_page-direnv.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Local Operator Environment</span></span></a>
+ <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Local Operator Environment</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../infrastructure/11_page-spack.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Bootstrap the Spack Builder</span></span></a>
+ <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Bootstrap the Spack Builder</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../infrastructure/12_page-jinja.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Declare the Native Runtime</span></span></a>
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Declare the Native Runtime</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../infrastructure/13_page-jinja-build.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Customize and Build the Runtime</span></span></a>
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Customize and Build the Runtime</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../infrastructure/14_page-uvr.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Lock and Synchronize R Packages</span></span></a>
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Lock and Synchronize R Packages</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../infrastructure/15_page-runner.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Run the Project Environment</span></span></a>
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Run the Project Environment</span></span></a>
   </div>
 </li>
       </ul>
@@ -247,37 +253,55 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../pipeline/16_page-stage-inputs.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Stage Inputs</span></span></a>
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Stage Inputs</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../pipeline/17_page-inspect-source-data.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Inspect Source Data</span></span></a>
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Inspect Source Data</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../pipeline/18_page-prep-w3.html" class="sidebar-item-text sidebar-link active">
- <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Curate the Healthshed Clinic Data</span></span></a>
+ <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Curate the Healthshed Clinic Data</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../pipeline/19_page-package-release.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Package a Versioned Release</span></span></a>
+  <a href="../pipeline/19_page-clean-mapping-dhis2-gesis.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Clean the DHIS2–GESIS Mapping</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../pipeline/20_page-execute-pipeline.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Execute the Pipeline</span></span></a>
+  <a href="../pipeline/20_page-construct-clinic-ids.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">Construct Clinic IDs</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../pipeline/21_page-verify-release.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">Verify a Release</span></span></a>
+  <a href="../pipeline/21_page-construct-diagnosis-dictionary.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Construct the Diagnosis Dictionary</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../releases/19_page-package-release.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Package a Versioned Release</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../releases/20_page-execute-pipeline.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Execute the Pipeline</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../releases/21_page-verify-release.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Verify a Release</span></span></a>
   </div>
 </li>
       </ul>
@@ -293,9 +317,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../pipeline/16_page-stage-inputs.html">Pipeline</a></li><li class="breadcrumb-item"><a href="../pipeline/18_page-prep-w3.html"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Curate the Healthshed Clinic Data</span></a></li></ol></nav>
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../pipeline/16_page-stage-inputs.html">Pipeline</a></li><li class="breadcrumb-item"><a href="../pipeline/18_page-prep-w3.html"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Curate the Healthshed Clinic Data</span></a></li></ol></nav>
 <div class="quarto-title">
-<h1 class="title"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Curate the Healthshed Clinic Data</span></h1>
+<h1 class="title"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Curate the Healthshed Clinic Data</span></h1>
 <p class="subtitle lead">Translate reviewed domain decisions into targets</p>
 </div>
 
@@ -313,7 +337,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<p>This is the future source of the cleaning target declarations. It is not yet registered in <code>_targets.R</code> because inspecting filenames does not justify guessing a schema or transformation.</p>
+<p>This page declares the Wave 3 preparation targets tangled by <code>_targets.R</code>.</p>
 <div class="manual-prereq callout callout-style-default callout-important no-icon callout-titled" title="Approve The Curation Contract" data-manual-kind="prereq">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -327,72 +351,304 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>The source-inspection page must first record the source schema, record grain, stable keys, pre-/post-DHIS2 boundary, missing-value semantics, validation rules, and disclosure controls.</p>
 </div>
 </div>
-<div class="manual-procedure callout callout-style-default callout-tip no-icon callout-titled" title="Prep Raw RMA_DEPSI Files" data-manual-kind="procedure">
+<div class="manual-procedure callout callout-style-default callout-tip no-icon callout-titled" title="Declare The Parquet Transformation Boundary" data-manual-kind="procedure">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
 <i class="callout-icon no-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-<span class="screen-reader-only">Tip</span><i class="fa-solid fa-person-walking" aria-label="person-walking"></i> Procedure: Prep Raw RMA_DEPSI Files
+<span class="screen-reader-only">Tip</span><i class="fa-solid fa-person-walking" aria-label="person-walking"></i> Procedure: Declare The Parquet Transformation Boundary
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>In this first section of the script, we take raw files and prepare them by aggregating them into a single CSV, one row per clinic-year-month, and one column per health outcome-age-sex.</p>
+<p>Declare the shared file-to-file transformation used by this page and by the clinic-month inventory. Each caller supplies its dependencies and output path.</p>
+<p>The helper below opens Parquet inputs with automatic materialization into R disabled, applies the supplied transformation, and writes the result through DuckDB. Only the output path crosses the target boundary. Input paths, output paths, and transformation dependencies stay explicit at each call site.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb1-1"><a href="#cb1-1"></a>s0_pipeline_parquet_transform_fn &lt;- function(</span>
+<span id="cb1-2"><a href="#cb1-2"></a>  input_paths, output_path, transform, read_options = list()</span>
+<span id="cb1-3"><a href="#cb1-3"></a>) {</span>
+<span id="cb1-4"><a href="#cb1-4"></a>  input_paths &lt;- unname(as.character(input_paths))</span>
+<span id="cb1-5"><a href="#cb1-5"></a>  stopifnot(</span>
+<span id="cb1-6"><a href="#cb1-6"></a>    length(input_paths) &gt; 0L,</span>
+<span id="cb1-7"><a href="#cb1-7"></a>    all(file.exists(input_paths)),</span>
+<span id="cb1-8"><a href="#cb1-8"></a>    length(output_path) == 1L, !is.na(output_path), nzchar(output_path),</span>
+<span id="cb1-9"><a href="#cb1-9"></a>    is.function(transform)</span>
+<span id="cb1-10"><a href="#cb1-10"></a>  )</span>
+<span id="cb1-11"><a href="#cb1-11"></a></span>
+<span id="cb1-12"><a href="#cb1-12"></a>  relation &lt;- duckplyr::read_parquet_duckdb(</span>
+<span id="cb1-13"><a href="#cb1-13"></a>    input_paths,</span>
+<span id="cb1-14"><a href="#cb1-14"></a>    prudence = "stingy",</span>
+<span id="cb1-15"><a href="#cb1-15"></a>    options = read_options</span>
+<span id="cb1-16"><a href="#cb1-16"></a>  )</span>
+<span id="cb1-17"><a href="#cb1-17"></a>  result &lt;- transform(relation)</span>
+<span id="cb1-18"><a href="#cb1-18"></a></span>
+<span id="cb1-19"><a href="#cb1-19"></a>  dir.create(dirname(output_path), recursive = TRUE, showWarnings = FALSE)</span>
+<span id="cb1-20"><a href="#cb1-20"></a>  duckplyr::compute_parquet(result, output_path)</span>
+<span id="cb1-21"><a href="#cb1-21"></a>  output_path</span>
+<span id="cb1-22"><a href="#cb1-22"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</div>
+<div class="manual-procedure callout callout-style-default callout-tip no-icon callout-titled" title="Read One Raw RMA File With Explicit Types" data-manual-kind="procedure">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span><i class="fa-solid fa-person-walking" aria-label="person-walking"></i> Procedure: Read One Raw RMA File With Explicit Types
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>In this first section of the script, we take raw files and prepare them by aggregating them into a tracked Parquet file, one row per clinic-year-month, and one column per health outcome-age-sex.</p>
 <p>Applies only to 2020-2022 data.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb1-1"><a href="#cb1-1"></a>library(targets)</span>
-<span id="cb1-2"><a href="#cb1-2"></a>library(readr)</span>
-<span id="cb1-3"><a href="#cb1-3"></a>library(openxlsx)</span>
-<span id="cb1-4"><a href="#cb1-4"></a>library(data.table)</span>
-<span id="cb1-5"><a href="#cb1-5"></a>library(cli)</span>
-<span id="cb1-6"><a href="#cb1-6"></a></span>
-<span id="cb1-7"><a href="#cb1-7"></a>tar_load(pipeline_raw_input_files_paths)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>We have a variable number of missing values in our first rows of data, so we’ll need to ensure they don’t get read as logical NAs. To prevent this, the following wraps our CSV reader:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb2-1"><a href="#cb2-1"></a>read_csv_nonlogical &lt;- function(filepath){</span>
-<span id="cb2-2"><a href="#cb2-2"></a></span>
-<span id="cb2-3"><a href="#cb2-3"></a>  spec &lt;- spec_csv(filepath) </span>
-<span id="cb2-4"><a href="#cb2-4"></a></span>
-<span id="cb2-5"><a href="#cb2-5"></a>  spec$cols %&gt;% </span>
-<span id="cb2-6"><a href="#cb2-6"></a>    purrr::map(function(x){</span>
-<span id="cb2-7"><a href="#cb2-7"></a>      if("collector_logical" %in% class(x)){return(col_number())</span>
-<span id="cb2-8"><a href="#cb2-8"></a>      } else{return(x)}</span>
-<span id="cb2-9"><a href="#cb2-9"></a>    }) -&gt; spec$cols</span>
-<span id="cb2-10"><a href="#cb2-10"></a>  </span>
-<span id="cb2-11"><a href="#cb2-11"></a>  read_csv(filepath, </span>
-<span id="cb2-12"><a href="#cb2-12"></a>    col_types = spec) %&gt;% </span>
-<span id="cb2-13"><a href="#cb2-13"></a>    return</span>
-<span id="cb2-14"><a href="#cb2-14"></a>  </span>
-<span id="cb2-15"><a href="#cb2-15"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb3-1"><a href="#cb3-1"></a>process_csv_safely &lt;- function(csv_path, drop_cols = c("organisationunitcode", "orgnaisationunitdescription")) {</span>
-<span id="cb3-2"><a href="#cb3-2"></a>  stopifnot(length(csv_path) == 1L, file.exists(csv_path))</span>
-<span id="cb3-3"><a href="#cb3-3"></a>  </span>
-<span id="cb3-4"><a href="#cb3-4"></a>  cli_alert_info(paste("Working on:", csv_path))</span>
-<span id="cb3-5"><a href="#cb3-5"></a>  </span>
-<span id="cb3-6"><a href="#cb3-6"></a>  # Read file with type-safe reader</span>
-<span id="cb3-7"><a href="#cb3-7"></a>  temp_df &lt;- read_csv_nonlogical(csv_path)</span>
-<span id="cb3-8"><a href="#cb3-8"></a>  </span>
-<span id="cb3-9"><a href="#cb3-9"></a>  # Drop the extra columns if they exist</span>
-<span id="cb3-10"><a href="#cb3-10"></a>  temp_df &lt;- temp_df %&gt;%</span>
-<span id="cb3-11"><a href="#cb3-11"></a>    select(-any_of(drop_cols))</span>
-<span id="cb3-12"><a href="#cb3-12"></a>  </span>
-<span id="cb3-13"><a href="#cb3-13"></a>  # Optional: check for duplicate records</span>
-<span id="cb3-14"><a href="#cb3-14"></a>  dups &lt;- temp_df %&gt;%</span>
-<span id="cb3-15"><a href="#cb3-15"></a>    filter(duplicated(select(., organisationunitid, periodname)))</span>
-<span id="cb3-16"><a href="#cb3-16"></a>  </span>
-<span id="cb3-17"><a href="#cb3-17"></a>  cli_alert_info(paste("Successfully created dataframe for", csv_path, "with shape", nrow(temp_df), "x", ncol(temp_df)))</span>
-<span id="cb3-18"><a href="#cb3-18"></a>  cli_alert_info(paste("Number of duplicate clinic-month-year records:", nrow(dups)))</span>
-<span id="cb3-19"><a href="#cb3-19"></a>  </span>
-<span id="cb3-20"><a href="#cb3-20"></a>  # Convert all description fields, if any, to character.</span>
-<span id="cb3-21"><a href="#cb3-21"></a>  temp_df |&gt;</span>
-<span id="cb3-22"><a href="#cb3-22"></a>    mutate(</span>
-<span id="cb3-23"><a href="#cb3-23"></a>      across(</span>
-<span id="cb3-24"><a href="#cb3-24"></a>        contains("description", ignore.case = TRUE),</span>
-<span id="cb3-25"><a href="#cb3-25"></a>        as.character</span>
-<span id="cb3-26"><a href="#cb3-26"></a>      )</span>
-<span id="cb3-27"><a href="#cb3-27"></a>    )</span>
-<span id="cb3-28"><a href="#cb3-28"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p><code>process_csv_safely()</code> intentionally accepts exactly one path and never holds other input tables in memory. <code>_targets.R</code> selects the <code>RMA_W3_FULL</code> paths and defines a dynamic <code>map()</code> branch for each path outside this notebook. That makes each CSV independently schedulable and prevents a single worker from holding every parsed table before aggregation. Dynamic branching enables parallel execution; the approved Slurm allocation and selected <code>targets</code> backend determine how many branches run concurrently.</p>
+<p>We’ve also opted-in to using DuckDB via the <code>duckplyr</code> package to avoid in-memory limitations.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb2-1"><a href="#cb2-1"></a>library(targets)</span>
+<span id="cb2-2"><a href="#cb2-2"></a>library(readr)</span>
+<span id="cb2-3"><a href="#cb2-3"></a>library(openxlsx)</span>
+<span id="cb2-4"><a href="#cb2-4"></a>library(duckplyr)</span>
+<span id="cb2-5"><a href="#cb2-5"></a>library(cli)</span>
+<span id="cb2-6"><a href="#cb2-6"></a></span>
+<span id="cb2-7"><a href="#cb2-7"></a>tar_load(s0_pipeline_inputs_raw_chr)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>We have a variable number of missing values in our first rows of data, so we’ll need to ensure they don’t get read as logical NAs. The <code>duckplyr</code> <code>options</code> list allows us to force <code>DOUBLE</code> and <code>VARCHAR</code> types:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb3-1"><a href="#cb3-1"></a>s0_clinic_RMA_read_nonlogical_fn &lt;- function(filepath){</span>
+<span id="cb3-2"><a href="#cb3-2"></a></span>
+<span id="cb3-3"><a href="#cb3-3"></a>  readr_spec &lt;- spec_csv(filepath) </span>
+<span id="cb3-4"><a href="#cb3-4"></a>  spec_names &lt;- names(readr_spec$cols)</span>
+<span id="cb3-5"><a href="#cb3-5"></a></span>
+<span id="cb3-6"><a href="#cb3-6"></a>  readr_spec %&gt;%</span>
+<span id="cb3-7"><a href="#cb3-7"></a>    as.character() %&gt;%</span>
+<span id="cb3-8"><a href="#cb3-8"></a>    str_split_1("") %&gt;%</span>
+<span id="cb3-9"><a href="#cb3-9"></a>    tibble(spec = .) %&gt;%</span>
+<span id="cb3-10"><a href="#cb3-10"></a>    mutate(</span>
+<span id="cb3-11"><a href="#cb3-11"></a>      name = spec_names,</span>
+<span id="cb3-12"><a href="#cb3-12"></a>      duckdb_dtype = case_when(</span>
+<span id="cb3-13"><a href="#cb3-13"></a>        str_detect(name, regex("description", ignore_case = TRUE)) ~ "VARCHAR",</span>
+<span id="cb3-14"><a href="#cb3-14"></a>        spec == "c" ~ "VARCHAR",</span>
+<span id="cb3-15"><a href="#cb3-15"></a>        spec == "d" ~ "DOUBLE",</span>
+<span id="cb3-16"><a href="#cb3-16"></a>        spec == "l" ~ "DOUBLE",</span>
+<span id="cb3-17"><a href="#cb3-17"></a>        .default = "DOUBLE"</span>
+<span id="cb3-18"><a href="#cb3-18"></a>      )</span>
+<span id="cb3-19"><a href="#cb3-19"></a>    ) %&gt;%</span>
+<span id="cb3-20"><a href="#cb3-20"></a>    select(name, duckdb_dtype) %&gt;%</span>
+<span id="cb3-21"><a href="#cb3-21"></a>    deframe() -&gt; duckdb_spec</span>
+<span id="cb3-22"><a href="#cb3-22"></a></span>
+<span id="cb3-23"><a href="#cb3-23"></a>  </span>
+<span id="cb3-24"><a href="#cb3-24"></a>  # Set the CSV dialect explicitly. Auto-detection samples only the first</span>
+<span id="cb3-25"><a href="#cb3-25"></a>  # rows, so a quoted comma appearing later can otherwise be misclassified as</span>
+<span id="cb3-26"><a href="#cb3-26"></a>  # an extra column.</span>
+<span id="cb3-27"><a href="#cb3-27"></a>  read_csv_duckdb(</span>
+<span id="cb3-28"><a href="#cb3-28"></a>    filepath,</span>
+<span id="cb3-29"><a href="#cb3-29"></a>    options = list(</span>
+<span id="cb3-30"><a href="#cb3-30"></a>      types = list(duckdb_spec),</span>
+<span id="cb3-31"><a href="#cb3-31"></a>      delim = ",",</span>
+<span id="cb3-32"><a href="#cb3-32"></a>      quote = "\"",</span>
+<span id="cb3-33"><a href="#cb3-33"></a>      escape = "\""</span>
+<span id="cb3-34"><a href="#cb3-34"></a>    )</span>
+<span id="cb3-35"><a href="#cb3-35"></a>  ) %&gt;%</span>
+<span id="cb3-36"><a href="#cb3-36"></a>    return()</span>
+<span id="cb3-37"><a href="#cb3-37"></a>  </span>
+<span id="cb3-38"><a href="#cb3-38"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </div>
+<div class="manual-procedure callout callout-style-default callout-tip no-icon callout-titled" title="Declare The Clinic-Month Maximum Reduction" data-manual-kind="procedure">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span><i class="fa-solid fa-person-walking" aria-label="person-walking"></i> Procedure: Declare The Clinic-Month Maximum Reduction
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Define the reducer shared by the per-file and cross-file aggregation stages. Missing grouping keys fail before a result can be written.</p>
+<p>The reductions below use operations that <code>duckplyr</code> translates to DuckDB. DuckDB’s <code>MAX()</code> ignores null values and returns null for an all-null group, which preserves the behavior of the previous <code>max_or_na()</code> helper without materializing columns in R.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb4-1"><a href="#cb4-1"></a>s0_clinic_RMA_summarise_group_max_fn &lt;- function(df) {</span>
+<span id="cb4-2"><a href="#cb4-2"></a>  grouping_columns &lt;- c("organisationunitid", "periodname")</span>
+<span id="cb4-3"><a href="#cb4-3"></a>  missing_grouping_columns &lt;- setdiff(grouping_columns, names(df))</span>
+<span id="cb4-4"><a href="#cb4-4"></a>  if (length(missing_grouping_columns)) {</span>
+<span id="cb4-5"><a href="#cb4-5"></a>    stop(</span>
+<span id="cb4-6"><a href="#cb4-6"></a>      "Cannot calculate clinic-month maxima; missing grouping column(s): ",</span>
+<span id="cb4-7"><a href="#cb4-7"></a>      paste(missing_grouping_columns, collapse = ", ")</span>
+<span id="cb4-8"><a href="#cb4-8"></a>    )</span>
+<span id="cb4-9"><a href="#cb4-9"></a>  }</span>
+<span id="cb4-10"><a href="#cb4-10"></a></span>
+<span id="cb4-11"><a href="#cb4-11"></a>  df |&gt;</span>
+<span id="cb4-12"><a href="#cb4-12"></a>    summarise(</span>
+<span id="cb4-13"><a href="#cb4-13"></a>      across(</span>
+<span id="cb4-14"><a href="#cb4-14"></a>        -all_of(grouping_columns),</span>
+<span id="cb4-15"><a href="#cb4-15"></a>        ~ max(.x, na.rm = TRUE)</span>
+<span id="cb4-16"><a href="#cb4-16"></a>      ),</span>
+<span id="cb4-17"><a href="#cb4-17"></a>      .by = all_of(grouping_columns)</span>
+<span id="cb4-18"><a href="#cb4-18"></a>    )</span>
+<span id="cb4-19"><a href="#cb4-19"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</div>
+<div class="manual-procedure callout callout-style-default callout-tip no-icon callout-titled" title="Write One Reduced Parquet Branch" data-manual-kind="procedure">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span><i class="fa-solid fa-person-walking" aria-label="person-walking"></i> Procedure: Write One Reduced Parquet Branch
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Read one source file, remove redundant columns, compute its clinic-month maxima, and write the branch artifact. The small row-count diagnostics are collected for the execution log; the measurement table stays in DuckDB.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb5-1"><a href="#cb5-1"></a>s0_clinic_RMA_process_csv_fn &lt;- function(csv_path, output_path=here("data/intermediates"), drop_cols = c("organisationunitcode", "organisationunitdescription")) {</span>
+<span id="cb5-2"><a href="#cb5-2"></a>  stopifnot(length(csv_path) == 1L, file.exists(csv_path))</span>
+<span id="cb5-3"><a href="#cb5-3"></a>  </span>
+<span id="cb5-4"><a href="#cb5-4"></a>  cli_alert_info(paste("Working on:", csv_path))</span>
+<span id="cb5-5"><a href="#cb5-5"></a>  </span>
+<span id="cb5-6"><a href="#cb5-6"></a>  # Read file with type-safe reader</span>
+<span id="cb5-7"><a href="#cb5-7"></a>  temp_df &lt;- s0_clinic_RMA_read_nonlogical_fn(csv_path)</span>
+<span id="cb5-8"><a href="#cb5-8"></a>  </span>
+<span id="cb5-9"><a href="#cb5-9"></a>  # Drop the extra columns if they exist</span>
+<span id="cb5-10"><a href="#cb5-10"></a>  temp_df &lt;- temp_df %&gt;%</span>
+<span id="cb5-11"><a href="#cb5-11"></a>    select(-any_of(drop_cols))</span>
+<span id="cb5-12"><a href="#cb5-12"></a>  </span>
+<span id="cb5-13"><a href="#cb5-13"></a>  # Calculate diagnostics in DuckDB and collect only the two scalar results.</span>
+<span id="cb5-14"><a href="#cb5-14"></a>  file_stats &lt;- temp_df |&gt;</span>
+<span id="cb5-15"><a href="#cb5-15"></a>    summarise(</span>
+<span id="cb5-16"><a href="#cb5-16"></a>      group_rows = n(),</span>
+<span id="cb5-17"><a href="#cb5-17"></a>      .by = c(organisationunitid, periodname)</span>
+<span id="cb5-18"><a href="#cb5-18"></a>    ) |&gt;</span>
+<span id="cb5-19"><a href="#cb5-19"></a>    summarise(</span>
+<span id="cb5-20"><a href="#cb5-20"></a>      rows = sum(group_rows),</span>
+<span id="cb5-21"><a href="#cb5-21"></a>      duplicate_rows = sum(group_rows - 1L)</span>
+<span id="cb5-22"><a href="#cb5-22"></a>    ) |&gt;</span>
+<span id="cb5-23"><a href="#cb5-23"></a>    collect()</span>
+<span id="cb5-24"><a href="#cb5-24"></a></span>
+<span id="cb5-25"><a href="#cb5-25"></a>  cli_alert_info(paste(</span>
+<span id="cb5-26"><a href="#cb5-26"></a>    "Successfully created dataframe for", csv_path, "with shape",</span>
+<span id="cb5-27"><a href="#cb5-27"></a>    file_stats$rows[[1]], "x", length(names(temp_df))</span>
+<span id="cb5-28"><a href="#cb5-28"></a>  ))</span>
+<span id="cb5-29"><a href="#cb5-29"></a>  cli_alert_info(paste(</span>
+<span id="cb5-30"><a href="#cb5-30"></a>    "Number of duplicate clinic-month-year records:",</span>
+<span id="cb5-31"><a href="#cb5-31"></a>    file_stats$duplicate_rows[[1]]</span>
+<span id="cb5-32"><a href="#cb5-32"></a>  ))</span>
+<span id="cb5-33"><a href="#cb5-33"></a>  </span>
+<span id="cb5-34"><a href="#cb5-34"></a>  # Description fields are assigned VARCHAR when the CSV relation is created.</span>
+<span id="cb5-35"><a href="#cb5-35"></a>  result = s0_clinic_RMA_summarise_group_max_fn(temp_df)</span>
+<span id="cb5-36"><a href="#cb5-36"></a>  </span>
+<span id="cb5-37"><a href="#cb5-37"></a>  dir.create(dirname(output_path), recursive = TRUE, showWarnings = FALSE)</span>
+<span id="cb5-38"><a href="#cb5-38"></a>  compute_parquet(result, output_path)</span>
+<span id="cb5-39"><a href="#cb5-39"></a></span>
+<span id="cb5-40"><a href="#cb5-40"></a>  output_path</span>
+<span id="cb5-41"><a href="#cb5-41"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><code>s0_clinic_RMA_process_csv_fn()</code> intentionally accepts exactly one path, and never holds other input tables in memory. <code>_targets.R</code> selects the <code>RMA_W3_FULL</code> paths and defines a dynamic <code>map()</code> branch for each path outside this notebook. That makes each CSV independently schedulable and means the branch artifacts contain parquet files rather than raw csvs. Dynamic branching enables parallel execution; the approved Slurm allocation and selected <code>targets</code> backend determine how many branches run concurrently.</p>
+<p>The second reduction in <code>_targets.R</code> combines the smaller branch summaries and takes the clinic-month maximum again. This is equivalent to taking the maximum over the fully combined raw data because maximum is associative:</p>
+<p>[ () = ((), , ()) ]</p>
+<p>This two-stage reduction was introduced after the raw-table aggregation was OOM-killed with a 120 GiB Slurm allocation. It is a memory-scaling change, not a change to the numeric maximum rule. The current reducer retains the prior rule for every non-grouping field; a later curation decision should define field-specific behavior for names, descriptions, and codes rather than treating a lexicographic character maximum as scientific metadata.</p>
+<div class="callout callout-style-default callout-warning callout-titled" title="Why aggregation stays in DuckDB">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Warning</span>Why aggregation stays in DuckDB
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The per-file reductions completed, but the final target was OOM-killed in a 120 GiB Slurm allocation. The diagnostic evidence is that files can have zero duplicate clinic-month keys. In that situation, a per-file group maximum has nearly the same cardinality as the input, so the previous R-based final target needed to materialize all branch summaries at once. Increasing the requested memory is not the next proposed experiment.</p>
+<p>The per-file target now implements a disk-backed DuckDB/duckplyr boundary. Its stages are:</p>
+<ol type="1">
+<li>preserve the existing one-file CSV reading, UTF-8, and type-normalization behavior;</li>
+<li>execute each per-file clinic-month <code>MAX</code> reduction in DuckDB;</li>
+<li>write each branch result to Parquet without materializing it in R.</li>
+</ol>
+<p>The final target below reads all branch Parquet paths as one DuckDB relation, executes the final clinic-month reduction, and persists that result through another file target.</p>
+<p>The aim is to preserve the original code’s transformation logic as closely as possible. The change is the execution engine and storage boundary, not a redesign of the data-cleaning rules. Before implementation, the output schema and reducer for metadata fields must be made explicit: numeric measures use maximum, whereas names, descriptions, and codes require a domain-specific rule. DuckDB and duckplyr are declared runtime dependencies.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="manual-procedure callout callout-style-default callout-tip no-icon callout-titled" title="Combine The Reduced Branches" data-manual-kind="procedure">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span><i class="fa-solid fa-person-walking" aria-label="person-walking"></i> Procedure: Combine The Reduced Branches
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Apply the same reduction to the branch files to obtain one tracked group-maximum artifact. No raw measurement table needs to be collected into R.</p>
+<p>Calculate the group maxima across all branch artifacts with the shared helper. <code>union_by_name</code> preserves columns that occur in only some source files.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb6-1"><a href="#cb6-1"></a>#| format: file</span>
+<span id="cb6-2"><a href="#cb6-2"></a>s0_clinic_RMA_W3_group_max_parquet &lt;- s0_pipeline_parquet_transform_fn(</span>
+<span id="cb6-3"><a href="#cb6-3"></a>  input_paths = s0_clinic_RMA_W3_within_file_max_parquet,</span>
+<span id="cb6-4"><a href="#cb6-4"></a>  output_path = "data/intermediates/RMA_W3_group_max.parquet",</span>
+<span id="cb6-5"><a href="#cb6-5"></a>  transform = s0_clinic_RMA_summarise_group_max_fn,</span>
+<span id="cb6-6"><a href="#cb6-6"></a>  read_options = list(union_by_name = TRUE)</span>
+<span id="cb6-7"><a href="#cb6-7"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</div>
+<div class="manual-procedure callout callout-style-default callout-tip no-icon callout-titled" title="Crosswalk with GESIS Data" data-manual-kind="procedure">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span><i class="fa-solid fa-person-walking" aria-label="person-walking"></i> Procedure: Crosswalk with GESIS Data
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Our next step is to crosswalk the clinic data with GESIS DHIS data to get the exact questions for each measure.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb7-1"><a href="#cb7-1"></a>#| format: file</span>
+<span id="cb7-2"><a href="#cb7-2"></a>s0_gesis_xwalk_raw_csv &lt;- s0_pipeline_inputs_raw_chr |&gt;</span>
+<span id="cb7-3"><a href="#cb7-3"></a>  str_subset("mapping DHIS2 GESIS 2010 2022")</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb8-1"><a href="#cb8-1"></a>s0_gesis_xwalk_nonmissing_uid_df &lt;- read_csv(s0_gesis_xwalk_raw_csv) |&gt;</span>
+<span id="cb8-2"><a href="#cb8-2"></a>  select(UID...12, code_fs, TYPE, FS) |&gt;</span>
+<span id="cb8-3"><a href="#cb8-3"></a>  rename(organisationunitid = UID...12) |&gt; #correct the naming of organisationunitid</span>
+<span id="cb8-4"><a href="#cb8-4"></a>  distinct() |&gt;                            #tidy up missingness</span>
+<span id="cb8-5"><a href="#cb8-5"></a>  filter(!is.na(organisationunitid))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</div>
+<div class="manual-procedure callout callout-style-default callout-tip no-icon callout-titled" title="Write The Cleaned Wave 3 Table" data-manual-kind="procedure">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span><i class="fa-solid fa-person-walking" aria-label="person-walking"></i> Procedure: Write The Cleaned Wave 3 Table
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Use the descriptive crosswalk and the reviewed period-specific substitutions to produce the cleaned Parquet artifact.</p>
+<p>Lastly, we <code>left_join</code> the RMA wave 3 data with this crosswalk on Organisation. The last bit of cleaning correctly maps diagnoses that changed names slightly between wave 3 subwaves</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb9-1"><a href="#cb9-1"></a>#| format: file</span>
+<span id="cb9-2"><a href="#cb9-2"></a>s0_clinic_RMA_W3_clean_parquet &lt;- s0_pipeline_parquet_transform_fn(</span>
+<span id="cb9-3"><a href="#cb9-3"></a>  input_paths = s0_clinic_RMA_W3_group_max_parquet,</span>
+<span id="cb9-4"><a href="#cb9-4"></a>  output_path = here("data/intermediates/clinic_RMA_W3_clean.parquet"),</span>
+<span id="cb9-5"><a href="#cb9-5"></a>  transform = function(relation) {</span>
+<span id="cb9-6"><a href="#cb9-6"></a>    relation |&gt;</span>
+<span id="cb9-7"><a href="#cb9-7"></a>      left_join(as_duckdb_tibble(s0_gesis_xwalk_nonmissing_uid_df), by = "organisationunitid") |&gt;</span>
+<span id="cb9-8"><a href="#cb9-8"></a>      mutate(</span>
+<span id="cb9-9"><a href="#cb9-9"></a>        # rows of AME where periodcode &gt; 202300 should be values of AME prem;</span>
+<span id="cb9-10"><a href="#cb9-10"></a>        `T13: AME 0-6 mois` = if_else(</span>
+<span id="cb9-11"><a href="#cb9-11"></a>          periodcode &gt; 202300,  `T13: AME premiere heure 0-6 mois`, `T13: AME 0-6 mois`</span>
+<span id="cb9-12"><a href="#cb9-12"></a>        ),</span>
+<span id="cb9-13"><a href="#cb9-13"></a>        # etc</span>
+<span id="cb9-14"><a href="#cb9-14"></a>        `T13: AME 1ère heure` = if_else(</span>
+<span id="cb9-15"><a href="#cb9-15"></a>          periodcode &gt; 202300, `T13: AME premiere heure 1ère heure`, `T13: AME 1ère heure`</span>
+<span id="cb9-16"><a href="#cb9-16"></a>        ),</span>
+<span id="cb9-17"><a href="#cb9-17"></a>        `MIDs pour groupe à risque (migrants/réfugiés/personnes déplacées)` = if_else(</span>
+<span id="cb9-18"><a href="#cb9-18"></a>          periodcode &gt; 202300, `CHU CHRR T26 MIDs pour groupe à risque (migrants/réfugiés/personnes déplacées)`, `MIDs pour groupe à risque (migrants/réfugiés/personnes déplacées)`</span>
+<span id="cb9-19"><a href="#cb9-19"></a>        )</span>
+<span id="cb9-20"><a href="#cb9-20"></a>      ) |&gt;</span>
+<span id="cb9-21"><a href="#cb9-21"></a>      # remove redundant</span>
+<span id="cb9-22"><a href="#cb9-22"></a>      select(</span>
+<span id="cb9-23"><a href="#cb9-23"></a>        -any_of(c(</span>
+<span id="cb9-24"><a href="#cb9-24"></a>          "T13: AME premiere heure 0-6 mois",</span>
+<span id="cb9-25"><a href="#cb9-25"></a>          "T13: AME premiere heure 1ère heure",</span>
+<span id="cb9-26"><a href="#cb9-26"></a>          "CHU CHRR T26 MIDs pour groupe à risque (migrants/réfugiés/personnes déplacées)"</span>
+<span id="cb9-27"><a href="#cb9-27"></a>        ))</span>
+<span id="cb9-28"><a href="#cb9-28"></a>      ) |&gt;</span>
+<span id="cb9-29"><a href="#cb9-29"></a>      mutate(V1 = row_number() - 1L) |&gt;</span>
+<span id="cb9-30"><a href="#cb9-30"></a>      select(V1, everything())</span>
+<span id="cb9-31"><a href="#cb9-31"></a>  }</span>
+<span id="cb9-32"><a href="#cb9-32"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</div>
+<p>Important: there is a chance that the assignment of V1 to row number doesn’t work here, due to the fact that the data is now in a Parquet and row numbers are only computed at evaluation time.</p>
 <div class="manual-check callout callout-style-default callout-warning no-icon callout-titled" title="Prove Curation Against The Contract" data-manual-kind="check">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -403,6 +659,15 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <div class="callout-body-container callout-body">
+<p>Inspect the completed branches and the persisted summary in an authorized data session. The first expression lists tracked branches. The second collects only an aggregate row count from the completed artifact.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb10-1"><a href="#cb10-1"></a>tar_branches(s0_clinic_RMA_W3_within_file_max_parquet)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb11-1"><a href="#cb11-1"></a>tar_read(s0_clinic_RMA_W3_group_max_parquet) |&gt;</span>
+<span id="cb11-2"><a href="#cb11-2"></a>  read_parquet_duckdb(prudence = "stingy") |&gt;</span>
+<span id="cb11-3"><a href="#cb11-3"></a>  summarise(clinic_month_rows = n()) |&gt;</span>
+<span id="cb11-4"><a href="#cb11-4"></a>  collect()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Run the synthetic Parquet regression check from the repository root:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode numberSource sh number-lines code-with-copy"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1"></a><span class="ex">scripts/mdg-healthshed-clinic-data</span> exec Rscript tests/check-w3-parquet-transforms.R</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>It evaluates the two Parquet target commands with temporary inputs and compares their results against an independent in-memory reference. It covers differing source schemas, all-missing groups, maxima, crosswalk joins, and period-specific column corrections without building pipeline targets or reading staged data.</p>
 <p>Future checks must test the documented invariants and compare observed exceptions with reviewer-approved expectations. “The code ran” is not sufficient evidence of correct curation.</p>
 </div>
 </div>
@@ -813,12 +1078,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
       <a href="../pipeline/17_page-inspect-source-data.html" class="pagination-link" aria-label="Inspect Source Data">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Inspect Source Data</span></span>
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Inspect Source Data</span></span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
-      <a href="../pipeline/19_page-package-release.html" class="pagination-link" aria-label="Package a Versioned Release">
-        <span class="nav-page-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Package a Versioned Release</span></span> <i class="bi bi-arrow-right-short"></i>
+      <a href="../pipeline/19_page-clean-mapping-dhis2-gesis.html" class="pagination-link" aria-label="Clean the DHIS2–GESIS Mapping">
+        <span class="nav-page-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Clean the DHIS2–GESIS Mapping</span></span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>

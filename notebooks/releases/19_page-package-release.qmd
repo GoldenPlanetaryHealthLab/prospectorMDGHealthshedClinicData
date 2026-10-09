@@ -7,8 +7,8 @@ engine: markdown
 ---
 
 Release packaging begins only after curated targets and disclosure rules are
-approved. This page deliberately chooses no format, schema, version, or
-destination yet.
+approved. Data resources follow the workflow's Parquet storage convention;
+this page leaves the schema, version, and destination to the release contract.
 
 ::: {.manual-prereq title="Approve The Release Contract"}
 
@@ -28,7 +28,10 @@ A human owner must decide:
 Future package targets should consume curated targets, attach reviewed schema
 and provenance, write to a versioned directory under `data/processed`, and
 refuse to overwrite a nonempty immutable release. Packaging must not contain a
-second, hidden implementation of cleaning rules.
+second, hidden implementation of cleaning rules. Workflow tables remain data
+targets or Parquet file targets. Any persisted data resources use Parquet and
+return their paths from `format = "file"` targets; schema and provenance
+metadata can remain ordinary targets.
 
 ```r
 # Human-owned placeholder; choose the release contract before implementation.

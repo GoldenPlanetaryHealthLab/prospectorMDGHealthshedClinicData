@@ -23,3 +23,6 @@ _targets/
 sandbox/**
 !sandbox/.gitkeep
 /.uvr/activate*
+
+/.quarto/
+**/*.quarto_ipynb
