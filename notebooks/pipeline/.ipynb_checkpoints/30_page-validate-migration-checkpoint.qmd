@@ -1,0 +1,189 @@
+---
+title: "Validate the Migrated Clinic Pipeline"
+subtitle: "Implementation plan for recovering evidence from data_checks.R"
+execute:
+  eval: false
+engine: markdown
+---
+
+**Status: detailed implementation plan; comparison targets are not wired.**
+[`data_checks.R`][legacy-checks] contains several investigations, reused
+variable names, and experimental comparisons. This page organizes those
+questions into reproducible evidence. It does not turn every scratch
+expression into an accepted scientific assertion.
+
+The [mapping notebook](mapping/legacy-pipeline-map.qmd#script-checks-exploratory-checks-and-supplements)
+retains the assignment-level inventory. Source inspection stays on page 17;
+each transformation owns its own rule tests; this page owns the comparisons
+between the legacy and replacement products.
+
+::: {.manual-prereq title="Agree On The Comparison Contract"}
+
+Identify the exact input freeze, source-code revision, prepared Wave 3 schema,
+dictionary revision, and legacy reference artifacts. Track references as
+source file targets or members of the already tracked archive. A file with
+the right name is not sufficient evidence of matching provenance.
+
+For every comparison, record its row grain, alignment keys, duplicate policy,
+column correspondence, missing/sentinel semantics, and any numeric or spatial
+tolerance. Review intentional differences before calling the migration
+equivalent. Newer exports such as 2023 deliveries are separate datasets until
+their source contract is established.
+
+Keep the raw input tree immutable. No validation procedure overwrites the
+reference or promotes a derived supplement into the raw source inventory.
+Protected discrepancy rows remain in governed targets/artifacts and are not
+rendered into the public manual.
+
+:::
+
+::: {.manual-procedure title="Classify The Legacy Investigations Before Porting Them"}
+
+| Legacy responsibility | Planned owner and evidence |
+| --- | --- |
+| Export/file/schema inventories | Page 17 and `schecks_source_export_tables_list`; record periods, columns, and source provenance |
+| Reader experiments | Page 18's reader tests plus `schecks_csv_reader_comparison_list`; explain encoding, sparse typing, quotes, and name repair |
+| Wave 3 preparation comparisons | This page; keyed equality and discrepancy summaries against a fixed prepared reference |
+| Dictionary comparisons | This page; expressions, ordered schemas, translations, and harmonized IDs evaluated separately |
+| Mumps year/subset exports | Explicit optional diagnostic projections in procedures, stored as targets/Parquet outside the raw tree |
+| Transformation-specific assertions | The check block of the page that owns the transformation |
+
+The repeated late-2023 comparison that reads a 2022 object needs a corrected,
+explicit source selection before it can support a conclusion. The exploratory
+numeric matrix that compares the old object with itself cannot establish
+old/new agreement. Do not carry those mistakes into a regression test.
+
+:::
+
+::: {.manual-procedure title="Build Small Alignment And Schema Contracts"}
+
+Use `schecks_w3_legacy_comparison_inputs_list` and
+`schecks_dictionary_legacy_comparison_inputs_list` as small reference/path
+contracts rather than lists of fully loaded measurement tables. Record
+ordered names, types, row grain, key uniqueness, and source hashes or tracked
+target identities in `schecks_migration_contract_list`.
+
+Validate keys before sorting or joining: a many-to-many join can multiply
+rows and disguise a mismatch. When legitimate repeated keys exist, define
+their comparison unit explicitly rather than assigning a new row number
+whose order differs between storage engines. Check equality of key sets and
+multiplicity before comparing values.
+
+Use page 21's recorded `X` schema to compare dictionary references. Ignore a
+legacy export index only when it is proven to be an IO artifact, not a
+scientific identifier. Never renumber `V` or `X` variables merely to make the
+tables look equal.
+
+:::
+
+::: {.manual-procedure title="Compare Large Measurement Products In DuckDB"}
+
+Read tracked Parquet paths as relations. Project a limited variable set or
+period partition, align on the agreed keys, and compute counts of missing
+keys and unequal values. Collect only small summaries for the manager.
+Persist governed discrepancy records as `schecks_w3_value_mismatches_parquet`
+when row-level evidence is needed.
+
+The plan replaces full in-memory comparison matrices with keyed comparison
+relations. Test the comparator itself using unequal fixtures: new-only and
+old-only rows, duplicate keys, permuted row order, changed numeric values,
+and differing missing values must produce failures or explicit discrepancy
+records. A passing self-comparison is only a sanity check.
+
+Compare entered zero, missing, `-1`, and `-99` separately according to the
+owning transformation's contract. Do not convert all missing values to
+infinity or all logical columns to numeric as an unexplained equality fix.
+
+:::
+
+::: {.manual-procedure title="Compare Dictionary Semantics Before Output Labels"}
+
+Build `schecks_dictionary_migration_report_df` from the new dictionary, its
+recorded source schemas, and the chosen legacy reference. Compare the wave
+expressions, repeated summands, unavailable-wave semantics, output groups,
+French descriptions, and English translation provenance separately.
+
+If `V` numbering differs, first compare the ordered inputs and expression
+identity. Produce an explicit old/new expression crosswalk for review rather
+than rewriting either dictionary. An apparent translation-only difference
+must not conceal a changed clinical definition or age band.
+
+Reuse page 21's synthetic validator and archive-translation coverage checks.
+Do not invoke a live translation service during validation to refresh the
+reference or fill a comparison gap.
+
+:::
+
+::: {.manual-procedure title="Keep Mumps Diagnostic Projections Outside The Raw Tree"}
+
+Inventory the combined 2021–2022 mumps export in
+`schecks_mumps_source_df` only if small enough for the stated memory budget;
+otherwise use a source file target and DuckDB relation. Separate year views in
+`schecks_mumps_by_year_list` and the named 2021 male 2–11-month projection in
+`schecks_mumps_2021_males_2_11m_df`, or persist their larger equivalents as
+`schecks_mumps_output_parquet`.
+
+Preserve the exact source header `T4: Oreillon 2-11m, Masculin`, period filter,
+and metadata-column selection. Check year coverage and the relationship of
+the subset to its parent without writing `oreillon_2021.csv` or other derived
+files back into `data/inputs`.
+
+These are diagnostic projections unless explicitly adopted as a curation
+input. If a repair becomes authoritative, implement it in the owning source
+preparation procedure and add a visible dependency to pages 18 or 22. It must
+not enter the analysis through an undocumented raw-directory side effect.
+
+:::
+
+::: {.manual-procedure title="Assemble A Migration Evidence Report"}
+
+`schecks_migration_report_list` will combine small reports from identities,
+dictionary construction, diagnoses, spatial assignments, locations, and the
+two metadata products. Larger row-level evidence remains in tracked Parquet;
+geometry comparisons remain in ordinary spatial targets.
+
+| Report field | Required content |
+| --- | --- |
+| Provenance | Input/reference revisions, code revision, environment and geometry-engine versions |
+| Alignment | Grain, keys, key counts/multiplicity, and column/schema correspondence |
+| Results | Exact matches, measured discrepancies, missing coverage, and resource observations |
+| Decisions | Accepted differences, rationale, accountable review, and unresolved items |
+| Artifacts | Target names and tracked evidence paths; no ambiguous scratch filenames |
+
+Keep validation separate from release approval. This evidence informs the
+[release contract](../releases/19_page-package-release.qmd); it does not
+authorize publishing protected data or decide a scientific discrepancy on
+the reviewer's behalf.
+
+:::
+
+::: {.manual-check title="Specify Evidence And Comparator Acceptance"}
+
+Create `tests/check-migration-comparators.R` before wiring comparison targets.
+The tests must show that each comparator detects an injected mismatch, handles
+missing values and legitimate multiplicity according to its contract, and
+does not report equality when its two inputs differ.
+
+After a separately authorized build, the final checks should confirm:
+
+- every required comparison has identifiable inputs and a completed result;
+- key coverage, schema references, and expression/sentinel tests satisfy the
+  approved contract;
+- each remaining discrepancy is either an accepted, documented change or an
+  unresolved failure that prevents an equivalence claim;
+- parallel and serial execution produce the same canonically compared data;
+- a second build with unchanged inputs rebuilds no scientific targets;
+- evidence artifacts exist, remain under governed destinations, and can be
+  inspected without loading all measurements into R.
+
+Historical numerical comments in `data_checks.R` are comparison hypotheses,
+not newly observed outcomes. No comparison or scientific pipeline has been
+executed while writing this plan.
+
+```sh
+python3 tests/check-manual-structure.py
+```
+
+:::
+
+[legacy-checks]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R

@@ -1,0 +1,933 @@
+---
+title: "Construct the Diagnosis Dictionary"
+subtitle: "Reconcile measurement definitions across Waves 1, 2, 3A, and 3B"
+execute:
+  eval: false
+engine: markdown
+---
+
+This page implements `3_construct_dictionary.R` as successive targets. It
+preserves the reviewed cross-wave mappings, supplemental diagnoses, wording
+corrections, and 40 output-file groups. Wave 3 measurements stay in Parquet:
+this stage needs their ordered column schema, not their rows.
+
+Translations come from the archived source translations and the bilingual
+`data/clean/diagnosis_dictionary_translated.csv` snapshot in the staged ZIP.
+That snapshot supplies language lookups only; its variable IDs and mapping
+expressions do not replace the newly constructed dictionary. No translation
+service is called.
+
+::: {.manual-prereq title="Confirm The Upstream Artifacts"}
+
+Page 18 must have produced `s0_clinic_RMA_W3_clean_parquet`, and page 20 must
+have selected `s2_clinic_months_raw_zip`. In an authorized R session, confirm
+that these tracked files exist. This check reads target metadata and paths,
+not the measurement tables.
+
+```{r}
+stopifnot(
+  all(file.exists(targets::tar_read(s0_clinic_RMA_W3_clean_parquet))),
+  all(file.exists(targets::tar_read(s2_clinic_months_raw_zip)))
+)
+```
+
+Authoring remains globally unevaluated. The helpers below are declared in
+procedures because `tar_tangle()` also tracks top-level function assignments.
+The procedure declarations are wired into the graph by the execution page.
+:::
+
+::: {.manual-procedure title="Declare Archive And Text Helpers"}
+
+Resolve exact archive-member suffixes and extract only the selected input
+into a temporary directory. Each reader must return a materialized small
+object before extraction cleanup; no temporary path becomes a downstream input.
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(purrr)
+library(stringr)
+library(readr)
+library(readxl)
+library(duckplyr)
+library(targets)
+
+s3_dictionary_archive_member_fn <- function(archive, suffix) {
+  members <- utils::unzip(archive, list = TRUE)$Name
+  hits <- members[endsWith(members, paste0("/", suffix)) &
+                    !grepl("(^|/)__MACOSX/", members)]
+  if (length(hits) != 1L) stop("Expected one archive member for: ", suffix)
+  unname(hits)
+}
+```
+
+```{r}
+s3_dictionary_archive_read_fn <- function(archive, member, reader) {
+  stopifnot(length(member) == 1L, !grepl("^/|(^|/)\\.\\.(/|$)", member))
+  extraction_dir <- tempfile("dictionary-input-")
+  dir.create(extraction_dir)
+  on.exit(unlink(extraction_dir, recursive = TRUE), add = TRUE)
+  path <- utils::unzip(archive, files = member, exdir = extraction_dir)
+  stopifnot(length(path) == 1L, file.exists(path))
+  reader(path)
+}
+
+s3_dictionary_read_csv_fn <- function(archive, member) {
+  s3_dictionary_archive_read_fn(archive, member, function(path) {
+    read.csv(path, fileEncoding = "UTF-8", stringsAsFactors = FALSE)
+  })
+}
+```
+
+Apply the legacy wording substitutions sequentially. Unequal non-scalar
+pattern/replacement vectors fail explicitly instead of calling the legacy
+undefined `error()` function.
+
+```{r}
+s3_diagnosis_multiple_gsub_fn <- function(patterns, replacements, x) {
+  if (length(patterns) != length(replacements) &&
+      length(patterns) != 1L && length(replacements) != 1L) {
+    stop("Pattern and replacement must have equal length or be scalar.")
+  }
+  count <- max(length(patterns), length(replacements))
+  patterns <- rep_len(patterns, count)
+  replacements <- rep_len(replacements, count)
+  for (i in seq_len(count)) x <- gsub(patterns[[i]], replacements[[i]], x)
+  x
+}
+```
+
+:::
+
+::: {.manual-procedure title="Select The Dictionary Sources"}
+
+The staged ZIP is already a file target. Member names below are selectors
+inside that tracked archive, not independent filesystem paths. Select the
+current `data/raw` versions explicitly so the parallel review and OLD copies
+cannot be chosen accidentally.
+
+```{r}
+s3_dictionary_archive_members_chr <- {
+  suffixes <- c(
+    mapping = "data/raw/diagnosis_mapping/diagnosis_mapping_updated_1march2024_withspecialchar_fixw3b.csv",
+    wave12 = "data/raw/diagnosis_mapping/Big Dictionary Revised_with_wave - withID.csv",
+    diar_pneu = "data/raw/from_Kevin/mdg_tall_split/diar_pneu_fix.csv",
+    additional = "data/raw/from_Kevin/Big Dictionary Revised_v2.xlsx",
+    wave3 = "data/raw/diagnosis_mapping/symphonia w3_diagnoses_with_zero_years_MLC_updated_unordered_w3.csv",
+    anemia = "data/raw/anemie_2020.csv",
+    translations = "data/raw/diagnosis_dictionary_ordered_file_translated.csv",
+    archived = "data/clean/diagnosis_dictionary_translated.csv",
+    dir1 = "data/raw/from_Kevin/updated_dictionary/dir1_diagnostic_codes.xlsx",
+    dir2 = "data/raw/from_Kevin/updated_dictionary/dir2_diagnostic_codes.xlsx"
+  )
+  vapply(suffixes, function(suffix) {
+    s3_dictionary_archive_member_fn(s2_clinic_months_raw_zip, suffix)
+  }, character(1))
+}
+```
+
+:::
+
+::: {.manual-procedure title="Record The Ordered Wave 3 Schema"}
+
+Read the prepared Parquet column names without collecting measurements.
+Append only anemia columns absent from that schema, after the legacy `?` to
+`≥` correction and removal of its two descriptive organisation columns.
+Persist this schema as an ordinary target: downstream measurement cleaning
+must use these same `X` identifiers rather than inventing another column order.
+
+```{r}
+s3_w3_anemia_columns_chr <- s3_dictionary_archive_read_fn(
+  s2_clinic_months_raw_zip, s3_dictionary_archive_members_chr[["anemia"]],
+  function(path) {
+    columns <- names(read_csv_duckdb(path, prudence = "stingy"))
+    columns <- gsub("?", "≥", columns, fixed = TRUE)
+    setdiff(columns, c("organisationunitcode", "organisationunitdescription"))
+  }
+)
+
+s3_w3_column_dictionary_df <- {
+  columns <- names(read_parquet_duckdb(
+    s0_clinic_RMA_W3_clean_parquet, prudence = "stingy"
+  ))
+  bind_rows(
+    tibble(w3_description = columns, orig = TRUE),
+    tibble(w3_description = setdiff(s3_w3_anemia_columns_chr, columns), orig = FALSE)
+  ) |>
+    mutate(w3_colname = paste0("X", row_number()))
+}
+```
+
+```{r}
+s3_diagnosis_mapping_source_df <- s3_dictionary_read_csv_fn(
+  s2_clinic_months_raw_zip, s3_dictionary_archive_members_chr[["mapping"]]
+) |>
+  select(-wave3_colname_orig, -wave3_colname_noAccent)
+```
+
+:::
+
+::: {.manual-procedure title="Tidy The Wave 1–2 Dictionary"}
+
+Retain the legacy diagnostic-code filter and remove the old Wave 1 diarrhea
+and pneumonia definitions. `read.csv()` preserves the legacy syntactic column
+names, including `ID.`; changing them here would break the reviewed joins.
+
+```{r}
+s3_diagnosis_wave12_dictionary_df <- s3_dictionary_read_csv_fn(
+  s2_clinic_months_raw_zip, s3_dictionary_archive_members_chr[["wave12"]]
+) |>
+  filter(Diagnostic.Code..cCode. != "") |>
+  filter(!(Diagnostic.Code..cCode. %in% c("Diarrhea", "Pneumonia") &
+             wave == "Wave 1")) |>
+  select(-Column.Type)
+```
+
+:::
+
+::: {.manual-procedure title="Read Replacement Diarrhea And Pneumonia Definitions"}
+
+Reduce the replacement tall CSV in DuckDB to distinct `cCode`/`Variable`
+pairs. Preserve first-occurrence order before collecting those definitions;
+this order contributes to subsequent variable numbering. The measurement
+values are never collected into R.
+
+```{r}
+s3_diagnosis_diar_pneu_variables_df <- s3_dictionary_archive_read_fn(
+  s2_clinic_months_raw_zip, s3_dictionary_archive_members_chr[["diar_pneu"]],
+  function(path) {
+    duckplyr::db_exec("INSTALL encodings")
+    duckplyr::db_exec("LOAD encodings")
+    read_csv_duckdb(path, prudence = "stingy", options = list(
+      header = TRUE, delim = ",", quote = "\"", escape = "\"",
+      nullstr = "NA", encoding = "CP1252", all_varchar = TRUE
+    )) |>
+      select(cCode, Variable) |>
+      mutate(.source_row = row_number()) |>
+      summarise(.source_row = min(.source_row), .by = c(cCode, Variable)) |>
+      arrange(.source_row) |>
+      select(-.source_row) |>
+      collect()
+  }
+)
+```
+
+:::
+
+::: {.manual-procedure title="Add AVC, ULGEN, And Replacement Diagnoses"}
+
+Use the revised workbook only for AVC, because its ordering is unsuitable
+for the main reviewed dictionary. Derive ULGEN and the new diarrhea/pneumonia
+descriptions from the existing Wave 1 AFDIG templates, as in the legacy script.
+
+```{r}
+s3_diagnosis_avc_dictionary_df <- s3_dictionary_archive_read_fn(
+  s2_clinic_months_raw_zip, s3_dictionary_archive_members_chr[["additional"]],
+  function(path) readxl::read_excel(path)
+) |>
+  select(-`Column Type`) |>
+  setNames(c(names(s3_diagnosis_wave12_dictionary_df)[1:4], "drop", "drop1")) |>
+  select(-starts_with("drop")) |>
+  filter(grepl("^AVC", Diagnostic.Code..cCode.)) |>
+  mutate(wave = "Wave 2", ID. = Column.Name)
+
+s3_diagnosis_ulgen_dictionary_df <- s3_diagnosis_wave12_dictionary_df |>
+  filter(wave == "Wave 1", grepl("^AFDIG", Diagnostic.Code..cCode.)) |>
+  mutate(
+    Diagnostic.Code..cCode. = "ULGEN",
+    Column.Name = gsub("AFDIG", "ULGEN", Column.Name),
+    ID. = Column.Name
+  )
+```
+
+```{r}
+s3_diagnosis_diar_pneu_dictionary_df <- s3_diagnosis_diar_pneu_variables_df |>
+  transmute(Column.Name = paste0(cCode, gsub(".*_", "_", Variable)),
+            descr_join = gsub(".*_", "_", Variable)) |>
+  left_join(s3_diagnosis_wave12_dictionary_df |>
+    filter(wave == "Wave 1", grepl("^AFDIG", Diagnostic.Code..cCode.)) |>
+    mutate(descr_join = gsub(".*_", "_", Column.Name)) |>
+    select(-Column.Name), by = "descr_join") |>
+  select(-descr_join) |>
+  mutate(ID. = Column.Name, Diagnostic.Code..cCode. = gsub("_.*", "", Column.Name))
+
+s3_diagnosis_supplementary_dictionary_df <- bind_rows(
+  s3_diagnosis_avc_dictionary_df,
+  s3_diagnosis_ulgen_dictionary_df,
+  s3_diagnosis_diar_pneu_dictionary_df
+)
+```
+
+:::
+
+::: {.manual-procedure title="Retain Reviewed Within-Wave-3 Corrections"}
+
+Keep the reviewed suspected-plus-confirmed diabetes expressions for both
+sexes and all listed age bands. The literal descriptions preserve meaningful
+dash and spacing differences used by the joins.
+
+```{r}
+s3_diagnosis_diabetes_review_df <- data.frame(description = c("T4:- Suspicion de diabète 0 –  28j, Masculin",
+                                   "T4:- Suspicion de diabète 0 –  28j, Feminin",
+                                   "T4:- Suspicion de diabète 29j – 11mois, Masculin",
+                                   "T4:- Suspicion de diabète 29j – 11mois, Feminin",
+                                   "T4:- Suspicion de diabète 1– 4 ans, Masculin",
+                                   "T4:- Suspicion de diabète 1– 4 ans, Feminin",
+                                   "T4:- Suspicion de diabète 5 – 14 ans, Masculin",
+                                   "T4:- Suspicion de diabète 5 – 14 ans, Feminin",
+                                   "T4:- Suspicion de diabète 15 –  24 ans, Masculin",
+                                   "T4:- Suspicion de diabète 15 –  24 ans, Feminin",
+                                   "T4:- Suspicion de diabète 25 – 59 ans, Masculin",
+                                   "T4:- Suspicion de diabète 25 – 59 ans, Feminin",
+                                   "T4:- Suspicion de diabète ≥ 60 ans, Masculin",
+                                   "T4:- Suspicion de diabète ≥ 60 ans, Feminin",
+                                   "Consultation externe/Nouveaux cas de Suspicion de diabete en Referes CSB Homme",
+                                   "Consultation externe/Nouveaux cas de Suspicion de diabete en Referes CSB Femme"),
+                   w3b_description = c("T4:- Suspicion de diabète 0 –  28j, Masculin[+]T4: Diabète confirmé 0 –  28j, Masculin",
+                                       "T4:- Suspicion de diabète 0 –  28j, Feminin[+]T4: Diabète confirmé 0 –  28j, Feminin",
+                                       "T4:- Suspicion de diabète 29 - 59j, Masculin[+]T4:- Suspicion de diabète 2-11m, Masculin[+]T4: Diabète confirmé 29 - 59j, Masculin[+]T4: Diabète confirmé 2-11m, Masculin",
+                                       "T4:- Suspicion de diabète 29 - 59j, Feminin[+]T4:- Suspicion de diabète 2-11m, Feminin[+]T4: Diabète confirmé 29 - 59j, Feminin[+]T4: Diabète confirmé 2-11m, Feminin",
+                                       "T4:- Suspicion de diabète 1– 4 ans, Masculin[+]T4: Diabète confirmé 1– 4 ans, Masculin",
+                                       "T4:- Suspicion de diabète 1– 4 ans, Feminin[+]T4: Diabète confirmé 1– 4 ans, Feminin",
+                                       "T4:- Suspicion de diabète 5 – 14 ans, Masculin[+]T4: Diabète confirmé 5 – 14 ans, Masculin",
+                                       "T4:- Suspicion de diabète 5 – 14 ans, Feminin[+]T4: Diabète confirmé 5 – 14 ans, Feminin",
+                                       "T4:- Suspicion de diabète 15 –  24 ans, Masculin[+]T4: Diabète confirmé 15 –  24 ans, Masculin",
+                                       "T4:- Suspicion de diabète 15 –  24 ans, Feminin[+]T4: Diabète confirmé 15 –  24 ans, Feminin",
+                                       "T4:- Suspicion de diabète 25 – 59 ans, Masculin[+]T4: Diabète confirmé 25 – 59 ans, Masculin",
+                                       "T4:- Suspicion de diabète 25 – 59 ans, Feminin[+]T4: Diabète confirmé 25 – 59 ans, Feminin",
+                                       "T4:- Suspicion de diabète ≥ 60 ans, Masculin[+]T4: Diabète confirmé ≥ 60 ans, Masculin",
+                                       "T4:- Suspicion de diabète ≥ 60 ans, Feminin[+]T4: Diabète confirmé ≥ 60 ans, Feminin",
+                                       "Consultation externe/Nouveaux cas de Suspicion de diabete en Referes CSB Homme[+]T4:- Diabète confirmé referes Homme",
+                                       "Consultation externe/Nouveaux cas de Suspicion de diabete en Referes CSB Femme[+]T4:- Diabète confirmé referes Femme"))
+```
+
+```{r}
+s3_diagnosis_wave3_reviewed_df <- s3_dictionary_read_csv_fn(
+  s2_clinic_months_raw_zip, s3_dictionary_archive_members_chr[["wave3"]]
+) %>%
+mutate(description = case_when(description == "T4:- Anémie 29j - 11mois, Feminin" ~ "T4:- Anémie 29j – 11mois, Feminin",
+                                 description == "T4:- Anémie 29j - 11mois, Masculin" ~ "T4:- Anémie 29j – 11mois, Masculin",
+                                 .default = description),
+         w3b_description = case_when(description == "T4:- Malnutrition Aigue Sévère 29j – 11mois, Masculin" ~ "T4:- Malnutrition Aigue Sévère 29 - 59j, Masculin[+]T4:- Malnutrition Aigue Sévère 2-11m, Masculin",
+                                     description == "T4:- Malnutrition Aigue Sévère 29j – 11mois, Feminin" ~ "T4:- Malnutrition Aigue Sévère 29 - 59j, Feminin[+]T4:- Malnutrition Aigue Sévère 2-11m, Feminin",
+                                     .default = w3b_description)) %>%
+  select(-starts_with("y_"), -X, -OBSERVATION) %>%
+  filter(description %in% c("T4:- Suspicion de diabète 29j – 11mois, Masculin", "T4:- Suspicion de diabète 29j – 11mois, Feminin") == FALSE)
+```
+
+Append the diabetes replacements, remove explicitly unused matches, and
+resolve each `[+]` term against the recorded Wave 3 schema. Keep the reviewed
+malnutrition and anemia corrections in the preceding transformation.
+
+```{r}
+s3_diagnosis_wave3_mapping_df <- bind_rows(
+  s3_diagnosis_wave3_reviewed_df, s3_diagnosis_diabetes_review_df
+) %>%
+filter(w3b_description %in% c("", "unused from 2021") == FALSE) %>%
+  left_join(s3_w3_column_dictionary_df %>% select(description = w3_description, w3a_colname = w3_colname)) %>%
+  mutate(row_id = 1:n()) %>%
+  separate_longer_delim(cols = w3b_description, delim = "[+]") %>%
+  left_join(s3_w3_column_dictionary_df %>% select(w3b_description = w3_description, w3b_colname = w3_colname)) %>%
+  summarise(across(!starts_with("w3b"), unique),
+            w3b_description = paste0(w3b_description, collapse = "[+]"),
+            w3b_colname = paste0(w3b_colname, collapse = " + "),
+            .by = row_id)
+```
+
+:::
+
+::: {.manual-procedure title="Normalize The Cross-Wave Match Notation"}
+
+Expand slash alternatives and numeric ranges before semicolon expansion.
+Retain the legacy ordering: non-range entries precede expanded ranges.
+Blank, `?`, and `Ignore` entries have the original missing-match semantics.
+
+```{r}
+s3_diagnosis_matches_expanded_df <- s3_diagnosis_mapping_source_df %>%
+  rename(wave3_description = wave3_colname_specialchar) %>%
+  full_join(s3_w3_column_dictionary_df %>% rename_with(~gsub("w3", "wave3", .x)) %>% select(-orig),
+            by = c("wave3_description")) %>%
+  filter(!grepl("^org|^period", wave3_description)) %>%
+  filter(wave3_description %in% c("V1", "TYPE", "FS", "code_fs") == FALSE) %>%
+  mutate(across(c(Wave_1_Match, Wave_2_Match),
+                ~ case_match(.x,
+                             c("", "?") ~ NA,
+                             .default = .x))) %>%
+  separate_longer_delim(Wave_1_Match, delim = "/") %>%
+  {rbind(filter(., grepl("-", Wave_1_Match) == FALSE),
+         filter(., grepl("-", Wave_1_Match) == TRUE) %>%
+           rowwise %>%
+           mutate(Wave_1_Match = str_split_fixed(Wave_1_Match, "-", 2)[1,] %>% trimws %>% as.numeric %>% {seq(from = .[1], to = .[2])} %>% paste(collapse = ";")) %>%
+           ungroup)} %>%
+  mutate(row_id = 1:n()) %>%
+  separate_longer_delim(Wave_1_Match, delim = ";") %>%
+  mutate(across(ends_with("Match"), ~ifelse(.x == "Ignore", NA, .x)))
+```
+
+:::
+
+::: {.manual-procedure title="Join Source Definitions And Resolve Wave 3B"}
+
+Join reviewed IDs to the earlier-wave column names and descriptions, then
+recombine expanded terms with ` + `. Apply the within-Wave-3 mapping and
+retain unchanged Wave 3 columns where no separate 3B definition was provided.
+
+```{r}
+s3_diagnosis_matches_joined_df <- s3_diagnosis_matches_expanded_df %>%
+  left_join(s3_diagnosis_wave12_dictionary_df %>%
+              rbind(s3_diagnosis_supplementary_dictionary_df) %>%
+              transmute(ID. = as.character(ID.),
+                        Column.Name, description) %>%
+              rename_with(~paste0("wave1_", .x)),
+            by = join_by(Wave_1_Match == wave1_ID.)) %>%
+  left_join(s3_diagnosis_wave12_dictionary_df %>%
+              rbind(s3_diagnosis_supplementary_dictionary_df) %>%
+              transmute(ID. = as.character(ID.),
+                        Column.Name, description) %>%
+              rename_with(~paste0("wave2_", .x)),
+            by = join_by(Wave_2_Match == wave2_ID.)) %>%
+  rename(wave1_colname = wave1_Column.Name,
+         wave2_colname = wave2_Column.Name) %>%
+  summarise(across(everything(), ~paste(unique(.x), collapse = " + ")),
+            .by = row_id) %>%
+  select(ends_with(c("_colname", "description")))
+```
+
+```{r}
+s3_diagnosis_matches_wave3_df <- s3_diagnosis_matches_joined_df %>%
+  rename_with(function(x){gsub("wave3_", "wave3A_", x)}, everything()) %>%
+  left_join(s3_diagnosis_wave3_mapping_df %>%
+              select(wave3A_colname = w3a_colname,
+                     wave3B_colname = w3b_colname,
+                     wave3B_description = w3b_description)) %>%
+  filter(wave3A_colname %in% na.omit(unique(.$wave3B_colname)) == FALSE) %>%
+  mutate(wave3B_colname = ifelse(is.na(wave3B_colname), wave3A_colname, wave3B_colname),
+         wave3B_description = ifelse(is.na(wave3B_description), wave3A_description, wave3B_description)) %>%
+  mutate(across(everything(), ~ifelse(.x == "NA", NA, .x)))
+```
+
+:::
+
+::: {.manual-procedure title="Aggregate Comparable Variables Across Waves"}
+
+The shared reducer retains the legacy missing-component rule: if one
+component is unmatched, the aggregate for that other wave is missing.
+Repeated source expressions are cleared before retaining the first complete
+expression combination. These rules affect comparability and are not replaced
+by a generic sum or coalesce.
+
+Select local column names with `all_of()`/`pick()` when the helper runs.
+This preserves grouped column lookup while avoiding premature unquotation
+when `tar_tangle()` declares the function target.
+
+```{r}
+s3_diagnosis_aggregate_to_wave_fn <- function(df, target_wave,
+                                     all_waves = paste0("wave", c(1:2, "3A", "3B"))) {
+  other_waves = setdiff(all_waves, target_wave)
+  target_col = paste0(target_wave, "_colname")
+  target_desc = paste0(target_wave, "_description")
+  other_col = paste0(other_waves, "_colname")
+  filter(df, if_any(all_of(target_col), ~ !is.na(.x))) %>%
+    summarise(description = unique(pick(all_of(target_desc))[[1L]]),
+              across(all_of(other_col),
+                     ~if(any(is.na(.x))){NA}else{paste(unique(.x), collapse = " + ")}),
+              .by = all_of(target_col)) %>%
+    mutate(wave1_colname = ifelse(n() == 1, wave1_colname, NA),
+           .by = c(wave1_colname)) %>%
+    mutate(wave2_colname = ifelse(n() == 1, wave2_colname, NA),
+           .by = c(wave2_colname)) %>%
+    mutate(wave3A_colname = ifelse(n() == 1, wave3A_colname, NA),
+           .by = c(wave3A_colname)) %>%
+    mutate(wave3B_colname = ifelse(n() == 1, wave3B_colname, NA),
+           .by = c(wave3B_colname)) %>%
+    return
+}
+```
+
+```{r}
+s3_diagnosis_common_map_df <- s3_diagnosis_matches_wave3_df %>%
+  {rbind(s3_diagnosis_aggregate_to_wave_fn(., "wave1"),# %>% mutate(target = "wave1"),
+         s3_diagnosis_aggregate_to_wave_fn(., "wave2"),# %>% mutate(target = "wave2"),
+         s3_diagnosis_aggregate_to_wave_fn(., "wave3A"),# %>% mutate(target = "wave3A"),
+         filter(., .$wave3A_colname %in% .$wave3B_colname == FALSE) %>%
+           s3_diagnosis_aggregate_to_wave_fn("wave3B")# %>% mutate(target = "wave3B")
+         )} %>%
+  slice_head(n = 1, by = ends_with("colname"))
+```
+
+:::
+
+::: {.manual-procedure title="Append Unmatched Earlier-Wave Variables And Assign V IDs"}
+
+Keep unmatched earlier-wave variables except the designated `ONG`/`IGNORE`
+categories. Preserve source order when assigning `V1`, `V2`, and subsequent
+harmonized IDs. These IDs are independent of the Wave 3 table’s row-index `V1`.
+
+```{r}
+s3_diagnosis_variable_map_df <- s3_diagnosis_common_map_df %>%
+  rbind(s3_diagnosis_wave12_dictionary_df %>%
+          filter(Diagnostic.Code..cCode. %in% c("ONG", "IGNORE") == FALSE) %>%
+          rbind(s3_diagnosis_supplementary_dictionary_df) %>%
+          filter(Column.Name %in% c(s3_diagnosis_common_map_df$wave1_colname, s3_diagnosis_common_map_df$wave2_colname) == FALSE) %>%
+          select(colname = Column.Name, description, wave) %>%
+          mutate(wave = gsub("Wave ", "wave", wave),
+                 id = 1:n()) %>%
+          pivot_wider(names_from = wave, values_from = colname) %>%
+          rename_with(~paste0(.x, "_colname"), starts_with("wave")) %>%
+          select(-id) %>%
+          mutate(wave3A_colname = NA,
+                 wave3B_colname = NA)) %>%
+  mutate(var = paste0("V", 1:n())) %>%
+  select(var, description, wave1_colname, wave2_colname, wave3A_colname, wave3B_colname)
+```
+
+:::
+
+::: {.manual-procedure title="Reuse The Archived Description Translations"}
+
+Read the original translated descriptions, retain the first translation for
+each French description, and apply the legacy wording substitutions. Also
+read the frozen bilingual dictionary as a translation cache, with its archive
+member recorded in the target dependencies.
+
+```{r}
+s3_diagnosis_translation_archive_df <- s3_dictionary_read_csv_fn(
+  s2_clinic_months_raw_zip, s3_dictionary_archive_members_chr[["archived"]]
+)
+
+s3_diagnosis_translation_provenance_df <- tibble(
+  source_archive = s2_clinic_months_raw_zip,
+  original_descriptions = s3_dictionary_archive_members_chr[["translations"]],
+  bilingual_snapshot = s3_dictionary_archive_members_chr[["archived"]],
+  method = "Archived French-English pairs; no translation service"
+)
+```
+
+```{r}
+s3_diagnosis_translations_df <- s3_dictionary_read_csv_fn(
+  s2_clinic_months_raw_zip, s3_dictionary_archive_members_chr[["translations"]]
+) %>%
+select(description_fr = description, description_en = Translation.of.Column.B) %>%
+  slice_head(n = 1, by = description_fr) %>%
+  mutate(description_en = s3_diagnosis_multiple_gsub_fn(c("FAF", "Otitis",
+                                          "AME", "CPON",
+                                          " ARI", "Hemorrhage \\*",
+                                          "Growth Delay", "Traumatic Red Eye"),
+                                        c("iron and folic acid", "Ear infection",
+                                          "exclusive breastfeeding", "postnatal consultations",
+                                          " Acute respiratory infection", "Postpartum hemorrhage",
+                                          "Stunting", "Red eye with physical trauma"),
+                                        description_en))
+```
+
+Build lookup tables from exact French/English pairs. Conflicting archived
+translations fail explicitly; they are not resolved by arbitrary row order.
+
+```{r}
+s3_diagnosis_translation_lookup_fn <- function(data, french, english) {
+  pairs <- tibble(french = data[[french]], english = data[[english]]) |>
+    filter(!is.na(french), french != "", !is.na(english), english != "") |>
+    distinct()
+  if (anyDuplicated(pairs$french)) stop("Conflicting archived translations.")
+  pairs
+}
+
+s3_diagnosis_code_translation_lookup_df <- s3_diagnosis_translation_lookup_fn(
+  s3_diagnosis_translation_archive_df,
+  "cCode_description_fr", "cCode_description_en"
+)
+
+s3_diagnosis_table_translation_lookup_df <- s3_diagnosis_translation_lookup_fn(
+  s3_diagnosis_translation_archive_df,
+  "wave3_table_desc_fr", "wave3_table_desc_en"
+)
+```
+
+:::
+
+::: {.manual-procedure title="Read Diagnostic Codes And Retain Reviewed Aliases"}
+
+Only `dir1` and `dir2` contribute to the legacy result. Read those two
+workbooks explicitly, attach their wave labels, and keep both original codes
+and the reviewed aliases. The repeated `DiSSDH` case retains the original
+first-match behavior (`DiSS`); this migration does not invent a `DySS` rule.
+
+```{r}
+s3_diagnosis_code_dictionary_source_df <- map_dfr(c("dir1", "dir2"), function(directory) {
+  s3_dictionary_archive_read_fn(
+    s2_clinic_months_raw_zip, s3_dictionary_archive_members_chr[[directory]],
+    function(path) readxl::read_excel(path)
+  ) |>
+    mutate(file = directory)
+})
+```
+
+```{r}
+s3_diagnosis_code_aliases_df <- s3_diagnosis_code_dictionary_source_df %>%
+  mutate(new_cCode= case_match(cCode,
+                                "ASTH" ~ "Asthma",
+                                "HTA" ~ "Hypertension",
+                                "TXRHUM" ~ "CoughCold",
+                                "TXRH" ~ "CoughCold",
+                                "MLN" ~ "Malnutrition",
+                                "AFMTP" ~ "MentalIllness",
+                                "TROUMENT" ~ "MentalDisorder",
+                                "PARAINT" ~ "IntParasite",
+                                "PGRAV" ~ "PGRA",
+                                "PNEU" ~ "Pneumonia", # need to add flag that wave 2 is suppose to be grave/severe
+                                "ACTRAUM" ~ "Trauma",
+                                "SUICIDE" ~ "Suicide",
+                                "SUSPARBO" ~ "Arbovirus",
+                                "SUSPFVR" ~ "RiftValley",
+                                "TIAC" ~ "FoodPoisoning",
+                                "ICAM" ~ "Marine",
+                                "MORGRIASC" ~ "Bites",
+                                "ANEMGRAV" ~ "AnemiaSevere",
+                                "ANEMIE" ~ "Anemia",
+                                "INSUFPOND" ~ "Underweight",
+                                "MAS" ~ "Malnutrition",
+                                "OBESITE" ~ "Obesity",
+                                "RETCROIS" ~ "Stunting",
+                                "SUSPGRIP" ~ "Flu",
+                                "OEILRNTNC" ~ "Conjunctivitis",
+                                "AUTVIOL" ~ "OtherViolence",
+                                "VIOLSEX" ~ "SexViolence",
+                                "AFCV" ~ "Cardiovascular",
+                                "DiDyAVDH" ~ "DiDy",
+                                "DiSSDH" ~ "DiSS",
+                                "DiSSDH" ~ "DySS",
+                                "AFNEURO" ~ "Neurological",
+                                "AUTVICTRAU" ~ "c_"))
+```
+
+```{r}
+s3_diagnosis_code_dictionary_df <- bind_rows(
+  s3_diagnosis_code_aliases_df |> select(-new_cCode),
+  s3_diagnosis_code_aliases_df |>
+    select(-cCode) |> rename(cCode = new_cCode) |> filter(!is.na(cCode))
+)
+```
+
+:::
+
+::: {.manual-procedure title="Attach Diagnostic-Code Descriptions Across Waves"}
+
+Match each code against the appropriate Wave 1 or Wave 2 expression. Collect
+only actual matches instead of constructing the legacy variable-by-code
+logical matrix. Then preserve the original within-wave and between-wave
+description grouping and ordering.
+
+```{r}
+s3_diagnosis_code_matches_df <- pmap_dfr(
+  s3_diagnosis_code_dictionary_df,
+  function(cCode, cDesc, file) {
+    wave_column <- switch(file, dir1 = "wave1_colname", dir2 = "wave2_colname",
+                          stop("Unexpected diagnostic-code source: ", file))
+    matches <- grepl(paste0("^", cCode, "_| ", cCode, "_"),
+                     s3_diagnosis_variable_map_df[[wave_column]])
+    tibble(diag_var = s3_diagnosis_variable_map_df$var[matches],
+           cDesc = cDesc, file = file)
+  }
+)
+```
+
+```{r}
+s3_diagnosis_variable_code_french_df <- s3_diagnosis_code_matches_df |>
+  slice_head(n = 1, by = c(diag_var, cDesc)) |>
+  mutate(file = paste0(" (", gsub("dir", "wave", file), ")")) |>
+  summarise(cDesc_fr = paste(cDesc, collapse = " + "), .by = c(diag_var, file)) |>
+  mutate(n_file = n_distinct(file), .by = diag_var) |>
+  mutate(cDesc_fr = paste0(cDesc_fr, ifelse(n_file > 1, file, ""))) |>
+  summarise(cCode_description_fr = paste(cDesc_fr, collapse = ", "), .by = diag_var)
+
+s3_diagnosis_variable_code_descriptions_df <- s3_diagnosis_variable_code_french_df |>
+  left_join(s3_diagnosis_code_translation_lookup_df,
+            by = c("cCode_description_fr" = "french")) |>
+  rename(cCode_description_en = english)
+```
+
+The snapshot stores complete grouped descriptions, so translation is joined
+after the code descriptions are assembled. This avoids splitting clinical
+phrases on punctuation. Missing grouped translations are reported below and
+stop final dictionary construction.
+
+:::
+
+::: {.manual-procedure title="Assemble Descriptions And The Forty Output Groups"}
+
+Join translations by French description and diagnostic-code text by `var`.
+Retain the RDT age correction, prepend diagnostic-code context, and derive
+wave availability from nonmissing expressions. Keep the original `cut(...,
+40)` grouping, which assigns output files without reordering variables.
+
+```{r}
+s3_diagnosis_dictionary_age_corrected_df <- s3_diagnosis_variable_map_df %>%
+  rename(description_fr = description) %>%
+  left_join(s3_diagnosis_translations_df, by = "description_fr") %>%
+  left_join(s3_diagnosis_variable_code_descriptions_df, by = c(var = "diag_var")) %>%
+  mutate(description_fr = ifelse(wave1_colname == "cTDRp_14ap" & description_fr == "Nb TDR (+) 6 - 13 ans",
+                                 "Nb TDR (+) 14 ans et plus",
+                                 description_fr),
+         description_en = ifelse(wave1_colname == "cTDRp_14ap" & description_en == "Number of Positive RDTs in 6-13 Years Age Group",
+                                 "Number of Positive RDTs in 14 Years and Older",
+                                 description_en))
+```
+
+```{r}
+s3_diagnosis_dictionary_described_df <- s3_diagnosis_dictionary_age_corrected_df %>%
+  mutate(description_en = ifelse(!is.na(description_en),
+                                 paste0(ifelse(!is.na(cCode_description_en),
+                                               paste0(cCode_description_en, ", "),
+                                               ""),
+                                        description_en),
+                                 NA),
+         waves_available = apply(
+           !is.na(across(all_of(paste0("wave", c("1", "2", "3A", "3B"), "_colname")))),
+           1, function(present) paste(c("1", "2", "3A", "3B")[present], collapse = ", ")
+         )) %>%
+  mutate(filename = paste0("file",
+                           cut(1:n(), 40) %>% as.factor() %>% as.numeric())) %>%
+  select(var,
+         waves_available,
+         description_en = description_en,
+         description_fr = description_fr,
+         starts_with("cCode_description"),
+         filename,
+         ends_with("colname"),
+         everything())
+```
+
+:::
+
+::: {.manual-procedure title="Resolve Wave 3 Descriptions And Reporting Tables"}
+
+Resolve `X` terms back to their recorded descriptions. Keep the distinct
+3A/3B wording when the expressions differ. Join reporting-table translations
+from the archived snapshot; no fresh network translation is performed.
+
+```{r}
+s3_diagnosis_wave3_descriptions_df <- s3_diagnosis_dictionary_described_df %>%
+  select(var, starts_with("wave3")) %>%
+  pivot_longer(starts_with("wave3")) %>%
+  separate_longer_delim(value, delim = " + ") %>%
+  left_join(s3_w3_column_dictionary_df %>% select(w3_description, w3_colname),
+            by = c("value" = "w3_colname")) %>%
+  summarise(across(c(value, w3_description),
+                   ~paste(.x, collapse = " + ")),
+            .by = c(var, name)) %>%
+  pivot_wider(names_from = name, values_from = c(value, w3_description)) %>%
+  mutate(w3_description = ifelse(w3_description_wave3A_colname != w3_description_wave3B_colname,
+                                 paste0(w3_description_wave3A_colname, " (wave 3A) + ",
+                                        w3_description_wave3B_colname, " (wave 3B)"),
+                                 paste0(w3_description_wave3A_colname, " (wave3)")),
+         .keep = "unused") %>%
+  rename_with(~gsub("value_", "", .x))
+```
+
+```{r}
+s3_diagnosis_wave3_table_french_df <- list("T4" = "NOUVEAUX CAS DE MALADIES VUES EN CONSULTATIONS EXTERNES",
+                 "T5" = "SUIVI DES MALADIES CHRONIQUES NON TRANSMISSIBLES (MCNT)",
+                 "T6" = "NOUVEAUX CAS DE TRAUMATISMES ET VIOLENCES VUES EN CONSULTATIONS EXTERNES",
+                 "T8 PALUDISME" = "DEPISTAGE ET PRISE EN CHARGE : PALUDISME",
+                 "T8 III" = "DEPISTAGE ET PRISE EN CHARGE : REFERENCE CONTRE REFERENCE",
+                 "T8 IV" = "DEPISTAGE ET PRISE EN CHARGE : LESIONS PRE-CANCEREUSES DU COL UTERIN",
+                 "T9" = "DEPISTAGE IST / VIH",
+                 "T10 I" = "SUIVIS DES ACTIVITES DE PRISE EN CHARGE DES PVVIH : SITUATION DES PVVIH",
+                 "T10 II" = "SUIVIS DES ACTIVITES DE PRISE EN CHARGE DES PVVIH : TRAITEMENT",
+                 "T10 III-1" = "SUIVIS DES ACTIVITES DE PRISE EN CHARGE DES PVVIH : PROPHYLAXIE IO",
+                 "T10 III-2" = "SUIVIS DES ACTIVITES DE PRISE EN CHARGE DES PVVIH : PROPHYLAXIE ARV",
+                 "T10 IV" = "SUIVIS DES ACTIVITES DE PRISE EN CHARGE DES PVVIH : SUIVI DE NOUVEAU NÉ D’UNE MÈRE SÉROPOSITIVE AU VIH",
+                 "T10 V" = "SUIVIS DES ACTIVITES DE PRISE EN CHARGE DES PVVIH : PLANNING FAMILIAL CHEZ LES FEMMES PVVIH (DANS LE CADRE DE LA PTME)",
+                 "T11" = "PROGRAMME NUTRITION",
+                 "T12" = "CONSULTATION PRÉNATALE",
+                 "T13" = "ACTIVITÉS DE MATERNITÉ",
+                 "T14" = "PROGRAMME ELARGI DE VACCINATION",
+                 "T15" = "PLANIFICATION FAMILIALE",
+                 "T17" = "SANTE SCOLAIRE",
+                 "T20" = "CAUSES DE DECES CIM 10") %>%
+  {data.frame(table = names(.),
+              table_desc_fr = unlist(.))}
+```
+
+```{r}
+s3_diagnosis_wave3_tables_df <- s3_diagnosis_wave3_table_french_df |>
+  left_join(s3_diagnosis_table_translation_lookup_df,
+            by = c("table_desc_fr" = "french")) |>
+  rename(table_desc_en = english)
+
+s3_diagnosis_wave3_descriptions_enriched_df <- s3_diagnosis_wave3_descriptions_df |>
+  separate(w3_description, c("table", NA), sep = ":", remove = FALSE) |>
+  mutate(table = ifelse(grepl("^T\\d", table), table, NA)) |>
+  left_join(s3_diagnosis_wave3_tables_df, by = "table") |>
+  rename_with(~paste0("wave3_", .x), starts_with("table"))
+```
+
+:::
+
+::: {.manual-procedure title="Finalize The Dictionary And Report Translation Coverage"}
+
+Retain the two final manual English descriptions. Missing general English
+descriptions remain visible as in the archive; missing diagnostic-code or
+reporting-table translations indicate that the chosen archived lookup lacks
+coverage and must be reviewed before the persisted dictionary is written.
+
+```{r}
+s3_diagnosis_dictionary_joined_df <- s3_diagnosis_dictionary_described_df %>%
+  left_join(s3_diagnosis_wave3_descriptions_enriched_df%>% select(-wave3_table)) %>%
+  select(var,
+         waves_available,
+         description_en = description_en,
+         description_fr = description_fr,
+         starts_with("cCode_description"),
+         filename,
+         ends_with("colname"),
+         wave3_description = w3_description,
+         everything())
+```
+
+```{r}
+s3_diagnosis_dictionary_final_df <- s3_diagnosis_dictionary_joined_df %>%
+  mutate(description_en = case_when(is.na(description_en) & description_fr == "T4: Oreillon 2-11m, Masculin" ~ "T4: Mumps 2-11 months, Male",
+                                    is.na(description_en) & description_fr == "Nombre de jours de fonctionnalité du réfrigérateur dans le mois" ~ "Number of days of refrigerator functionality in the month",
+                                    T ~ description_en))
+```
+
+```{r}
+s3_diagnosis_translation_gaps_df <- bind_rows(
+  s3_diagnosis_dictionary_final_df |>
+    filter(!is.na(cCode_description_fr), is.na(cCode_description_en)) |>
+    transmute(var, field = "diagnostic_code", french = cCode_description_fr),
+  s3_diagnosis_dictionary_final_df |>
+    filter(!is.na(wave3_table_desc_fr), is.na(wave3_table_desc_en)) |>
+    transmute(var, field = "reporting_table", french = wave3_table_desc_fr)
+)
+
+s3_diagnosis_dictionary_df <- {
+  if (nrow(s3_diagnosis_translation_gaps_df)) {
+    stop("Archived translation coverage is incomplete; inspect s3_diagnosis_translation_gaps_df.")
+  }
+  s3_diagnosis_dictionary_final_df
+}
+```
+
+:::
+
+::: {.manual-procedure title="Declare Validation And Artifact Inspection Helpers"}
+
+Validate the source-expression contract without evaluating expressions as R
+code. Report reused complete expressions, repeated summands, and terms absent
+from the corresponding source schema. Missing expressions remain allowed;
+they indicate that a comparable definition is unavailable in that wave.
+
+```{r}
+s3_diagnosis_validate_fn <- function(dictionary, wave3_schema, wave12_dictionary) {
+  empty <- tibble(var = character(), wave = character(), issue = character(),
+                  expression = character())
+  issues <- list(empty)
+  for (wave in c("wave1", "wave2", "wave3A", "wave3B")) {
+    expressions <- dictionary[[paste0(wave, "_colname")]]
+    columns <- if (wave %in% c("wave1", "wave2")) {
+      wave12_dictionary$Column.Name
+    } else wave3_schema$w3_colname
+    reused <- duplicated(expressions) | duplicated(expressions, fromLast = TRUE)
+    for (i in which(!is.na(expressions))) {
+      terms <- strsplit(expressions[[i]], " + ", fixed = TRUE)[[1]]
+      problems <- c(if (reused[[i]]) "reused_expression",
+                    if (anyDuplicated(terms)) "repeated_summand",
+                    if (any(!terms %in% columns)) "unknown_source_column")
+      if (length(problems)) issues[[length(issues) + 1L]] <- tibble(
+        var = dictionary$var[[i]], wave = wave,
+        issue = problems, expression = expressions[[i]]
+      )
+    }
+  }
+  bind_rows(issues)
+}
+```
+
+The artifact inspector asks DuckDB for a scalar count and reads the file size
+from filesystem metadata. It never collects the dictionary rows, or the
+upstream Wave 3 measurement table.
+
+```{r}
+s3_diagnosis_parquet_stats_fn <- function(path) {
+  stopifnot(length(path) == 1L, file.exists(path))
+  relation <- read_parquet_duckdb(path, prudence = "stingy")
+  counts <- relation |> summarise(rows = n()) |> collect()
+  tibble(file = basename(path), bytes = unname(file.info(path)$size),
+         rows = counts$rows, columns = length(names(relation)))
+}
+```
+
+:::
+
+::: {.manual-procedure title="Persist The Small Dictionary As A Tracked Parquet File"}
+
+`targets` stores the small in-memory dictionary in its normal R object store
+(RDS by default). Write one Parquet file target for disk-based handoffs.
+The output path replaces the legacy scratch CSV; no second cleaning route
+or standalone RDS export is introduced.
+
+```{r}
+#| format: file
+s3_diagnosis_dictionary_parquet <- {
+  path <- here::here("data", "intermediates", "diagnosis_dictionary_translated.parquet")
+  dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
+  compute_parquet(as_duckdb_tibble(s3_diagnosis_dictionary_df), path)
+  path
+}
+```
+
+:::
+
+::: {.manual-check title="Verify Definitions, Coverage, And Disk Size"}
+
+Run the synthetic logic tests from the repository root. They evaluate helpers
+and selected transformation commands with fixtures, without `tar_make()` or
+staged input data.
+
+```sh
+python3 tests/check-manual-structure.py
+scripts/mdg-healthshed-clinic-data exec Rscript tests/check-diagnosis-dictionary.R
+```
+
+After a separately authorized pipeline build, inspect dictionary coverage in
+an authorized session. These summaries observe completed targets; they do
+not declare targets or rebuild the graph.
+
+```{r}
+tar_read(s3_diagnosis_dictionary_df) |>
+  count(waves_available, filename, name = "variables")
+
+tar_read(s3_diagnosis_dictionary_df) |>
+  summarise(variables = n(), missing_english = sum(is.na(description_en)))
+
+tar_read(s3_diagnosis_translation_gaps_df)
+```
+
+Check expression uniqueness, repeated summands, and schema references with
+the validation helper. An issue table provides the variable and wave instead
+of silently repairing scientific mappings.
+
+```{r}
+stopifnot(nrow(s3_diagnosis_validate_fn(
+  tar_read(s3_diagnosis_dictionary_df),
+  tar_read(s3_w3_column_dictionary_df),
+  bind_rows(tar_read(s3_diagnosis_wave12_dictionary_df),
+            tar_read(s3_diagnosis_supplementary_dictionary_df))
+)) == 0L)
+```
+
+Inspect on-disk size and row count for the dictionary and its larger Wave 3
+input without collecting either Parquet table into R. Only the count results
+and file metadata cross the memory boundary.
+
+```{r}
+s3_diagnosis_parquet_stats_fn(tar_read(s3_diagnosis_dictionary_parquet))
+s3_diagnosis_parquet_stats_fn(tar_read(s0_clinic_RMA_W3_clean_parquet))
+```
+
+The pipeline has not been executed while constructing this page; these
+post-build checks are supplied for later use.
+:::
+

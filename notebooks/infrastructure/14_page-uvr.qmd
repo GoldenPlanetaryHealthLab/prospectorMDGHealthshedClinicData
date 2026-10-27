@@ -11,14 +11,43 @@ versions. The SIF supplies the stable R ABI and the `uvr` executable. At
 runtime, `uvr` owns its project library, cache, R-version resolution, and
 activation files; the container and runner do not override them.
 
-Only packages required by the scaffold are declared now. Add readers,
-transformers, validators, and release tooling only after the corresponding
-Manual decisions and code exist.
+The direct declaration covers the implemented pipeline and the reviewed
+stage 5–7 spatial workflow. The following survey parsed all ten top-level
+legacy R scripts at commit `31e0769683e133e136b09ac0c6608c5a12657a9a`, including
+namespaced calls and `999_utility_functions.R`. Comments and checkpoint copies
+are not executable dependencies.
+
+| Legacy evidence | Required packages and migration treatment |
+| --- | --- |
+| Stages 0–7: `tidyverse`, `magrittr`, CSV/Excel readers | Declare the used members `dplyr`, `ggplot2`, `purrr`, `readr`, `stringr`, `tibble`, `tidyr`, plus `magrittr` and `readxl`; avoid requiring the entire `tidyverse` bundle |
+| Stages 0, 2–4A: `data.table`, `rlang`, `stringi` | Retain as explicit requirements, including legacy replication fixtures |
+| Stage 0 imports `openxlsx`; page 18 still imports it | Declare `openxlsx` even though the legacy script does not call its readers |
+| Stages 5–7: `sf` | Geometry I/O, validity repair, unions, relations, areas, CRS, containment, and centroids |
+| Stage 5: `igraph` | `graph_from_adjacency_matrix()` and `components()` for contiguity diagnostics |
+| Shared utility: `fuzzyjoin`; stage 6: `stringdist` | Grouped cosine string-distance joins and clinic-name matching; declare both explicitly |
+| Stage 5: `tmap`, `ggpubr`, `MetBrewer`, `ggplot2` | Reviewed map diagnostics, plot assembly/export, and palettes; retained for the planned plot-list targets |
+| Stage 3: `gtranslate` | Replaced by the recorded translation artifact in S3; do not introduce live translation into targets |
+| Stages 4A, 5, 7: `feather` | Migrated tabular artifacts use DuckDB/Parquet; `sf` targets retain geometry. No standalone `feather` or Arrow C++ runtime is required |
+| Stage 4A: `furrr`, `parallel` | `targets` owns execution; no nested futures. `parallel` is supplied with R |
+| Every main script: `rstudioapi` | IDE working-directory setup is replaced by the runner and project paths |
+| `data_checks.R`: `diffdf` | Legacy scratch comparison only; maintained checks use explicit schema/value comparisons |
+| Commented `ggsflabel` calls | Excluded; no active reference in the reviewed scripts |
+
+The lock resolves transitive packages such as `stars`, `tmaptools`, and
+raster dependencies of mapping packages; they are not all promoted to direct
+requirements. `units` and `s2` are direct requirements because the runtime
+acceptance check exercises them explicitly. Native dependencies belong in
+[Spack](12_page-jinja.qmd), not in this package list. The pinned legacy
+mapping calls use tmap v3 syntax; migrating those diagnostics to the resolved
+tmap API and checking their meaning is stage-5 implementation work, not a
+reason to pin an untested old mapping stack here.
 
 ::: {.manual-prereq title="Confirm The Direct Dependencies"}
 
 Review the dependency list below. A dependency belongs here only when Manual or
-pipeline code imports it.
+pipeline code imports it. `data.table` also supports the synthetic S4
+replication checks against the pinned legacy monthly function.
+Rebuild the native image before resolving/installing the spatial closure.
 
 :::
 
@@ -36,9 +65,36 @@ duckdb = "*"
 duckplyr = "*"
 here = "*"
 assertr = "*"
+cli = "*"
+dplyr = "*"
+ggplot2 = "*"
+ggpubr = "*"
+glue = "*"
+igraph = "*"
+knitr = "*"
+magrittr = "*"
+MetBrewer = "*"
+openxlsx = "*"
+purrr = "*"
+readr = "*"
 readxl = "*"
+rlang = "*"
+stringdist = "*"
+stringi = "*"
+stringr = "*"
 targets = "*"
 tarchetypes = "*"
+tibble = "*"
+tidyr = "*"
+tmap = "*"
+fuzzyjoin = "*"
+"data.table" = "*"
+sf = "*"
+s2 = "*"
+units = "*"
+yaml = "*"
+frictionless = "*"
+jsonlite = "*"
 ```
 
 :::
@@ -47,10 +103,46 @@ tarchetypes = "*"
 
 ```sh
 scripts/mdg-healthshed-clinic-data exec uvr lock
-scripts/mdg-healthshed-clinic-data exec uvr sync
-scripts/mdg-healthshed-clinic-data exec uvr sync --frozen
+
+# One-time migration for an existing binary library; preserve it for rollback.
+# Repeat after a native ABI change, with R sessions stopped.
+if test -d .uvr/library; then
+  backup=".uvr/cache/library-before-source-$(date -u +%Y%m%dT%H%M%SZ)"
+  test ! -e "$backup"
+  mkdir -p .uvr/cache
+  mv .uvr/library "$backup"
+fi
+
+# Namespace compiled packages by the image's concrete native environment.
+native_lock_sha=$(scripts/mdg-healthshed-clinic-data exec \
+  sha256sum /opt/spack-environment/spack.lock | awk '{print $1}')
+test "${#native_lock_sha}" -eq 64
+scripts/mdg-healthshed-clinic-data exec env \
+  UVR_PACKAGES_DIR="/work/.uvr/cache/spack-packages/${native_lock_sha}" \
+  uvr sync --frozen --no-binary
 scripts/mdg-healthshed-clinic-data exec uvr activate --write-shim
 ```
+
+Source builds are the accepted policy for this Spack runtime. The source flag
+is supported by the pinned `uvr` 0.4.6. Its implementation first skips packages
+already installed at the locked version, even with `--no-binary` or
+`--ignore-cache`. Preserving and replacing the existing library is therefore
+necessary for the initial binary-to-source migration.
+
+The documented `UVR_PACKAGES_DIR` override is scoped to this installation
+command: it isolates compiled source-cache entries by native lock hash without
+changing the image, runner, activation, default project library, download cache,
+or another project's packages. uvr's source cache key includes R/version/source
+identity but not the full GDAL/GEOS/PROJ build. A separate cache namespace is
+needed after native ABI changes; do not delete the shared global cache or
+create compatibility SONAME symlinks. Reuse the same command, native lock hash,
+and `--no-binary` for later synchronization; routine syncs do not need the
+library-backup step.
+
+These behaviors were checked against the pinned
+[sync implementation](https://github.com/nbafrank/uvr/blob/v0.4.6/crates/uvr/src/commands/sync.rs),
+[cache key](https://github.com/nbafrank/uvr/blob/v0.4.6/crates/uvr-core/src/installer/package_cache.rs),
+and [supported environment variables](https://github.com/nbafrank/uvr/blob/v0.4.6/crates/uvr-core/src/env_vars.rs).
 
 Commit `uvr.lock` only after successful resolution through the built runtime.
 Use `uvr r pin` only when an additional exact `.r-version` pin is intentional;
@@ -62,14 +154,183 @@ project environment instead of storing hard-coded paths.
 
 :::
 
+::: {.manual-procedure title="Recover An Incomplete Compiled Package"}
+
+`shared object 'duckdb.so' not found` identifies the R package's own compiled
+module. A successful source installation of `duckdb` produces that module
+and installs the R code alongside it. Adding a Spack DuckDB CLI or a separate
+`libduckdb.so` does not install the R bindings. This differs from a missing
+`libudunits2.so.0`, which is an external dependency of an existing R module.
+
+The observed `duckdb` 2.0.0 directory contained `DESCRIPTION`, an empty
+`libs/`, and no `R/`. That is an incomplete installation, not evidence of a
+missing native Spack root. uvr 0.4.6's version-only installed-package check
+can skip this directory and fail later when compiling `duckplyr`. Its source
+installer also disables staged installation and the final load test. Retain
+the failed package and the earlier compilation log before retrying; the
+downstream error does not establish why the earlier build stopped.
+
+With no installer or R session using the library, recover just the incomplete
+package, then synchronize from the existing lock. This does not re-resolve
+versions or clear the shared package cache:
+
+```sh
+broken=".uvr/cache/duckdb-incomplete-$(date -u +%Y%m%dT%H%M%SZ)"
+test ! -e "$broken"
+mkdir -p .uvr/cache
+mv .uvr/library/duckdb "$broken"
+native_lock_sha=$(scripts/mdg-healthshed-clinic-data exec \
+  sha256sum /opt/spack-environment/spack.lock | awk '{print $1}')
+test "${#native_lock_sha}" -eq 64
+scripts/mdg-healthshed-clinic-data exec env \
+  UVR_PACKAGES_DIR="/work/.uvr/cache/spack-packages/${native_lock_sha}" \
+  MAKEFLAGS=-j1 uvr sync --frozen --no-binary --ignore-cache --timeout 2h
+scripts/mdg-healthshed-clinic-data exec Rscript scripts/check-tabular-runtime.R
+```
+
+DuckDB compiles a substantial C++ engine. The recovery uses one compiler job
+and an explicit timeout to limit concurrent build memory and allow the build
+to finish. If it fails, inspect the first compiler/linker error in the DuckDB
+install log before retrying or changing infrastructure. For an isolated
+diagnostic build, `R CMD INSTALL --library=<temporary-library> <locked-source>`
+uses R's default staged installation and load tests; validate it before
+promoting its package directory into the project library.
+
+:::
+
+::: {.manual-procedure .emit-source-r file="{{ emit.project_root }}/scripts/check-tabular-runtime.R" title="Emit The DuckDB And Parquet Runtime Check"}
+
+This checks the installed R module before loading either namespace, then
+executes a grouped SQL query through duckplyr and round-trips a synthetic
+Parquet file. It reads no research data or targets store.
+
+```r
+# Run through scripts/mdg-healthshed-clinic-data exec Rscript.
+local({
+  package <- find.package("duckdb", quiet = TRUE)
+  if (!length(package)) stop("The duckdb R package is not installed.")
+  module <- file.path(package, "libs", paste0("duckdb", .Platform$dynlib.ext))
+  if (!file.exists(module)) {
+    stop("Incomplete duckdb R installation: missing ", module,
+         ". Reinstall the locked R package; see infrastructure page 14.", call. = FALSE)
+  }
+  loadNamespace("duckdb")
+  loadNamespace("duckplyr")
+  cat("duckdb:", as.character(utils::packageVersion("duckdb")), "\n")
+  cat("duckplyr:", as.character(utils::packageVersion("duckplyr")), "\n")
+  cat("Module:", normalizePath(module), "\n")
+  source <- duckplyr::read_sql_duckdb(
+    "SELECT k, sum(v) AS total FROM (VALUES ('a',1.5),('a',2.5),('b',NULL::DOUBLE)) t(k,v) GROUP BY k ORDER BY k",
+    prudence = "stingy")
+  output <- tempfile("duckdb-runtime-", fileext = ".parquet")
+  on.exit(unlink(output), add = TRUE)
+  duckplyr::compute_parquet(source, output)
+  actual <- duckplyr::read_parquet_duckdb(output, prudence = "stingy") |>
+    dplyr::collect() |>
+    dplyr::arrange(k)
+  stopifnot(identical(actual$k, c("a", "b")),
+            identical(actual$total, c(4, NA_real_)))
+  message("Tabular runtime accepted: DuckDB R module, duckplyr SQL, and Parquet round trip.")
+})
+```
+
+:::
+
+::: {.manual-procedure .emit-source-r file="{{ emit.project_root }}/scripts/check-geospatial-runtime.R" title="Emit The Synthetic Spatial Runtime Check"}
+
+Run this after source synchronization. It reads no research inputs and does
+not build targets. It reports package/engine versions and s2 state, tests
+unit conversion, GEOS repair/union/relations, graph components, CRS round trips,
+spherical area, GDAL shapefile/GeoPackage I/O, fuzzy matching, and headless map
+exports. The temporary GeoPackage only checks the SQLite-enabled driver; it
+does not establish a new pipeline artifact format. Scientific parity and
+legacy tmap-call migration remain separate stage-5 tests.
+
+```r
+# Run through scripts/mdg-healthshed-clinic-data exec Rscript.
+# Synthetic runtime acceptance only: no staged data or targets store access.
+local({
+  required <- c("sf", "units", "s2", "igraph", "fuzzyjoin", "stringdist",
+                "ggplot2", "ggpubr", "MetBrewer", "tmap", "readxl")
+  failures <- vapply(required, function(package) {
+    tryCatch({ loadNamespace(package); "" }, error = conditionMessage)
+  }, character(1))
+  if (any(nzchar(failures))) {
+    stop("Geospatial runtime is not ready:\n",
+         paste(names(failures)[nzchar(failures)], failures[nzchar(failures)],
+               sep = ": ", collapse = "\n"), call. = FALSE)
+  }
+  print(data.frame(package = required,
+                   version = vapply(required, function(p) as.character(utils::packageVersion(p)), character(1))))
+  print(sf::sf_extSoftVersion())
+  cat("sf_use_s2:", sf::sf_use_s2(), "\n")
+  cat("UDUNITS2_XML_PATH:", Sys.getenv("UDUNITS2_XML_PATH"), "\n")
+  stopifnot(as.numeric(units::set_units(units::set_units(1, "km"), "m")) == 1000)
+
+  scratch <- tempfile("geospatial-runtime-")
+  dir.create(scratch)
+  on.exit(unlink(scratch, recursive = TRUE), add = TRUE)
+  geometry <- sf::st_as_sfc(c(
+    "POLYGON ((0 0, 1 0, 1 1, 0 1, 0 0))",
+    "POLYGON ((1 0, 2 0, 2 1, 1 1, 1 0))",
+    "POLYGON ((4 0, 5 0, 5 1, 4 1, 4 0))"
+  ), crs = 3857)
+  shapes <- sf::st_sf(id = 1:3, geometry = geometry)
+  stopifnot(all(sf::st_is_valid(shapes)),
+            abs(as.numeric(sf::st_area(sf::st_union(geometry))) - 3) < 1e-8)
+  adjacency <- sf::st_relate(geometry, pattern = "F***1****", sparse = FALSE)
+  graph <- igraph::graph_from_adjacency_matrix(adjacency, mode = "undirected")
+  stopifnot(igraph::components(graph)$no == 2L)
+  bowtie <- sf::st_as_sfc("POLYGON ((0 0, 1 1, 1 0, 0 1, 0 0))", crs = 3857)
+  stopifnot(all(sf::st_is_valid(sf::st_make_valid(bowtie))))
+
+  point <- sf::st_sfc(sf::st_point(c(47, -19)), crs = 4326)
+  back <- sf::st_transform(sf::st_transform(point, 32738), 4326)
+  stopifnot(max(abs(sf::st_coordinates(back) - sf::st_coordinates(point))) < 1e-6)
+  spherical <- s2::s2_geog_from_text("POLYGON ((47 -19, 48 -19, 48 -18, 47 -18, 47 -19))")
+  stopifnot(is.finite(s2::s2_area(spherical)), s2::s2_area(spherical) > 0)
+  for (extension in c("shp", "gpkg")) {
+    path <- file.path(scratch, paste0("shapes.", extension))
+    sf::st_write(shapes, path, quiet = TRUE)
+    restored <- sf::st_read(path, quiet = TRUE)
+    stopifnot(nrow(restored) == 3L, sf::st_crs(restored) == sf::st_crs(shapes),
+              all(sf::st_equals(restored, shapes, sparse = FALSE)[cbind(1:3, 1:3)]))
+  }
+  matched <- fuzzyjoin::stringdist_inner_join(
+    data.frame(name = "Ambato"), data.frame(name = "Ambato"),
+    by = "name", method = "cosine", max_dist = 0)
+  stopifnot(nrow(matched) == 1L,
+            stringdist::stringdist("Ambato", "Ambato", method = "cosine") == 0)
+
+  stopifnot(capabilities("cairo"))
+  plot <- ggplot2::ggplot(shapes) + ggplot2::geom_sf(
+    ggplot2::aes(fill = factor(id))) +
+    ggplot2::scale_fill_manual(values = MetBrewer::met.brewer("Renoir", 3))
+  png <- file.path(scratch, "geometry.png")
+  ggplot2::ggsave(png, ggpubr::ggarrange(plot, plot, ncol = 2),
+                 width = 6, height = 3, device = "png", type = "cairo")
+  map <- tmap::tm_shape(shapes) + tmap::tm_polygons()
+  map_png <- file.path(scratch, "map.png")
+  tmap::tmap_save(map, map_png, width = 4, height = 3, units = "in")
+  stopifnot(file.info(png)$size > 0, file.info(map_png)$size > 0)
+  message("Geospatial runtime accepted: units, GEOS, PROJ, s2, GDAL I/O, graph/matching, and headless maps.")
+})
+```
+
+:::
+
 ::: {.manual-check title="Verify The R Environment Contract"}
 
 ```sh
 test -f uvr.toml
 rg -n '^r_version = "4.5.1"|^targets =|^tarchetypes =' uvr.toml
 test -f uvr.lock
-scripts/mdg-healthshed-clinic-data exec uvr sync --frozen
+scripts/mdg-healthshed-clinic-data exec env \
+  UVR_PACKAGES_DIR="/work/.uvr/cache/spack-packages/${native_lock_sha}" \
+  uvr sync --frozen --no-binary
 scripts/mdg-healthshed-clinic-data exec Rscript -e 'library(targets)'
+scripts/mdg-healthshed-clinic-data exec Rscript scripts/check-tabular-runtime.R
+scripts/mdg-healthshed-clinic-data exec Rscript scripts/check-geospatial-runtime.R
 ```
 
 :::

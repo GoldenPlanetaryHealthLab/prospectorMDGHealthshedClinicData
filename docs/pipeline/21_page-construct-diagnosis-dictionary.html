@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>18&nbsp; Construct the Diagnosis Dictionary – Madagascar Healthshed Clinic Data Curation Manual</title>
+<title>19&nbsp; Construct the Diagnosis Dictionary – Madagascar Healthshed Clinic Data Curation Manual</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -68,7 +68,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="../site_libs/quarto-search/fuse.min.js"></script>
 <script src="../site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="../">
-<link href="../releases/19_page-package-release.html" rel="next">
+<link href="../pipeline/22_page-clean-clinic-diagnosis.html" rel="next">
 <link href="../pipeline/20_page-construct-clinic-ids.html" rel="prev">
 <script src="../site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
@@ -122,7 +122,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../pipeline/16_page-stage-inputs.html">Pipeline</a></li><li class="breadcrumb-item"><a href="../pipeline/21_page-construct-diagnosis-dictionary.html"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Construct the Diagnosis Dictionary</span></a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../pipeline/16_page-stage-inputs.html">Pipeline</a></li><li class="breadcrumb-item"><a href="../pipeline/21_page-construct-diagnosis-dictionary.html"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Construct the Diagnosis Dictionary</span></a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
@@ -170,26 +170,32 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="../00_data-guide.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">A Reader’s Guide to the Cleaned Database</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="../pipeline/mapping/legacy-pipeline-map.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Map the Legacy Clinic Pipeline to Notebooks</span></span></a>
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Map the Legacy Clinic Pipeline to Notebooks</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../01_misc-render-isolated.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Render In Isolation</span></span></a>
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Render In Isolation</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../02_misc-project-contract.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Project Contract</span></span></a>
+ <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Project Contract</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../03_misc-data-governance.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Data Governance</span></span></a>
+ <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Data Governance</span></span></a>
   </div>
 </li>
       </ul>
@@ -206,37 +212,37 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../infrastructure/10_page-direnv.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Local Operator Environment</span></span></a>
+ <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Local Operator Environment</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../infrastructure/11_page-spack.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Bootstrap the Spack Builder</span></span></a>
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Bootstrap the Spack Builder</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../infrastructure/12_page-jinja.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Declare the Native Runtime</span></span></a>
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Declare the Native Runtime</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../infrastructure/13_page-jinja-build.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Customize and Build the Runtime</span></span></a>
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Customize and Build the Runtime</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../infrastructure/14_page-uvr.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Lock and Synchronize R Packages</span></span></a>
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Lock and Synchronize R Packages</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../infrastructure/15_page-runner.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Run the Project Environment</span></span></a>
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Run the Project Environment</span></span></a>
   </div>
 </li>
       </ul>
@@ -253,55 +259,109 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../pipeline/16_page-stage-inputs.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Stage Inputs</span></span></a>
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Stage Inputs</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../pipeline/17_page-inspect-source-data.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Inspect Source Data</span></span></a>
+ <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Inspect Source Data</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../pipeline/18_page-prep-w3.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Curate the Healthshed Clinic Data</span></span></a>
+ <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Curate the Healthshed Clinic Data</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../pipeline/19_page-clean-mapping-dhis2-gesis.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Clean the DHIS2–GESIS Mapping</span></span></a>
+ <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">Clean the DHIS2–GESIS Mapping</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../pipeline/20_page-construct-clinic-ids.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">Construct Clinic IDs</span></span></a>
+ <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Construct Clinic IDs</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../pipeline/21_page-construct-diagnosis-dictionary.html" class="sidebar-item-text sidebar-link active">
- <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Construct the Diagnosis Dictionary</span></span></a>
+ <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Construct the Diagnosis Dictionary</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/22_page-clean-clinic-diagnosis.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Clean and Combine Clinic Diagnoses</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/23_page-construct-healthsheds.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Reconcile Sectorization and Construct Healthsheds</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/24_page-locate-clinics.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Compare and Select Clinic Locations</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/25_page-combine-clinic-metadata.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Combine Reporting and Spatial Clinic Metadata</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/26_page-prep-2025-2026.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Survey and Read the 2025–2026 Deliveries</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/27_page-clean-2025-2026.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">Clean and Harmonize the 2025–2026 Waves</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/28_page-geospatial-aggregate-2025-2026.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">Locate Clinics and Assemble the Final Database</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/30_page-validate-migration.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">Validate the Migrated Clinic Pipeline</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../releases/19_page-package-release.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Package a Versioned Release</span></span></a>
+ <span class="menu-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">Inventory and Package a Versioned Release</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../releases/20_page-execute-pipeline.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Execute the Pipeline</span></span></a>
+ <span class="menu-text"><span class="chapter-number">29</span>&nbsp; <span class="chapter-title">Execute the Pipeline</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../releases/21_page-verify-release.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Verify a Release</span></span></a>
+ <span class="menu-text"><span class="chapter-number">30</span>&nbsp; <span class="chapter-title">Verify an Internal Candidate</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../releases/22_page-export-frictionless.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">31</span>&nbsp; <span class="chapter-title">Export the Frictionless Data Package</span></span></a>
   </div>
 </li>
       </ul>
@@ -317,9 +377,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../pipeline/16_page-stage-inputs.html">Pipeline</a></li><li class="breadcrumb-item"><a href="../pipeline/21_page-construct-diagnosis-dictionary.html"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Construct the Diagnosis Dictionary</span></a></li></ol></nav>
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../pipeline/16_page-stage-inputs.html">Pipeline</a></li><li class="breadcrumb-item"><a href="../pipeline/21_page-construct-diagnosis-dictionary.html"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Construct the Diagnosis Dictionary</span></a></li></ol></nav>
 <div class="quarto-title">
-<h1 class="title"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Construct the Diagnosis Dictionary</span></h1>
+<h1 class="title"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Construct the Diagnosis Dictionary</span></h1>
 <p class="subtitle lead">Reconcile measurement definitions across Waves 1, 2, 3A, and 3B</p>
 </div>
 
@@ -1151,38 +1211,54 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb39-7"><a href="#cb39-7"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </div>
-<div class="manual-check callout callout-style-default callout-warning no-icon callout-titled" title="Verify Definitions, Coverage, And Disk Size" data-manual-kind="check">
+<div class="manual-check callout callout-style-default callout-warning no-icon callout-titled" title="Compare Most Recent Archived Data And Target Diagnosis Dictionaries" data-manual-kind="check">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
 <i class="callout-icon no-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-<span class="screen-reader-only">Warning</span><i class="fa-solid fa-clipboard-check" aria-label="clipboard-check"></i> Check: Verify Definitions, Coverage, And Disk Size
+<span class="screen-reader-only">Warning</span><i class="fa-solid fa-clipboard-check" aria-label="clipboard-check"></i> Check: Compare Most Recent Archived Data And Target Diagnosis Dictionaries
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>Run the synthetic logic tests from the repository root. They evaluate helpers and selected transformation commands with fixtures, without <code>tar_make()</code> or staged input data.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb40"><pre class="sourceCode numberSource sh number-lines code-with-copy"><code class="sourceCode bash"><span id="cb40-1"><a href="#cb40-1"></a><span class="ex">python3</span> tests/check-manual-structure.py</span>
-<span id="cb40-2"><a href="#cb40-2"></a><span class="ex">scripts/mdg-healthshed-clinic-data</span> exec Rscript tests/check-diagnosis-dictionary.R</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>After a separately authorized pipeline build, inspect dictionary coverage in an authorized session. These summaries observe completed targets; they do not declare targets or rebuild the graph.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb41"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb41-1"><a href="#cb41-1"></a>tar_read(s3_diagnosis_dictionary_df) |&gt;</span>
-<span id="cb41-2"><a href="#cb41-2"></a>  count(waves_available, filename, name = "variables")</span>
-<span id="cb41-3"><a href="#cb41-3"></a></span>
-<span id="cb41-4"><a href="#cb41-4"></a>tar_read(s3_diagnosis_dictionary_df) |&gt;</span>
-<span id="cb41-5"><a href="#cb41-5"></a>  summarise(variables = n(), missing_english = sum(is.na(description_en)))</span>
-<span id="cb41-6"><a href="#cb41-6"></a></span>
-<span id="cb41-7"><a href="#cb41-7"></a>tar_read(s3_diagnosis_translation_gaps_df)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Check expression uniqueness, repeated summands, and schema references with the validation helper. An issue table provides the variable and wave instead of silently repairing scientific mappings.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb42"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb42-1"><a href="#cb42-1"></a>stopifnot(nrow(s3_diagnosis_validate_fn(</span>
-<span id="cb42-2"><a href="#cb42-2"></a>  tar_read(s3_diagnosis_dictionary_df),</span>
-<span id="cb42-3"><a href="#cb42-3"></a>  tar_read(s3_w3_column_dictionary_df),</span>
-<span id="cb42-4"><a href="#cb42-4"></a>  bind_rows(tar_read(s3_diagnosis_wave12_dictionary_df),</span>
-<span id="cb42-5"><a href="#cb42-5"></a>            tar_read(s3_diagnosis_supplementary_dictionary_df))</span>
-<span id="cb42-6"><a href="#cb42-6"></a>)) == 0L)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Inspect on-disk size and row count for the dictionary and its larger Wave 3 input without collecting either Parquet table into R. Only the count results and file metadata cross the memory boundary.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb43"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb43-1"><a href="#cb43-1"></a>s3_diagnosis_parquet_stats_fn(tar_read(s3_diagnosis_dictionary_parquet))</span>
-<span id="cb43-2"><a href="#cb43-2"></a>s3_diagnosis_parquet_stats_fn(tar_read(s0_clinic_RMA_W3_clean_parquet))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>The pipeline has not been executed while constructing this page; these post-build checks are supplied for later use.</p>
+<p><strong>Review note (2026-11-08).</strong> The researcher reports that the initial shape checks on pages 18–21 appear to pass. This covers the inspected dimensions, column layout, and variable-count summaries. This is a researcher-reported observation from the interactive review, not an independently rerun acceptance test. It does not establish key-level equality, measurement-value parity, or unchanged diagnosis definitions/IDs. Retain any remaining discrepancies for review.</p>
+<p>Run these chunks in order from the repository root after the targets build. These are exploratory summaries; interpretation is left to the reader. <a href="../pipeline/mapping/legacy-pipeline-map.html#most-recent-archived-data-comparison-baseline">Most recent archived data baseline</a> records the selected iterations, evidence, and provenance limits. The shared selection is versioned in <code>src/archived-comparison-baseline.R</code>.</p>
+<p>Use the May 3 clean dictionary inside the selected ZIP, the most recent archived dictionary data within this freeze. Its SHA-256 matches script 3’s <code>scratch/dictionary_test2.csv</code>. Later Drive iterations are excluded.</p>
+<p>Load the pair for this page. Braces keep these session assignments out of <code>tar_tangle()</code>; the objects remain available for interactive exploration.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb40"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb40-1"><a href="#cb40-1"></a>{</span>
+<span id="cb40-2"><a href="#cb40-2"></a>  archived_baseline &lt;- dget(here::here("src", "archived-comparison-baseline.R"))</span>
+<span id="cb40-3"><a href="#cb40-3"></a>  old_dictionary &lt;- read.csv(unz(</span>
+<span id="cb40-4"><a href="#cb40-4"></a>    here::here(archived_baseline$archive_zip), archived_baseline$dictionary_member</span>
+<span id="cb40-5"><a href="#cb40-5"></a>  ), check.names = FALSE)</span>
+<span id="cb40-6"><a href="#cb40-6"></a>  new_dictionary &lt;- targets::tar_read(s3_diagnosis_dictionary_df)</span>
+<span id="cb40-7"><a href="#cb40-7"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Rows and columns.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb41"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb41-1"><a href="#cb41-1"></a>tibble::tibble(</span>
+<span id="cb41-2"><a href="#cb41-2"></a>  source = c("most recent archived data", "current pipeline"),</span>
+<span id="cb41-3"><a href="#cb41-3"></a>  rows = c(nrow(old_dictionary), nrow(new_dictionary)),</span>
+<span id="cb41-4"><a href="#cb41-4"></a>  columns = c(ncol(old_dictionary), ncol(new_dictionary))</span>
+<span id="cb41-5"><a href="#cb41-5"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Column names and order.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb42"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb42-1"><a href="#cb42-1"></a>dplyr::bind_rows(</span>
+<span id="cb42-2"><a href="#cb42-2"></a>  `most recent archived data` = tibble::tibble(position = seq_len(ncol(old_dictionary)), column = names(old_dictionary)),</span>
+<span id="cb42-3"><a href="#cb42-3"></a>  `current pipeline` = tibble::tibble(position = seq_len(ncol(new_dictionary)), column = names(new_dictionary)),</span>
+<span id="cb42-4"><a href="#cb42-4"></a>  .id = "source"</span>
+<span id="cb42-5"><a href="#cb42-5"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Variable counts by output group and available waves.</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb43"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb43-1"><a href="#cb43-1"></a># Shape check: dictionary-groups</span>
+<span id="cb43-2"><a href="#cb43-2"></a>dplyr::bind_rows(</span>
+<span id="cb43-3"><a href="#cb43-3"></a>  `most recent archived data` = old_dictionary |&gt; dplyr::count(filename, waves_available, name = "variables"),</span>
+<span id="cb43-4"><a href="#cb43-4"></a>  `current pipeline` = new_dictionary |&gt; dplyr::count(filename, waves_available, name = "variables"),</span>
+<span id="cb43-5"><a href="#cb43-5"></a>  .id = "source"</span>
+<span id="cb43-6"><a href="#cb43-6"></a>) |&gt;</span>
+<span id="cb43-7"><a href="#cb43-7"></a>  tidyr::pivot_wider(</span>
+<span id="cb43-8"><a href="#cb43-8"></a>    id_cols = c(filename, waves_available), names_from = source,</span>
+<span id="cb43-9"><a href="#cb43-9"></a>    values_from = variables, values_fill = 0L</span>
+<span id="cb43-10"><a href="#cb43-10"></a>  ) |&gt;</span>
+<span id="cb43-11"><a href="#cb43-11"></a>  dplyr::mutate(difference = `current pipeline` - `most recent archived data`) |&gt;</span>
+<span id="cb43-12"><a href="#cb43-12"></a>  dplyr::arrange(readr::parse_number(filename), waves_available) |&gt;</span>
+<span id="cb43-13"><a href="#cb43-13"></a>  print(n = Inf)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>An absent group contributes zero variables. Matching group sizes do not prove that the same clinical definitions carry the same <code>V</code> IDs.</p>
 </div>
 </div>
 
@@ -1592,12 +1668,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
       <a href="../pipeline/20_page-construct-clinic-ids.html" class="pagination-link" aria-label="Construct Clinic IDs">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">Construct Clinic IDs</span></span>
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Construct Clinic IDs</span></span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
-      <a href="../releases/19_page-package-release.html" class="pagination-link" aria-label="Package a Versioned Release">
-        <span class="nav-page-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Package a Versioned Release</span></span> <i class="bi bi-arrow-right-short"></i>
+      <a href="../pipeline/22_page-clean-clinic-diagnosis.html" class="pagination-link" aria-label="Clean and Combine Clinic Diagnoses">
+        <span class="nav-page-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Clean and Combine Clinic Diagnoses</span></span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>

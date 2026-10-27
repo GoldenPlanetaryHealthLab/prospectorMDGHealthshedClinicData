@@ -1,0 +1,319 @@
+---
+title: "Validate the Migrated Clinic Pipeline"
+subtitle: "Validate final products and retain source-seam evidence"
+execute:
+  eval: false
+engine: markdown
+---
+
+**Status: final-product validation and source-seam audits are implemented.**
+The remaining archive-value investigations below remain deferred, including
+Feather comparisons, as agreed with the researcher. Shape validation is the
+current development gate; it does not claim numerical migration equivalence.
+
+[`data_checks.R`][legacy-checks] contains several investigations, reused
+variable names, and experimental comparisons. This page organizes those
+questions into reproducible evidence. It does not turn every scratch
+expression into an accepted scientific assertion.
+
+The [mapping notebook](mapping/legacy-pipeline-map.qmd#script-checks-exploratory-checks-and-supplements)
+retains the assignment-level inventory. Source inspection stays on page 17;
+each transformation owns its own rule tests; this page owns the comparisons
+between the legacy and replacement products.
+
+::: {.manual-prereq title="Agree On The Comparison Contract"}
+
+Identify the exact input freeze, source-code revision, prepared Wave 3 schema,
+dictionary revision, and legacy reference artifacts. Track references as
+source file targets or members of the already tracked archive. A file with
+the right name is not sufficient evidence of matching provenance.
+
+Use the selected [most recent archived data baseline](mapping/legacy-pipeline-map.qmd#most-recent-archived-data-comparison-baseline),
+loaded with `dget(here::here("src", "archived-comparison-baseline.R"))`, for all forthcoming
+checks. Both source inputs and references come exclusively from the
+hand-delivered May 2025 ZIP. W3 uses its generic prepared member; diagnosis
+comparisons use its May 4 `data/clean/by_diagnosis_2024` family and tracker,
+with its May 3 clean dictionary. Google Drive is periodically synced by
+rclone and can drift; later Drive outputs are excluded. Retain the ZIP’s
+older spatial and metadata products as stage-specific references and disclose
+their dates. Label comparisons "most recent archived data within the
+hand-delivered May 2025 ZIP" and "current pipeline". Rebuild existing
+Drive-based targets before interpreting them as ZIP-derived products.
+
+For every comparison, record its row grain, alignment keys, duplicate policy,
+column correspondence, missing/sentinel semantics, and any numeric or spatial
+tolerance. Review intentional differences before calling the migration
+equivalent. Newer exports such as 2023 deliveries are separate datasets until
+their source contract is established.
+
+Keep the raw input tree immutable. No validation procedure overwrites the
+reference or promotes a derived supplement into the raw source inventory.
+Protected discrepancy rows remain in governed targets/artifacts and are not
+rendered into the public manual.
+
+:::
+
+::: {.manual-procedure title="Validate The Final Database Before Packaging"}
+
+Compare complete key multisets in DuckDB and collect scalar counts only.
+Every diagnosis group must match its dictionary schema, have unique,
+nonmissing clinic-month keys, and agree with the common reporting key set.
+Reporting and spatial keys must be unique. Geometry coverage is represented
+by explicit flags; empty historical polygons remain review evidence rather
+than a reason to drop nonspatial observations.
+
+```{r}
+schecks_key_difference_fn <- function(a,b) {
+  s4a_diagnosis_query_fn(paste0("SELECT (SELECT count(*) FROM ((",a,") EXCEPT ALL (",b,
+    "))) AS left_only,(SELECT count(*) FROM ((",b,") EXCEPT ALL (",a,"))) AS right_only")) |> dplyr::collect()
+}
+schecks_final_shape_fn <- function(paths,dictionary,reporting,spatial,healthsheds) {
+  paths <- paths[!grepl("_wrong_fname[.]parquet$",paths)]
+  groups <- unique(stats::na.omit(dictionary$filename))
+  stopifnot(length(paths)==length(groups),setequal(tools::file_path_sans_ext(basename(paths)),groups))
+  key <- "clinic_ID,cAnnee,cPeriode,fname"
+  reference <- paste0("SELECT ",key," FROM ",s4a_diagnosis_read_fn(paths[[1L]]))
+  report_keys <- reporting |> dplyr::filter(fname!=0L) |>
+    dplyr::transmute(clinic_ID,cAnnee=as.integer(year),cPeriode=as.integer(month),fname=as.integer(fname))
+  scratch <- tempfile(fileext=".parquet"); on.exit(unlink(scratch),add=TRUE)
+  s5_healthshed_write_table_fn(report_keys,scratch)
+  report_diff <- schecks_key_difference_fn(reference,paste0("SELECT ",key," FROM ",s4a_diagnosis_read_fn(scratch)))
+  rows <- lapply(paths,function(path) {
+    group <- tools::file_path_sans_ext(basename(path)); source <- s4a_diagnosis_read_fn(path)
+    columns <- s4a_diagnosis_columns_fn(paste("SELECT * FROM",source))
+    expected <- c("clinic_ID","cAnnee","cPeriode","fname",dictionary$var[!is.na(dictionary$filename) & dictionary$filename==group])
+    differences <- schecks_key_difference_fn(paste0("SELECT ",key," FROM ",source),reference)
+    counts <- s4a_diagnosis_query_fn(paste0("SELECT count(*) AS rows, count(*) FILTER (WHERE clinic_ID IS NULL OR trim(clinic_ID)='' OR ",
+      "cAnnee IS NULL OR cPeriode IS NULL OR fname IS NULL OR cPeriode NOT BETWEEN 1 AND 12) AS missing_keys, ",
+      "(SELECT count(*) FROM (SELECT clinic_ID,cAnnee,cPeriode FROM ",source," GROUP BY ALL HAVING count(*)>1)) AS repeated_keys FROM ",source)) |> dplyr::collect()
+    tibble::tibble(resource=group,rows=counts$rows,schema_matches=identical(columns,expected),
+      missing_keys=counts$missing_keys,repeated_keys=counts$repeated_keys,
+      key_differences=differences$left_only+differences$right_only,
+      ok=identical(columns,expected) && counts$missing_keys==0 && counts$repeated_keys==0 && all(differences==0))
+  })
+  time_keys <- reporting[c("clinic_ID","year","month")]
+  spatial_keys <- spatial["clinic_ID"]
+  good <- healthsheds$fs_uid[!sf::st_is_empty(healthsheds)]
+  geometry_agrees <- identical(as.logical(spatial$has_healthshed),spatial$clinic_ID %in% good)
+  additional <- tibble::tibble(resource=c("reporting","spatial","reported_key_agreement","geometry_flags"),
+    rows=c(nrow(reporting),nrow(spatial),nrow(report_keys),nrow(healthsheds)),schema_matches=TRUE,
+    missing_keys=c(sum(!stats::complete.cases(time_keys)),sum(!stats::complete.cases(spatial_keys)),0L,0L),
+    repeated_keys=c(sum(duplicated(time_keys)),sum(duplicated(spatial_keys)),0L,0L),
+    key_differences=c(0L,0L,sum(unlist(report_diff)),sum(spatial$has_healthshed != (spatial$clinic_ID %in% good))),
+    ok=c(!anyNA(time_keys) && !anyDuplicated(time_keys),!anyNA(spatial_keys) && !anyDuplicated(spatial_keys) &&
+      setequal(spatial$clinic_ID,report_keys$clinic_ID),all(report_diff==0),geometry_agrees))
+  valid <- sf::st_is_valid(healthsheds)
+  geometry <- tibble::tibble(resource="geometry_structure",rows=nrow(healthsheds),schema_matches=!is.na(sf::st_crs(healthsheds)),
+    missing_keys=sum(is.na(healthsheds$fs_uid) | healthsheds$fs_uid==""),repeated_keys=sum(duplicated(healthsheds$fs_uid)),
+    key_differences=sum(!valid | is.na(valid)),
+    ok=!is.na(sf::st_crs(healthsheds)) && all(!is.na(valid) & valid) && !anyNA(healthsheds$fs_uid) &&
+      all(nzchar(healthsheds$fs_uid)) && !anyDuplicated(healthsheds$fs_uid))
+  dplyr::bind_rows(dplyr::bind_rows(rows),additional,geometry)
+}
+```
+
+```{r}
+schecks_final_shape_df <- schecks_final_shape_fn(s10_final_diagnosis_parquet,s3_diagnosis_dictionary_df,
+  s10_final_reporting_list$data,s10_final_spatial_metadata_df,s10_final_healthsheds_sf)
+```
+
+```{r}
+#| format: file
+schecks_final_shape_parquet <- s5_healthshed_write_table_fn(schecks_final_shape_df,
+  here::here("data/intermediates/final/shape_audit.parquet"))
+```
+
+:::
+
+::: {.manual-procedure title="Port Kai's Source And Renaming Seam Diagnostics"}
+
+Two comparisons mirror `break_check.py`: December 2024/January 2025 with
+December 2023/January 2024 as baseline; and May/June 2025 with May/June 2024
+as baseline. National sums retain all-missing as missing. The exploratory
+30-positive-clinic and ratio-of-ratios thresholds are labels, not release
+acceptance criteria or authority to change a mapping.
+
+```{r}
+schecks_seam_fn <- function(group,paths,dictionary,path,min_positive=30L,lower=0.8,upper=1.25) {
+  input <- paths[basename(paths)==paste0(group,".parquet")]; stopifnot(length(input)==1L)
+  vars <- dictionary$var[!is.na(dictionary$filename) & dictionary$filename==group]
+  seams <- list(A_source_change=c(202412L,202501L,202312L,202401L),B_renaming=c(202505L,202506L,202405L,202406L))
+  queries <- lapply(names(seams),function(name) {
+    periods <- seams[[name]]
+    long <- paste0("SELECT * FROM (SELECT cAnnee*100+cPeriode AS periodcode,",paste(s8_new_wave_identifier_fn(vars),collapse=","),
+      " FROM ",s4a_diagnosis_read_fn(input)," WHERE cAnnee*100+cPeriode IN (",paste(periods,collapse=","),
+      ")) UNPIVOT INCLUDE NULLS (value FOR var IN (",paste(s8_new_wave_identifier_fn(vars),collapse=","),"))")
+    totals <- paste0("SELECT var,periodcode,sum(value) AS total,count(*) FILTER (WHERE value>0) AS positive FROM (",long,") GROUP BY ALL")
+    columns <- unlist(lapply(seq_along(periods),function(i) c(
+      paste0("max(total) FILTER (WHERE periodcode=",periods[[i]],") AS total",i),
+      paste0("max(positive) FILTER (WHERE periodcode=",periods[[i]],") AS positive",i))))
+    universe <- paste0("SELECT * FROM (VALUES ",paste(paste0("(",s8_new_wave_literal_fn(vars),")"),collapse=","),") v(var)")
+    paste0("WITH totals AS (",totals,"), universe AS (",universe,"), stats AS (SELECT var,",paste(columns,collapse=","),
+      " FROM universe LEFT JOIN totals USING(var) GROUP BY var), ratios AS (SELECT *,total2/nullif(total1,0) AS ratio,total4/nullif(total3,0) AS ratio_baseline FROM stats), ",
+      "result AS (SELECT *,ratio/nullif(ratio_baseline,0) AS ratio_of_ratios,coalesce(positive1>=",min_positive,
+      " AND positive2>=",min_positive,",false) AS testable FROM ratios) SELECT ",s8_new_wave_literal_fn(group),
+      " AS file,",s8_new_wave_literal_fn(name)," AS seam,*,testable AND (ratio_of_ratios IS NULL OR ratio_of_ratios NOT BETWEEN ",
+      lower," AND ",upper,") AS listed FROM result")
+  })
+  s4a_diagnosis_write_fn(paste(paste0("(",queries,")"),collapse=" UNION ALL "),path)
+}
+```
+
+The execution page branches this diagnostic by diagnosis group. The older
+investigations below are retained as future comparison contracts; they are
+not production gates and do not introduce Feather readers.
+
+:::
+
+::: {.manual-procedure title="Classify The Deferred Legacy Investigations Before Porting Them"}
+
+| Legacy responsibility | Planned owner and evidence |
+| --- | --- |
+| Export/file/schema inventories | Page 17 and `schecks_source_export_tables_list`; record periods, columns, and source provenance |
+| Reader experiments | Page 18's reader tests plus `schecks_csv_reader_comparison_list`; explain encoding, sparse typing, quotes, and name repair |
+| Wave 3 preparation comparisons | This page; keyed equality and discrepancy summaries against a fixed prepared reference |
+| Dictionary comparisons | This page; expressions, ordered schemas, translations, and harmonized IDs evaluated separately |
+| Mumps year/subset exports | Explicit optional diagnostic projections in procedures, stored as targets/Parquet outside the raw tree |
+| Transformation-specific assertions | The check block of the page that owns the transformation |
+
+The repeated late-2023 comparison that reads a 2022 object needs a corrected,
+explicit source selection before it can support a conclusion. The exploratory
+numeric matrix that compares the old object with itself cannot establish
+old/new agreement. Do not carry those mistakes into a regression test.
+
+:::
+
+::: {.manual-procedure title="Build Small Alignment And Schema Contracts"}
+
+Use `schecks_w3_legacy_comparison_inputs_list` and
+`schecks_dictionary_legacy_comparison_inputs_list` as small reference/path
+contracts rather than lists of fully loaded measurement tables. Record
+ordered names, types, row grain, key uniqueness, and source hashes or tracked
+target identities in `schecks_migration_contract_list`.
+
+Validate keys before sorting or joining: a many-to-many join can multiply
+rows and disguise a mismatch. When legitimate repeated keys exist, define
+their comparison unit explicitly rather than assigning a new row number
+whose order differs between storage engines. Check equality of key sets and
+multiplicity before comparing values.
+
+Use page 21's recorded `X` schema to compare dictionary references. Ignore a
+legacy export index only when it is proven to be an IO artifact, not a
+scientific identifier. Never renumber `V` or `X` variables merely to make the
+tables look equal.
+
+:::
+
+::: {.manual-procedure title="Compare Large Measurement Products In DuckDB"}
+
+Read tracked Parquet paths as relations. Project a limited variable set or
+period partition, align on the agreed keys, and compute counts of missing
+keys and unequal values. Collect only small summaries for the manager.
+Persist governed discrepancy records as `schecks_w3_value_mismatches_parquet`
+when row-level evidence is needed.
+
+The plan replaces full in-memory comparison matrices with keyed comparison
+relations. Test the comparator itself using unequal fixtures: new-only and
+old-only rows, duplicate keys, permuted row order, changed numeric values,
+and differing missing values must produce failures or explicit discrepancy
+records. A passing self-comparison is only a sanity check.
+
+Compare entered zero, missing, `-1`, and `-99` separately according to the
+owning transformation's contract. Do not convert all missing values to
+infinity or all logical columns to numeric as an unexplained equality fix.
+
+:::
+
+::: {.manual-procedure title="Compare Dictionary Semantics Before Output Labels"}
+
+Build `schecks_dictionary_migration_report_df` from the new dictionary, its
+recorded source schemas, and the chosen legacy reference. Compare the wave
+expressions, repeated summands, unavailable-wave semantics, output groups,
+French descriptions, and English translation provenance separately.
+
+If `V` numbering differs, first compare the ordered inputs and expression
+identity. Produce an explicit old/new expression crosswalk for review rather
+than rewriting either dictionary. An apparent translation-only difference
+must not conceal a changed clinical definition or age band.
+
+Reuse page 21's synthetic validator and archive-translation coverage checks.
+Do not invoke a live translation service during validation to refresh the
+reference or fill a comparison gap.
+
+:::
+
+::: {.manual-procedure title="Keep Mumps Diagnostic Projections Outside The Raw Tree"}
+
+Inventory the combined 2021–2022 mumps export in
+`schecks_mumps_source_df` only if small enough for the stated memory budget;
+otherwise use a source file target and DuckDB relation. Separate year views in
+`schecks_mumps_by_year_list` and the named 2021 male 2–11-month projection in
+`schecks_mumps_2021_males_2_11m_df`, or persist their larger equivalents as
+`schecks_mumps_output_parquet`.
+
+Preserve the exact source header `T4: Oreillon 2-11m, Masculin`, period filter,
+and metadata-column selection. Check year coverage and the relationship of
+the subset to its parent without writing `oreillon_2021.csv` or other derived
+files back into `data/inputs`.
+
+These are diagnostic projections unless explicitly adopted as a curation
+input. If a repair becomes authoritative, implement it in the owning source
+preparation procedure and add a visible dependency to pages 18 or 22. It must
+not enter the analysis through an undocumented raw-directory side effect.
+
+:::
+
+::: {.manual-procedure title="Assemble A Migration Evidence Report"}
+
+`schecks_migration_report_list` will combine small reports from identities,
+dictionary construction, diagnoses, spatial assignments, locations, and the
+two metadata products. Larger row-level evidence remains in tracked Parquet;
+geometry comparisons remain in ordinary spatial targets.
+
+| Report field | Required content |
+| --- | --- |
+| Provenance | Input/reference revisions, code revision, environment and geometry-engine versions |
+| Alignment | Grain, keys, key counts/multiplicity, and column/schema correspondence |
+| Results | Exact matches, measured discrepancies, missing coverage, and resource observations |
+| Decisions | Accepted differences, rationale, accountable review, and unresolved items |
+| Artifacts | Target names and tracked evidence paths; no ambiguous scratch filenames |
+
+Keep validation separate from release approval. This evidence informs the
+[release contract](../releases/19_page-package-release.qmd); it does not
+authorize publishing protected data or decide a scientific discrepancy on
+the reviewer's behalf.
+
+:::
+
+::: {.manual-check title="Specify Evidence And Comparator Acceptance"}
+
+Before wiring the deferred archive-value comparators, create
+`tests/check-migration-comparators.R`. Current final-product and seam helpers
+are exercised by `tests/check-new-wave-pipeline.R`.
+The tests must show that each comparator detects an injected mismatch, handles
+missing values and legitimate multiplicity according to its contract, and
+does not report equality when its two inputs differ.
+
+After a separately authorized build, the final checks should confirm:
+
+- every required comparison has identifiable inputs and a completed result;
+- key coverage, schema references, and expression/sentinel tests satisfy the
+  approved contract;
+- each remaining discrepancy is either an accepted, documented change or an
+  unresolved failure that prevents an equivalence claim;
+- parallel and serial execution produce the same canonically compared data;
+- a second build with unchanged inputs rebuilds no scientific targets;
+- evidence artifacts exist, remain under governed destinations, and can be
+  inspected without loading all measurements into R.
+
+Historical numerical comments in `data_checks.R` are comparison hypotheses,
+not newly observed outcomes. No comparison or scientific pipeline has been
+executed while writing this plan.
+
+```sh
+python3 tests/check-manual-structure.py
+```
+
+:::
+
+[legacy-checks]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/data_checks.R

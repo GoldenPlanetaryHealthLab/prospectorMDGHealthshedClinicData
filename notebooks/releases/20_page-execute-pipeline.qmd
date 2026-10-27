@@ -6,15 +6,36 @@ execute:
 engine: markdown
 ---
 
-The graph inventories staged paths and dynamically branches the approved W3
-CSV preparation and legacy clinic-month inventory work. Branching is declared
+The historical branch uses the hand-delivered May 2025 ZIP exclusively and dynamically branches the approved W3
+CSV preparation and legacy clinic-month inventory work. Page 16 tracks that
+ZIP and extracts only its selected W3 and reviewed mapping sources; the
+Google Drive/rclone mirror is excluded from historical inputs and comparisons. Branching is declared
 here rather than in the transformation notebooks: each notebook defines
 one-file transformation logic, while this graph defines dependencies and the
 scheduler can distribute independent branches. Clinic-month branches track one
 Parquet file per monthly member of the staged ZIP. Page 20 combines their paths
 into a single Parquet inventory before collecting the reduced identity table.
 Page 21 constructs the cross-wave diagnosis dictionary from the prepared
-Wave 3 schema and archived source dictionaries and translations.
+Wave 3 schema and archived source dictionaries and translations. Page 22
+cleans and maps diagnosis measurements, selects report sources, and branches
+over dictionary output groups. S4 currently uses the existing serial runner;
+Slurm and controller configuration are outside this implementation.
+Page 23 reconciles the frozen sectorization and reviewed spatial corrections,
+constructs clinic healthsheds, and retains ordinary `sf` handoffs for pages
+24–25. A cheap always-check target records the spatial package/native engine
+versions and s2 setting; changed values invalidate the spatial read.
+Page 24 assembles frozen coordinate sources, tests row-aligned intersections,
+and retains candidates and the selected source for page 25.
+Page 25 combines reporting history, reviewed spatial attributes, coordinate
+selection, and neighbor evidence into two tracked metadata Parquet products.
+
+Pages 26–28 implement the separate 2025–2026 source survey, cleaning, and
+geospatial/final-aggregation work. Those deliveries are outside the old-wave
+ZIP. These pages are now included by `tar_tangle()` here. The graph includes both
+approved deliveries, final-product validation, internal candidate packaging,
+and independent resource verification. Declaring or rendering this graph does
+not execute it. Stagecoach owns the inputs; tracked R values in the notebooks
+own transformation and release parameters. No separate preparation step is needed.
 
 ::: {.callout-note title="Track Data At Each Target Boundary"}
 
@@ -25,14 +46,91 @@ the final cross-file aggregation and cleaned Parquet output, included through
 `tar_tangle()`. In-memory tables remain ordinary data targets; source files
 and derived Parquet paths use `format = "file"` so their contents are tracked.
 
+For dynamic file inputs, keep the path selector separate from file tracking.
+`s0_clinic_RMA_W3_raw_paths_chr` returns the selected path vector as an ordinary
+target. `s0_clinic_RMA_W3_raw_csv` then tracks one file per branch, and the
+Parquet reducer branches over those tracked files. A static file target would
+treat the whole vector as one bundle and cannot serve as that branch dimension.
+This is the [documented file-branching pattern](https://books.ropensci.org/targets/dynamic.html#branching-over-files).
+
 :::
 
 ::: {.manual-prereq title="Confirm The Execution Boundary"}
 
 The runtime image and frozen R package library must exist. Approved inputs must
-be staged under `data/inputs`. Rendering the Manual is not pipeline execution.
+be staged under `data/inputs`. Run scientific target builds only inside the
+compute-node allocation. Rendering and static/synthetic checks do not build targets.
 
 :::
+
+## Parallel targets execution plan
+
+::: {.manual-procedure title="Plan One Allocation With Local Target Workers"}
+
+**Planned configuration, not enabled by this page yet.** Legacy stage 4B is
+absorbed into the existing runner and targets execution boundary. Submit one
+Slurm allocation through the page-15 launcher and run one `tar_make()` manager
+inside the project container. The manager will dispatch ready targets to local
+R worker processes within that allocation.
+
+The planned backend is the supported
+[`crew` local controller](https://books.ropensci.org/targets/crew.html), selected
+through `tar_option_set(controller = ...)`. The ordinary `tar_make()` call
+remains the execution entry point; it has no new worker-count argument.
+Do not port stage 4A's `future::plan(multicore)`, `future_map()` pools, or
+`future.globals.maxSize` overrides into individual targets. Do not submit one
+Slurm job for each diagnosis partition or use a Slurm worker-launcher plugin
+for this single-allocation plan.
+
+Illustrative configuration for a future reviewed resource profile:
+
+```r
+# Planning example only: not part of the emitted _targets.R below.
+# Declare and lock crew through page 14 before enabling this configuration.
+tar_option_set(
+  controller = crew::crew_controller_local(workers = 2L)
+)
+```
+
+Two workers are an example, not an established memory-safe default. Select the
+worker count from measured branch requirements and the approved allocation.
+The local controller creates separate R processes on the manager's node;
+additional allocated nodes do not automatically become workers.
+
+:::
+
+::: {.manual-procedure title="Plan Branch Memory, Threads, And Scheduling"}
+
+Keep measurement-heavy operations inside bounded stage-4 targets and pass
+Parquet paths between them. Schedule independent monthly, complete-period,
+and output-group branches in parallel. Keep ordered spatial correction
+rounds and other dependent transformations in their scientific sequence.
+
+Before activation, record a versioned resource profile with:
+
+| Resource | Required decision and verification |
+| --- | --- |
+| Allocation | One manager task, approved CPUs, total memory, wall time, and shared writable project/scratch storage |
+| Worker concurrency | Explicit count within CPU and measured memory budgets, including manager overhead and retry behavior |
+| Engine threads | Explicit per-worker DuckDB/BLAS thread budgets; do not give every worker the whole allocation's CPU count |
+| Memory | Branch peak R plus engine memory, manager memory, and headroom; engine settings alone are not evidence of total process memory |
+| Files | Branch-unique outputs, private temporary extraction/scratch, and read-only shared inputs |
+| Environment | Same container, project working directory, and locked R library in every worker; initialize connections inside each process |
+
+Use a representative month and output group as the first pilot. If a branch
+does not fit its budget, reduce its working set or partition it at a safe
+scientific boundary before increasing concurrency. Parallel execution does
+not divide the memory required by one oversized target. Do not request a
+blanket high-memory stage-4 job to compensate for collecting all waves in R.
+
+Add `crew` to the direct dependency declaration and lock it only when the
+controller implementation is introduced. The current `_targets.R`, runner,
+and dependency lock remain unchanged by this detailed plan. The target graph
+shown below is the currently implemented graph; pages 18–30 and internal candidate packaging are now wired into it.
+
+:::
+
+## Current graph and execution
 
 :::: {.emit-source-r file="{{ emit.project_root }}/_targets.R"}
 ::: {.manual-procedure title="Emit The Targets Graph"}
@@ -49,15 +147,20 @@ tar_option_set(
 
 list(
   tarchetypes::tar_tangle(
-    "notebooks/pipeline/16_page-stage-inputs.qmd"
+    here::here("notebooks", "pipeline", "16_page-stage-inputs.qmd")
   ),
   tarchetypes::tar_tangle(
-    "notebooks/pipeline/18_page-prep-w3.qmd"
+    here::here("notebooks", "pipeline", "18_page-prep-w3.qmd")
+  ),
+  tar_target(
+    s0_clinic_RMA_W3_raw_paths_chr,
+    s0_pipeline_inputs_raw_chr %>%
+      str_subset("RMA_W3_FULL/.+\\.csv$")
   ),
   tar_target(
     s0_clinic_RMA_W3_raw_csv,
-    s0_pipeline_inputs_raw_chr %>%
-      str_subset("RMA_W3_FULL"),
+    s0_clinic_RMA_W3_raw_paths_chr,
+    pattern = map(s0_clinic_RMA_W3_raw_paths_chr),
     format = "file"
   ),
   tar_target(
@@ -65,7 +168,7 @@ list(
     s0_clinic_RMA_process_csv_fn(
       s0_clinic_RMA_W3_raw_csv,
       file.path(
-        "data/intermediates/RMA_W3",
+        here::here("data", "intermediates", "RMA_W3"),
         paste0(tar_name(), ".parquet")
       )
     ),
@@ -73,13 +176,143 @@ list(
     format = "file"
   ),
   tarchetypes::tar_tangle(
-    "notebooks/pipeline/19_page-clean-mapping-dhis2-gesis.qmd"
+    here::here("notebooks", "pipeline", "19_page-clean-mapping-dhis2-gesis.qmd")
   ),
   tarchetypes::tar_tangle(
-    "notebooks/pipeline/20_page-construct-clinic-ids.qmd"
+    here::here("notebooks", "pipeline", "20_page-construct-clinic-ids.qmd")
   ),
   tarchetypes::tar_tangle(
-    "notebooks/pipeline/21_page-construct-diagnosis-dictionary.qmd"
+    here::here("notebooks", "pipeline", "21_page-construct-diagnosis-dictionary.qmd")
+  ),
+  tarchetypes::tar_tangle(
+    here::here("notebooks", "pipeline", "22_page-clean-clinic-diagnosis.qmd")
+  ),
+  tarchetypes::tar_tangle(
+    here::here("notebooks", "pipeline", "23_page-construct-healthsheds.qmd")
+  ),
+  tarchetypes::tar_tangle(
+    here::here("notebooks", "pipeline", "24_page-locate-clinics.qmd")
+  ),
+  tarchetypes::tar_tangle(
+    here::here("notebooks", "pipeline", "25_page-combine-clinic-metadata.qmd")
+  ),
+  tarchetypes::tar_tangle(here::here("notebooks", "pipeline", "26_page-prep-2025-2026.qmd")),
+  tarchetypes::tar_tangle(here::here("notebooks", "pipeline", "27_page-clean-2025-2026.qmd")),
+  tarchetypes::tar_tangle(here::here("notebooks", "pipeline", "28_page-geospatial-aggregate-2025-2026.qmd")),
+  tarchetypes::tar_tangle(here::here("notebooks", "pipeline", "30_page-validate-migration.qmd")),
+  tarchetypes::tar_tangle(here::here("notebooks", "releases", "19_page-package-release.qmd")),
+  tarchetypes::tar_tangle(here::here("notebooks", "releases", "21_page-verify-release.qmd")),
+  tarchetypes::tar_tangle(here::here("notebooks", "releases", "22_page-export-frictionless.qmd")),
+  tar_target(
+    s8_new_wave_source_inventory_df,
+    s8_new_wave_sources_fn(s8_new_wave_roots_fn(s0_pipeline_stagecoach_yml)),
+    cue = tar_cue(mode = "always")
+  ),
+  tar_target(
+    s8_new_wave_file_records_list,
+    split(s8_new_wave_source_inventory_df, seq_len(nrow(s8_new_wave_source_inventory_df))),
+    iteration = "list"
+  ),
+  tar_target(
+    s8_new_wave_inputs_raw_csv, s8_new_wave_file_records_list$path[[1L]],
+    pattern = map(s8_new_wave_file_records_list), format = "file"
+  ),
+  tar_target(
+    s8_new_wave_raw_parquet,
+    s8_new_wave_write_raw_fn(s8_new_wave_inputs_raw_csv,
+      file.path(here::here("data/intermediates/new_wave/raw"), paste0(tar_name(), ".parquet")),
+      s8_new_wave_file_records_list$source_id[[1L]], s8_new_wave_file_records_list$source_file[[1L]]),
+    pattern = map(s8_new_wave_inputs_raw_csv, s8_new_wave_file_records_list), format = "file"
+  ),
+  tar_target(
+    s9_new_wave_typed_parquet,
+    s9_new_wave_parse_fn(s8_new_wave_raw_parquet, s9_new_wave_mapping_audit_df, s8_new_wave_parameters_list,
+      file.path(here::here("data/intermediates/new_wave/typed"), paste0(tar_name(), ".parquet"))),
+    pattern = map(s8_new_wave_raw_parquet), format = "file"
+  ),
+  tar_target(
+    s10_new_wave_diagnosis_parquet,
+    s10_new_wave_diagnosis_fn(s10_final_output_groups_chr, s9_new_wave_clinic_month_parquet,
+      s9_new_wave_reports_parquet, s10_new_wave_identity_parquet, s4a_diagnosis_evaluation_rules_df,
+      s3_w3_column_dictionary_df, s10_new_wave_na_corrections_df, s8_new_wave_parameters_list,
+      file.path(here::here("data/intermediates/new_wave/by_diagnosis"), paste0(s10_final_output_groups_chr, ".parquet"))),
+    pattern = map(s10_final_output_groups_chr), format = "file"
+  ),
+  tar_target(
+    s10_final_diagnosis_parquet,
+    s10_final_diagnosis_fn(s10_final_output_groups_chr, s4a_diagnosis_output_parquet, s10_new_wave_diagnosis_parquet,
+      file.path(here::here("data/intermediates/final/by_diagnosis"), paste0(s10_final_output_groups_chr, ".parquet"))),
+    pattern = map(s10_final_output_groups_chr), format = "file"
+  ),
+  tar_target(
+    schecks_new_wave_seam_parquet,
+    schecks_seam_fn(s10_final_output_groups_chr, s10_final_diagnosis_parquet, s3_diagnosis_dictionary_df,
+      file.path(here::here("data/intermediates/final/seams"), paste0(s10_final_output_groups_chr, ".parquet"))),
+    pattern = map(s10_final_output_groups_chr), format = "file"
+  ),
+  tar_target(
+    srelease_resources_list,
+    srelease_resources_fn(s10_final_diagnosis_parquet, s3_diagnosis_dictionary_parquet,
+      s10_final_reporting_metadata_parquet, s10_final_spatial_metadata_parquet, srelease_geometry_parquet,
+      schecks_final_shape_parquet, s9_new_wave_mapping_audit_parquet, s10_new_wave_identity_parquet,
+      s10_final_reporting_code_audit_parquet, s9_new_wave_measurement_availability_parquet,
+      schecks_new_wave_seam_parquet, srelease_provenance_parquet, srelease_source_inventory_parquet,
+      s9_new_wave_numeric_audit_parquet, s9_new_wave_key_audit_parquet,
+      s10_new_wave_predecessor_candidates_parquet, srelease_review_inputs_parquet, s9_new_wave_reports_parquet),
+    iteration = "list"
+  ),
+  tar_target(
+    srelease_package_parquet,
+    srelease_copy_fn(srelease_resources_list, srelease_contract_parquet, srelease_parameters_list, here::here("data", "outputs", "releases")),
+    pattern = map(srelease_resources_list), format = "file"
+  ),
+  tar_target(
+    srelease_resource_checks_df,
+    srelease_verify_fn(srelease_resources_list, srelease_package_parquet, srelease_contract_parquet, srelease_parameters_list),
+    pattern = map(srelease_resources_list, srelease_package_parquet)
+  ),
+  tar_target(
+    s5_spatial_runtime_list,
+    s5_healthshed_runtime_fn(),
+    cue = tar_cue(mode = "always")
+  ),
+  tar_target(
+    s4a_diagnosis_wave12_month_inputs_parquet,
+    s4a_diagnosis_month_input_fn(
+      s2_clinic_months_raw_zip, s2_clinic_months_members_chr,
+      s4a_diagnosis_wave12_supplements_parquet,
+      file.path(here::here("data", "intermediates", "clinic_diagnosis", "month_inputs"), paste0(tar_name(), ".parquet"))
+    ),
+    pattern = map(s2_clinic_months_members_chr),
+    format = "file"
+  ),
+  tar_target(
+    s4a_diagnosis_wave12_deduplicated_parquet,
+    s4a_diagnosis_reduce_fn(
+      s4a_diagnosis_wave12_month_inputs_parquet, s2_clinic_ids_parquet,
+      file.path(here::here("data", "intermediates", "clinic_diagnosis", "month_reduced"), paste0(tar_name(), ".parquet"))
+    ),
+    pattern = map(s4a_diagnosis_wave12_month_inputs_parquet),
+    format = "file"
+  ),
+  tar_target(
+    s4a_diagnosis_wave12_month_mapped_parquet,
+    s4a_diagnosis_month_map_fn(
+      s4a_diagnosis_wave12_deduplicated_parquet, s4a_diagnosis_evaluation_rules_df,
+      file.path(here::here("data", "intermediates", "clinic_diagnosis", "month_mapped"), paste0(tar_name(), ".parquet"))
+    ),
+    pattern = map(s4a_diagnosis_wave12_deduplicated_parquet),
+    format = "file"
+  ),
+  tar_target(
+    s4a_diagnosis_output_parquet,
+    s4a_diagnosis_output_fn(
+      s4a_diagnosis_output_groups_chr, s3_diagnosis_dictionary_df,
+      s4a_diagnosis_wave12_month_mapped_parquet, s4a_diagnosis_wave3_mapped_parquet,
+      s4a_clinic_reporting_selection_parquet, here::here("data", "intermediates", "by_diagnosis")
+    ),
+    pattern = map(s4a_diagnosis_output_groups_chr),
+    format = "file"
   ),
   tar_target(
     s2_clinic_months_deduplicated_parquet,
@@ -87,7 +320,7 @@ list(
       s2_clinic_months_raw_zip,
       s2_clinic_months_members_chr,
       file.path(
-        "data/intermediates/clinic_months",
+        here::here("data", "intermediates", "clinic_months"),
         paste0(tar_name(), ".parquet")
       )
     ),
@@ -127,6 +360,11 @@ Run the graph explicitly after reviewing the target declarations. This builds
 the scientific products; rendering the preceding code only emits the runner
 and graph.
 
+After changing the release declarations, render this page to re-emit
+`_targets.R` before the next authorized pipeline run. Packaging creates
+`data/outputs/releases/v0.1.0/` for the initial page-19 version, including its
+resources, verification files, and `datapackage.json`.
+
 ```sh
 scripts/mdg-healthshed-clinic-data exec uvr run scripts/run-pipeline.R
 ```
@@ -134,6 +372,21 @@ scripts/mdg-healthshed-clinic-data exec uvr run scripts/run-pipeline.R
 :::
 
 ::: {.manual-check title="Verify The Initial Graph"}
+
+When the parallel controller is implemented, add synthetic execution tests
+that establish serial/parallel result equality, correct per-file branching,
+observed worker concurrency, allocation-compliant thread/memory use, worker
+environment consistency, and no extra Slurm submissions. After an authorized
+pilot, retain its peak-memory/timing evidence and confirm a no-op second run.
+Those future resource checks have not run during this planning work.
+
+Check file tracking and every dynamic branch dimension without building the
+pipeline. In particular, a file target used as a branch dimension must itself
+have a pattern; an ordinary path-vector target may serve as the first dimension.
+
+```sh
+scripts/mdg-healthshed-clinic-data exec Rscript tests/check-data-storage-convention.R
+```
 
 ```sh
 scripts/mdg-healthshed-clinic-data exec Rscript -e \

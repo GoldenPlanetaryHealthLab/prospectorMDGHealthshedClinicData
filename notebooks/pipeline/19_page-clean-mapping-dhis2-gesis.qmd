@@ -156,17 +156,21 @@ This stage classifies reviewer notes, retains the original internal diagnostic
 as an executable check, evaluates external GESIS–UID consequences, and applies
 deletions and renames.
 
+The selected ZIP member is `VERIFIER fs_uid_year_with_multiple_gesis.csv`
+and is comma-delimited, as read by the legacy script. The former Drive
+underscore filename and semicolon dialect are outside this freeze.
+
 ```{r}
 #| format: file
 # 5) UID-years with multiple GESIS codes ---- 
 s1_gesis_multiple_codes_raw_csv <- str_subset(
   s0_pipeline_inputs_raw_chr,
-  "VERIFIER_fs_uid_year_with_multiple_gesis.csv"
+  "VERIFIER fs_uid_year_with_multiple_gesis\\.csv$"
 )
 ```
 
 ```{r}
-s1_gesis_multiple_codes_reviewed_df <- read_delim(s1_gesis_multiple_codes_raw_csv, delim=";") %>%
+s1_gesis_multiple_codes_reviewed_df <- read_csv(s1_gesis_multiple_codes_raw_csv) %>%
   mutate(change = case_when(grepl("the clinic was moved to the district of mandoto", note) ~ "keep", 
                             note %in% c("Same clinic", "OK", "ok") ~ "keep", 
                             grepl("^rename", note) ~ "rename", 
@@ -391,116 +395,72 @@ s1_gesis_xwalk_clean_df <- s1_gesis_xwalk_manual_uid_added_df %>%
 
 :::
 
-::: {.manual-check title="Verify Reviewed Mapping Outcomes"}
+::: {.manual-check title="Compare Most Recent Archived Data And Target Facility Mappings"}
 
-Run these queries after the mapping targets complete, in an authorized data
-session. They inspect the produced tables and compare them with reviewed
-expectations. An authoring render does not run these queries.
+**Review note (2026-11-08).** The researcher reports that the initial
+shape checks on pages 18–21 appear to pass. This records the initial facility-mapping shape review.
+This is a researcher-reported observation from the interactive review,
+not an independently rerun acceptance test. It does not establish
+key-level equality, measurement-value parity, or unchanged diagnosis
+definitions/IDs. Retain any remaining discrepancies for review.
 
-First confirm that the corrected mapping agrees with the reviewed replacement
-UIDs. The mismatch table must be empty.
+Run these chunks in order from the repository root after the targets build.
+These are exploratory summaries; interpretation is left to the reader.
+[Most recent archived data baseline](mapping/legacy-pipeline-map.qmd#most-recent-archived-data-comparison-baseline)
+records the selected iterations, evidence, and provenance limits. The shared
+selection is versioned in `src/archived-comparison-baseline.R`.
+
+Use the May 1, 2025 script-1 intermediate: the most recent archived data
+found for this stage.
+
+Load the pair for this page. Braces keep these session assignments out of
+`tar_tangle()`; the objects remain available for interactive exploration.
 
 ```{r}
-#| eval: true
-tar_read(s1_gesis_xwalk_corrected_df) %>%
-  inner_join(
-    tar_read(s1_gesis_code_corrections_df) %>%
-      select(code_fs = correct_code, reviewed_uid = uid),
-    by = "code_fs"
-  ) %>%
-  filter(!is.na(reviewed_uid), reviewed_uid != fs_uid) %>%
-  verify(nrow(.) == 0)
+{
+  archived_baseline <- dget(here::here("src", "archived-comparison-baseline.R"))
+  legacy_zip <- here::here(archived_baseline$archive_zip)
+  old_mapping <- read.csv(unz(
+    legacy_zip, archived_baseline$facility_mapping_member
+  ), check.names = FALSE)
+  new_mapping <- targets::tar_read(s1_gesis_xwalk_clean_df)
+}
 ```
 
-The known Ankilivalo fill must also be present in the corrected mapping.
+**Rows and columns.**
 
 ```{r}
-#| eval: true
-tar_read(s1_gesis_xwalk_corrected_df) %>%
-  filter(code_fs == "630151027", grepl("Ankilivalo", FS)) %>%
-  verify(nrow(.) > 0, all(fs_uid == "ZX5EkF6eC0x"))
+tibble::tibble(
+  source = c("most recent archived data", "current pipeline"),
+  rows = c(nrow(old_mapping), nrow(new_mapping)),
+  columns = c(ncol(old_mapping), ncol(new_mapping))
+)
 ```
 
-Inspect the completed stage sizes. The reviewed counts are 34,812 rows before
-multiple-code reconciliation, 34,810 after its deletions, 34,818 after adding
-the eight mapping-year records, and 34,816 after the final manual changes.
+**Column names and order.**
 
 ```{r}
-#| eval: true
-tibble(
-  stage = c("filtered", "multiple_codes", "uid_added", "clean"),
-  rows = c(
-    nrow(tar_read(s1_gesis_xwalk_filtered_df)),
-    nrow(tar_read(s1_gesis_xwalk_multiple_codes_reconciled_df)),
-    nrow(tar_read(s1_gesis_xwalk_uid_added_df)),
-    nrow(tar_read(s1_gesis_xwalk_clean_df))
-  )
-) %>%
-  verify(all(rows == c(34812L, 34810L, 34818L, 34816L)))
+dplyr::bind_rows(
+  `most recent archived data` = tibble::tibble(position = seq_len(ncol(old_mapping)), column = names(old_mapping)),
+  `current pipeline` = tibble::tibble(position = seq_len(ncol(new_mapping)), column = names(new_mapping)),
+  .id = "source"
+)
 ```
 
-Confirm that 18 nonblank UID-years still map to multiple GESIS codes after
-the reviewed deletions and renames.
+**UID coverage by year, including blank or missing UIDs.**
 
 ```{r}
-#| eval: true
-tar_read(s1_gesis_xwalk_multiple_codes_reconciled_df) %>%
-  filter(fs_uid != "") %>%
-  group_by(fs_uid, cAnnee) %>%
-  summarise(n_gesis = n_distinct(code_fs), .groups = "drop") %>%
-  filter(n_gesis > 1) %>%
-  verify(nrow(.) == 18)
-```
-
-The final manual changes introduce one additional reviewed UID-year with
-multiple GESIS codes, bringing the total to 19. Inspect those records while
-asserting that count.
-
-```{r}
-#| eval: true
-tar_read(s1_gesis_xwalk_clean_df) %>%
-  filter(fs_uid != "") %>%
-  group_by(fs_uid, cAnnee) %>%
-  summarise(n_gesis = n_distinct(code_fs), .groups = "drop") %>%
-  filter(n_gesis > 1) %>%
-  verify(nrow(.) == 19)
-```
-
-Inspect GESIS codes whose multiple-UID relationships were introduced by
-cleaning. Compare the observed codes with the reviewed exceptions recorded
-below, rather than assuming every multiple match is an error.
-
-```{r}
-#| eval: true
-tar_read(s1_gesis_xwalk_clean_df) %>%
-  group_by(code_fs) %>%
-  summarise(n_uid = n_distinct(fs_uid), .groups = "drop") %>%
-  filter(n_uid > 1) %>%
-  pull(code_fs) %>%
-  setdiff(read_csv(tar_read(s0_gesis_xwalk_raw_csv)) %>%
-    rename(fs_uid = `UID...12`) %>%
-    group_by(code_fs) %>%
-    summarise(n_uid = n_distinct(fs_uid), .groups = "drop") %>%
-    filter(n_uid > 1) %>%
-    pull(code_fs))
-```
-
-The legacy review recorded `110543027`, `120143023`, `520543054`, `530541020`,
-`530651023`, `610143024`, and `640352018`. The first two were noted as
-problematic FSP matches. The public-clinic changes were accepted after
-checking their diagnosis-data coverage; these are reviewed exceptions, not
-new findings from this edit.
-
-Finally, inspect nonblank UIDs associated with more than one clinic name.
-The legacy review attributed two cases to clinic-type changes. This output
-is evidence to review alongside the cardinality assertions.
-
-```{r}
-#| eval: true
-tar_read(s1_gesis_xwalk_clean_df) %>%
-  group_by(fs_uid) %>%
-  mutate(n_name = n_distinct(FS)) %>%
-  filter(fs_uid != "", n_name > 1)
+dplyr::bind_rows(
+  `most recent archived data` = old_mapping |> dplyr::summarise(
+    rows = dplyr::n(), uids = dplyr::n_distinct(fs_uid, na.rm = TRUE),
+    missing_uids = sum(is.na(fs_uid) | fs_uid == ""), .by = cAnnee
+  ),
+  `current pipeline` = new_mapping |> dplyr::summarise(
+    rows = dplyr::n(), uids = dplyr::n_distinct(fs_uid, na.rm = TRUE),
+    missing_uids = sum(is.na(fs_uid) | fs_uid == ""), .by = cAnnee
+  ),
+  .id = "source"
+)
 ```
 
 :::

@@ -8,8 +8,10 @@ engine: markdown
 
 This manual walks the reader through a declarative reproduction of the MDGHealthshedClinicData Prospector.
 
-Clinic data from Madagsascar is imported from legacy Google Drive uploads. The data
-spans several years from 2010 to 2024, with prospective data to be added 2025 onwards.
+Clinic data from Madagascar is curated from the frozen historical archive and
+separately staged 2025–2026 deliveries. Read the
+[cleaned-database guide](00_data-guide.qmd) next for the file layout, analysis
+examples, measured archive agreement through 2024, and observed continuation.
 GESIS is the prior format, where each row in a GESIS file is a count of GESIS codes
 and likewise for DHIS2 data. Diagnoses are translated and linked by several crosswalks
 and manual fixes recorded in the code.
@@ -41,11 +43,24 @@ Singularity container and a targets graph.
 
 ## Current status
 
-Infrastructure and an input-inventory target are scaffolded. Source selection,
-schema interpretation, pre-/post-DHIS2 reconciliation, missing-value rules,
-disclosure controls, and release design remain documented human decisions.
+Historical curation, the separate 2025–2026 R extension, final shape validation,
+and immutable internal Parquet candidate packaging are implemented. Stagecoach owns input staging; the notebooks declare tracked R parameters
+and review tables. The
+extension follows Kai's two-delivery scope and maximum reduction, retaining
+mapping, parsing, identity, missingness, and source-seam evidence. Publication
+and full archived measurement equivalence remain separate review decisions.
 
-No protected data is rendered into the Manual or committed to this repository.
+Release pages 19–22 declare named semantic versions and export a Frictionless
+`datapackage.json` alongside unchanged Parquet resources. The descriptor records
+native schemas, row counts, checksums, and WKT/CRS interpretation. Page 19 owns
+the version and release notes; page 22 documents the Parquet compatibility test
+and synthetic validation.
+
+The [reader's guide](notebooks/00_data-guide.qmd) explains the cleaned files,
+joins, and missingness, and shows archive comparisons and the observed extension.
+Only the requested national aggregate figures and their comparison summaries
+are included; protected source records and clinic-level evidence remain outside
+the rendered Manual and version control.
 
 ## Render the Manual
 

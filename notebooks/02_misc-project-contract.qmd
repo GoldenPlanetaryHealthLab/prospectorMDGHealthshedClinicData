@@ -16,6 +16,17 @@ The pipeline uses `data/inputs`, `data/intermediates`, and `data/processed`:
 - `artifacts/containers` contains unversioned SIF images;
 - `_targets` contains unversioned targets state.
 
+For the existing-wave migration, the hand-delivered May 2025 ZIP is the sole
+source of scientific inputs and comparison data. The periodically synced
+Google Drive/rclone tree is excluded from that migration because it can drift.
+The separate 2025–2026 deliveries are not in this ZIP: pages 26–28 survey their
+explicitly supplied source roots and plan a separately approved frozen input
+manifest. Their survey scaffolding is not registered in the production graph
+and does not change the historical comparison baseline. Page 16 extracts selected, unmodified
+source members under `data/intermediates/archive_sources/`; these source
+copies retain their original formats and are tracked as files. All other
+persisted transformation products remain Parquet.
+
 Workflow data stays in ordinary `targets` objects or in Parquet files tracked
 with `format = "file"`. Source files retain their original formats and are
 also tracked as file targets. The [pipeline map](pipeline/mapping/legacy-pipeline-map.qmd#workflow-data-storage-convention)
@@ -51,6 +62,10 @@ _targets/
 **/*labbook
 sandbox/**
 !sandbox/.gitkeep
+/.uvr/activate*
+
+/.quarto/
+**/*.quarto_ipynb
 ```
 
 :::

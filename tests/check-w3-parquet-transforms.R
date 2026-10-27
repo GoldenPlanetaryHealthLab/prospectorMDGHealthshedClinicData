@@ -3,6 +3,10 @@
 # Synthetic inputs only: no pipeline targets or staged data are executed.
 library(dplyr)
 library(duckplyr)
+library(readr)
+library(stringr)
+library(tibble)
+library(cli)
 
 local({
   scratch <- tempfile("check-w3-parquet-")
@@ -28,6 +32,28 @@ local({
   fixture_env$here <- function(path) file.path(scratch, path)
   original_dir <- getwd()
   on.exit(setwd(original_dir), add = TRUE)
+
+  # Exercise CSV parsing through the actual writer: a lazy row count can pass
+  # without evaluating the numeric fields that later fail at the Parquet write.
+  csv <- file.path(scratch, "literal-na.csv")
+  writeLines(c(
+    "organisationunitid,periodname,periodcode,all_missing,measure,zero_measure,description",
+    'A,early,202201,NA,NA,0,"NA"',
+    'A,early,202201,,7,NA,"Clinic, A"',
+    'B,late,202301,"NA",,0,"Clinic B"',
+    'B,late,202301,NA,NA,,"Clinic B"'
+  ), csv)
+  csv_output <- fixture_env$s0_clinic_RMA_process_csv_fn(
+    csv, file.path(scratch, "literal-na.parquet")
+  )
+  parsed <- read_parquet_duckdb(csv_output, prudence = "stingy") |>
+    arrange(organisationunitid) |> collect()
+  stopifnot(
+    nrow(parsed) == 2L, is.double(parsed$all_missing),
+    all(is.na(parsed$all_missing)), identical(parsed$measure, c(7, NA_real_)),
+    identical(parsed$zero_measure, c(0, 0)),
+    identical(parsed$description, c("Clinic, A", "Clinic B"))
+  )
 
   first <- data.frame(
     organisationunitid = c("A", "A", "B"),

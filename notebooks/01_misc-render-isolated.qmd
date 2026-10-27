@@ -11,7 +11,7 @@ Only a successful site and files recorded by `quarto-emit` are promoted back.
 
 ::: {.manual-prereq title="Confirm The Render Boundary"}
 
-The host needs `bash`, `rsync`, `mktemp`, and `quarto`. Do not run two publishing
+The host needs `bash`, `rsync`, `mktemp`, `python3`, and `quarto`. Do not run two publishing
 renders against the same checkout simultaneously because both would promote to
 the same `docs/` directory.
 
@@ -74,6 +74,22 @@ if [[ -f "$emit_manifest" ]]; then
     esac
     destination="$project_dir/${staged_file#"$stage_project"/}"
     mkdir -p "$(dirname "$destination")"
+    # Promote provenance together with code: temporary paths must not change
+    # generated file hashes or point reviewers to a deleted staging tree.
+    python3 - "$staged_file" "$stage_project" "$project_dir" <<'PY'
+from pathlib import Path
+import sys
+
+emitted = Path(sys.argv[1])
+staging = sys.argv[2].encode() + b"/"
+repository = sys.argv[3].encode() + b"/"
+lines = emitted.read_bytes().splitlines(keepends=True)
+prefixes = (b"# Source: ", b"-- Source: ", b"<!-- Source: ", b"/* Source: ")
+for index in range(min(4, len(lines))):
+    if lines[index].startswith(prefixes):
+        lines[index] = lines[index].replace(staging, repository, 1)
+emitted.write_bytes(b"".join(lines))
+PY
     rsync -a "$staged_file" "$destination"
   done < "$emit_manifest"
 fi
@@ -97,11 +113,16 @@ scripts/render-isolated --profile emit
 
 ::: {.manual-check title="Verify The Wrapper"}
 
+Source headers are rebased only when generated files are promoted, so each
+render retains the repository source path rather than the temporary staging
+directory. Code bodies and embedded data paths are left byte-for-byte intact.
+
 Confirm shell syntax and the presence of the rendered index after the
 authoring procedure completes.
 
 ```sh
 bash -n scripts/render-isolated
+python3 tests/check-render-source-provenance.py
 test -s docs/index.html
 ```
 

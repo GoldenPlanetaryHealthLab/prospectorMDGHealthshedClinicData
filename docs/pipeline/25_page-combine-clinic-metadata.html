@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.38">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>23&nbsp; Combine Reporting and Spatial Clinic Metadata – Madagascar Healthshed Clinic Data Curation Manual</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<link href="../pipeline/26_page-prep-2025-2026.html" rel="next">
+<link href="../pipeline/24_page-locate-clinics.html" rel="prev">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-15634bcf2e68342d4ad2dfa704d543f6.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-ce6a359591faed5e1251f5606bf1542e.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/quarto-contrib/fontawesome6-6.7.2/all.min.css" rel="stylesheet">
+<link href="../site_libs/quarto-contrib/fontawesome6-6.7.2/latex-fontsize.css" rel="stylesheet">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+
+</head>
+
+<body class="nav-sidebar floating quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../pipeline/16_page-stage-inputs.html">Pipeline</a></li><li class="breadcrumb-item"><a href="../pipeline/25_page-combine-clinic-metadata.html"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Combine Reporting and Spatial Clinic Metadata</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="../">Madagascar Healthshed Clinic Data Curation Manual</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Madagascar Healthshed Clinic Data Curation Manual</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text">Project Setup</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../00_cover.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Data Curation Manual</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../00_data-guide.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">A Reader’s Guide to the Cleaned Database</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/mapping/legacy-pipeline-map.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Map the Legacy Clinic Pipeline to Notebooks</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../01_misc-render-isolated.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Render In Isolation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../02_misc-project-contract.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Project Contract</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../03_misc-data-governance.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Data Governance</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
+ <span class="menu-text">Infrastructure</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../infrastructure/10_page-direnv.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Local Operator Environment</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../infrastructure/11_page-spack.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Bootstrap the Spack Builder</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../infrastructure/12_page-jinja.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Declare the Native Runtime</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../infrastructure/13_page-jinja-build.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Customize and Build the Runtime</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../infrastructure/14_page-uvr.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Lock and Synchronize R Packages</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../infrastructure/15_page-runner.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Run the Project Environment</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
+ <span class="menu-text">Pipeline</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/16_page-stage-inputs.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Stage Inputs</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/17_page-inspect-source-data.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Inspect Source Data</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/18_page-prep-w3.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Curate the Healthshed Clinic Data</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/19_page-clean-mapping-dhis2-gesis.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">Clean the DHIS2–GESIS Mapping</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/20_page-construct-clinic-ids.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Construct Clinic IDs</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/21_page-construct-diagnosis-dictionary.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Construct the Diagnosis Dictionary</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/22_page-clean-clinic-diagnosis.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Clean and Combine Clinic Diagnoses</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/23_page-construct-healthsheds.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Reconcile Sectorization and Construct Healthsheds</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/24_page-locate-clinics.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Compare and Select Clinic Locations</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/25_page-combine-clinic-metadata.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Combine Reporting and Spatial Clinic Metadata</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/26_page-prep-2025-2026.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Survey and Read the 2025–2026 Deliveries</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/27_page-clean-2025-2026.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">Clean and Harmonize the 2025–2026 Waves</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/28_page-geospatial-aggregate-2025-2026.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">Locate Clinics and Assemble the Final Database</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/30_page-validate-migration.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">Validate the Migrated Clinic Pipeline</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../releases/19_page-package-release.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">Inventory and Package a Versioned Release</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../releases/20_page-execute-pipeline.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">29</span>&nbsp; <span class="chapter-title">Execute the Pipeline</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../releases/21_page-verify-release.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">30</span>&nbsp; <span class="chapter-title">Verify an Internal Candidate</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../releases/22_page-export-frictionless.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">31</span>&nbsp; <span class="chapter-title">Export the Frictionless Data Package</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
+        
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../pipeline/16_page-stage-inputs.html">Pipeline</a></li><li class="breadcrumb-item"><a href="../pipeline/25_page-combine-clinic-metadata.html"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Combine Reporting and Spatial Clinic Metadata</span></a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Combine Reporting and Spatial Clinic Metadata</span></h1>
+<p class="subtitle lead">Implement legacy stage 7 with reporting and attribute provenance</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<p>This page implements <a href="https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/7_combine_clinic_metadata.R"><code>7_combine_clinic_metadata.R</code></a> at revision <code>31e0769683e133e136b09ac0c6608c5a12657a9a</code>. It produces monthly reporting metadata and clinic-level spatial attributes. All transformations are targets; rendering does not execute them. The final tables are nonspatial Parquet products, while page 23 retains the healthshed geometry handoff.</p>
+<div class="manual-prereq callout callout-style-default callout-important no-icon callout-titled" title="Require The Reporting, Identity, And Spatial Handoffs" data-manual-kind="prereq">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Important</span><i class="fa-solid fa-list-check" aria-label="list-check"></i> Prerequisite: Require The Reporting, Identity, And Spatial Handoffs
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Dependency</th>
+<th>Producing page</th>
+<th>Contract</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>s4a_clinic_reporting_track_parquet</code></td>
+<td><a href="../pipeline/22_page-clean-clinic-diagnosis.html">22</a></td>
+<td>Scalar retained <code>fname</code> in <code>yYYYY_mMM</code> columns; zero means no retained report</td>
+</tr>
+<tr class="even">
+<td><code>s2_clinic_ids_df</code></td>
+<td><a href="../pipeline/20_page-construct-clinic-ids.html">20</a></td>
+<td>Historical code, name, type, and <code>ID_checked</code> evidence</td>
+</tr>
+<tr class="odd">
+<td><code>s5_sectorization_2022_clean_sf</code></td>
+<td><a href="../pipeline/23_page-construct-healthsheds.html">23</a></td>
+<td>Reviewed 2022 clinic and administrative attributes</td>
+</tr>
+<tr class="even">
+<td><code>s5_healthshed_clinic_final_sf</code></td>
+<td><a href="../pipeline/23_page-construct-healthsheds.html">23</a></td>
+<td>Healthshed geometry keyed by facility UID</td>
+</tr>
+<tr class="odd">
+<td><code>s6_clinic_locations_selected_sf</code></td>
+<td><a href="../pipeline/24_page-locate-clinics.html">24</a></td>
+<td>Candidate coordinates, source labels, and fallback geometry</td>
+</tr>
+</tbody>
+</table>
+<p>The reviewed neighbor-pairing CSV is an exact member of the already tracked <code>s2_clinic_months_raw_zip</code>. Source reads reuse the private extraction helper. Run scientific target builds only on the compute node. The checks below use synthetic fixtures or read completed targets; they never build the pipeline.</p>
+</div>
+</div>
+<div class="manual-procedure callout callout-style-default callout-tip no-icon callout-titled" title="Record Coordinate Policy And Declare Helpers" data-manual-kind="procedure">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span><i class="fa-solid fa-person-walking" aria-label="person-walking"></i> Procedure: Record Coordinate Policy And Declare Helpers
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><strong>Reviewed policy: preserve legacy missing coordinates for UNICEF.</strong> Both <code>unicef</code> and <code>unicef2</code> retain missing coordinates in S7 even when S6 selected a valid UNICEF candidate. The policy is a tracked target, and the coordinate status explicitly identifies these rows. Other labels ending in <code>2</code> use their stored source pair; the original label remains in <code>gps_source_raw</code>.</p>
+<p>Centroids use the same <code>sf::st_centroid()</code> operation and input CRS as the legacy script. Only the selected, nonempty geometries need calculation. No new projection, geodesic algorithm, or point-on-surface rule is introduced. Empty geometries yield missing coordinates. The spatial runtime from page 23 remains a dependency of location extraction and centroid calculation.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb1-1"><a href="#cb1-1"></a>s7_clinic_coordinate_policy_list &lt;- list(</span>
+<span id="cb1-2"><a href="#cb1-2"></a>  unicef = "legacy_missing",</span>
+<span id="cb1-3"><a href="#cb1-3"></a>  centroid = "legacy_st_centroid_input_crs",</span>
+<span id="cb1-4"><a href="#cb1-4"></a>  legacy_revision = "31e0769683e133e136b09ac0c6608c5a12657a9a")</span>
+<span id="cb1-5"><a href="#cb1-5"></a>s7_clinic_centroid_xy_fn &lt;- function(geometry) {</span>
+<span id="cb1-6"><a href="#cb1-6"></a>  result &lt;- matrix(NA_real_, nrow = length(geometry), ncol = 2L,</span>
+<span id="cb1-7"><a href="#cb1-7"></a>                   dimnames = list(NULL, c("x", "y")))</span>
+<span id="cb1-8"><a href="#cb1-8"></a>  present &lt;- which(!sf::st_is_empty(geometry))</span>
+<span id="cb1-9"><a href="#cb1-9"></a>  if (length(present)) {</span>
+<span id="cb1-10"><a href="#cb1-10"></a>    result[present, ] &lt;- sf::st_coordinates(sf::st_centroid(geometry[present]))[, c("X", "Y"), drop = FALSE]</span>
+<span id="cb1-11"><a href="#cb1-11"></a>  }</span>
+<span id="cb1-12"><a href="#cb1-12"></a>  result</span>
+<span id="cb1-13"><a href="#cb1-13"></a>}</span>
+<span id="cb1-14"><a href="#cb1-14"></a>s7_clinic_selected_coordinates_fn &lt;- function(locations, policy) {</span>
+<span id="cb1-15"><a href="#cb1-15"></a>  stopifnot(identical(policy$unicef, "legacy_missing"))</span>
+<span id="cb1-16"><a href="#cb1-16"></a>  label &lt;- sub("2$", "", as.character(locations$which_use))</span>
+<span id="cb1-17"><a href="#cb1-17"></a>  result &lt;- tibble::tibble(fs_uid = locations$fs_uid,</span>
+<span id="cb1-18"><a href="#cb1-18"></a>    gps_source_raw = as.character(locations$which_use), which_use = label,</span>
+<span id="cb1-19"><a href="#cb1-19"></a>    clinic_x = rep(NA_real_, nrow(locations)), clinic_y = rep(NA_real_, nrow(locations)))</span>
+<span id="cb1-20"><a href="#cb1-20"></a>  for (source in c("who", "mdss", "sect", "gps")) {</span>
+<span id="cb1-21"><a href="#cb1-21"></a>    selected &lt;- which(label == source)</span>
+<span id="cb1-22"><a href="#cb1-22"></a>    if (length(selected)) {</span>
+<span id="cb1-23"><a href="#cb1-23"></a>      result$clinic_x[selected] &lt;- as.numeric(locations[[paste0(source, "_x")]][selected])</span>
+<span id="cb1-24"><a href="#cb1-24"></a>      result$clinic_y[selected] &lt;- as.numeric(locations[[paste0(source, "_y")]][selected])</span>
+<span id="cb1-25"><a href="#cb1-25"></a>    }</span>
+<span id="cb1-26"><a href="#cb1-26"></a>  }</span>
+<span id="cb1-27"><a href="#cb1-27"></a>  selected &lt;- which(label == "fkt_centroid")</span>
+<span id="cb1-28"><a href="#cb1-28"></a>  if (length(selected)) {</span>
+<span id="cb1-29"><a href="#cb1-29"></a>    xy &lt;- s7_clinic_centroid_xy_fn(locations$fkt_geometry[selected])</span>
+<span id="cb1-30"><a href="#cb1-30"></a>    result$clinic_x[selected] &lt;- xy[, "x"]</span>
+<span id="cb1-31"><a href="#cb1-31"></a>    result$clinic_y[selected] &lt;- xy[, "y"]</span>
+<span id="cb1-32"><a href="#cb1-32"></a>  }</span>
+<span id="cb1-33"><a href="#cb1-33"></a>  result</span>
+<span id="cb1-34"><a href="#cb1-34"></a>}</span>
+<span id="cb1-35"><a href="#cb1-35"></a>s7_clinic_reporting_long_fn &lt;- function(tracker) {</span>
+<span id="cb1-36"><a href="#cb1-36"></a>  tracker %&gt;% tidyr::pivot_longer(!clinic_ID, names_to = "year_month", values_to = "fname") %&gt;%</span>
+<span id="cb1-37"><a href="#cb1-37"></a>    tidyr::separate_wider_position(year_month, widths = c(1, year = 4, 2, month = 2), cols_remove = FALSE) %&gt;%</span>
+<span id="cb1-38"><a href="#cb1-38"></a>    mutate(across(c(year, month), as.numeric))</span>
+<span id="cb1-39"><a href="#cb1-39"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</div>
+<div class="manual-procedure callout callout-style-default callout-tip no-icon callout-titled" title="Reshape The Reporting Calendar And Attach Database Codes" data-manual-kind="procedure">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span><i class="fa-solid fa-person-walking" aria-label="person-walking"></i> Procedure: Reshape The Reporting Calendar And Attach Database Codes
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Read the compact reporting tracker, retaining every existing calendar column and its <code>fname == 0</code> rows. Do not manufacture months absent from the tracker. The historical join uses clinic, year, month, and source file together. Code strings retain their leading zeros. A missing code is filled with the clinic UID only for reported months in 2020 or later, as in the legacy script.</p>
+<p>The join retains repeated historical rows. The reporting-key audit exposes expansion instead of silently choosing a code or deleting duplicate rows. <code>database_code_origin</code> records the UID fallback separately from a historical crosswalk code. <code>year_month</code> remains in the long intermediate for checks.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb2-1"><a href="#cb2-1"></a>s7_clinic_reporting_track_df &lt;- duckplyr::read_parquet_duckdb(</span>
+<span id="cb2-2"><a href="#cb2-2"></a>  s4a_clinic_reporting_track_parquet, prudence = "stingy") %&gt;% collect()</span>
+<span id="cb2-3"><a href="#cb2-3"></a>s7_clinic_reporting_long_df &lt;- s7_clinic_reporting_long_fn(s7_clinic_reporting_track_df)</span>
+<span id="cb2-4"><a href="#cb2-4"></a>s7_clinic_reporting_metadata_df &lt;- s7_clinic_reporting_long_df %&gt;%</span>
+<span id="cb2-5"><a href="#cb2-5"></a>  select(-year_month) %&gt;%</span>
+<span id="cb2-6"><a href="#cb2-6"></a>  left_join(s2_clinic_ids_df %&gt;% transmute(clinic_ID, year = cAnnee, month = cPeriode,</span>
+<span id="cb2-7"><a href="#cb2-7"></a>    fname, clinic_database_code = as.character(cCodeStru)),</span>
+<span id="cb2-8"><a href="#cb2-8"></a>    by = c("clinic_ID", "year", "month", "fname")) %&gt;%</span>
+<span id="cb2-9"><a href="#cb2-9"></a>  mutate(database_code_origin = case_when(</span>
+<span id="cb2-10"><a href="#cb2-10"></a>      !is.na(clinic_database_code) ~ "historical_crosswalk",</span>
+<span id="cb2-11"><a href="#cb2-11"></a>      is.na(clinic_database_code) &amp; fname != 0 &amp; year &gt;= 2020 ~ "reported_uid_fallback",</span>
+<span id="cb2-12"><a href="#cb2-12"></a>      TRUE ~ "missing"),</span>
+<span id="cb2-13"><a href="#cb2-13"></a>    clinic_database_code = ifelse(is.na(clinic_database_code) &amp; fname != 0 &amp; year &gt;= 2020,</span>
+<span id="cb2-14"><a href="#cb2-14"></a>      clinic_ID, clinic_database_code))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</div>
+<div class="manual-procedure callout callout-style-default callout-tip no-icon callout-titled" title="Summarize Reporting And Apply Attribute Precedence" data-manual-kind="procedure">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span><i class="fa-solid fa-person-walking" aria-label="person-walking"></i> Procedure: Summarize Reporting And Apply Attribute Precedence
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The clinic-level population includes only clinics with at least one retained report. <code>n_month</code> counts distinct reported calendar labels; <code>first_report</code> and <code>last_report</code> use those zero-padded labels, not a duration calculation.</p>
+<p>Sectorization attributes win when present. The historical fallback uses all records tied at <code>cAnnee + cPeriode / 13</code>’s maximum, then the legacy distinct attribute projection. The shared <code>unique_nonNA()</code> helper retains multiple nonmissing values. Neither source ambiguity nor tied latest descriptions is reduced to <code>first()</code>; audits expose those conditions before interpreting the result as one record per clinic.</p>
+<p>Ownership is a legacy heuristic: a nonmissing sectorization type other than <code>FSP</code> implies public, with <code>ID_checked</code> as fallback. It is computed before historical type fallback, preserving the original order. Normalize <code>FSP_</code> as in the source. The added origin fields describe this precedence; they do not claim a validated ownership or facility-type history.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb3-1"><a href="#cb3-1"></a>s7_clinic_reporting_summary_df &lt;- s7_clinic_reporting_long_df %&gt;%</span>
+<span id="cb3-2"><a href="#cb3-2"></a>  filter(fname != 0) %&gt;%</span>
+<span id="cb3-3"><a href="#cb3-3"></a>  summarise(n_month = n_distinct(year_month), first_report = min(year_month),</span>
+<span id="cb3-4"><a href="#cb3-4"></a>            last_report = max(year_month), .by = clinic_ID)</span>
+<span id="cb3-5"><a href="#cb3-5"></a>s7_clinic_sectorization_attributes_df &lt;- s5_sectorization_2022_clean_sf %&gt;%</span>
+<span id="cb3-6"><a href="#cb3-6"></a>  sf::st_drop_geometry() %&gt;%</span>
+<span id="cb3-7"><a href="#cb3-7"></a>  summarise(across(c(region_uid:district_name, fs_type, fs_name, f_or_nf),</span>
+<span id="cb3-8"><a href="#cb3-8"></a>                   s6_clinic_location_unique_nonNA_fn), .by = fs_uid)</span>
+<span id="cb3-9"><a href="#cb3-9"></a>s7_clinic_latest_historical_attributes_df &lt;- s2_clinic_ids_df %&gt;%</span>
+<span id="cb3-10"><a href="#cb3-10"></a>  filter((cAnnee + cPeriode / 13) == max(cAnnee + cPeriode / 13), .by = clinic_ID) %&gt;%</span>
+<span id="cb3-11"><a href="#cb3-11"></a>  select(clinic_ID, fs_name2 = cNom, fs_type2 = type_map, ID_checked) %&gt;% distinct()</span>
+<span id="cb3-12"><a href="#cb3-12"></a>s7_clinic_metadata_attributes_df &lt;- s7_clinic_reporting_summary_df %&gt;%</span>
+<span id="cb3-13"><a href="#cb3-13"></a>  left_join(s7_clinic_sectorization_attributes_df, by = c("clinic_ID" = "fs_uid")) %&gt;%</span>
+<span id="cb3-14"><a href="#cb3-14"></a>  left_join(s7_clinic_latest_historical_attributes_df, by = "clinic_ID") %&gt;%</span>
+<span id="cb3-15"><a href="#cb3-15"></a>  mutate(across(c(fs_type, fs_type2), ~gsub("FSP_", "FSP", .x)),</span>
+<span id="cb3-16"><a href="#cb3-16"></a>    fs_name_origin = case_when(!is.na(fs_name) ~ "sectorization_2022",</span>
+<span id="cb3-17"><a href="#cb3-17"></a>      !is.na(fs_name2) ~ "latest_historical", TRUE ~ "missing"),</span>
+<span id="cb3-18"><a href="#cb3-18"></a>    fs_type_origin = case_when(!is.na(fs_type) ~ "sectorization_2022",</span>
+<span id="cb3-19"><a href="#cb3-19"></a>      !is.na(fs_type2) ~ "latest_historical", TRUE ~ "missing"),</span>
+<span id="cb3-20"><a href="#cb3-20"></a>    pub_priv_origin = case_when(!is.na(fs_type) ~ "sectorization_type_heuristic",</span>
+<span id="cb3-21"><a href="#cb3-21"></a>      !is.na(ID_checked) ~ "id_checked_heuristic", TRUE ~ "missing"),</span>
+<span id="cb3-22"><a href="#cb3-22"></a>    pub_priv = ifelse(fs_type != "FSP", "public", "private"),</span>
+<span id="cb3-23"><a href="#cb3-23"></a>    pub_priv2 = ifelse(ID_checked, "public", "private"),</span>
+<span id="cb3-24"><a href="#cb3-24"></a>    fs_type = ifelse(is.na(fs_type), fs_type2, fs_type),</span>
+<span id="cb3-25"><a href="#cb3-25"></a>    fs_name = ifelse(is.na(fs_name), fs_name2, fs_name),</span>
+<span id="cb3-26"><a href="#cb3-26"></a>    pub_priv = ifelse(is.na(pub_priv), pub_priv2, pub_priv)) %&gt;%</span>
+<span id="cb3-27"><a href="#cb3-27"></a>  select(-fs_type2, -fs_name2, -pub_priv2)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</div>
+<div class="manual-procedure callout callout-style-default callout-tip no-icon callout-titled" title="Extract Coordinates And Fill The Selected Healthshed Centroids" data-manual-kind="procedure">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span><i class="fa-solid fa-person-walking" aria-label="person-walking"></i> Procedure: Extract Coordinates And Fill The Selected Healthshed Centroids
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Attach healthshed geometry and the selected-coordinate table by clinic UID. These ordinary dataframe intermediates retain an <code>sfc</code> column while geometry is needed. A selected healthshed centroid is computed after that join. The raw selection label remains distinct from the normalized display label.</p>
+<p><code>coordinate_status</code> distinguishes an available pair, the deliberate UNICEF parity gap, an absent location decision, and other missing selected pairs. It does not label a missing coordinate successful because S6 chose a source.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb4-1"><a href="#cb4-1"></a>s7_clinic_selected_coordinates_df &lt;- {</span>
+<span id="cb4-2"><a href="#cb4-2"></a>  s5_spatial_runtime_list</span>
+<span id="cb4-3"><a href="#cb4-3"></a>  s7_clinic_selected_coordinates_fn(s6_clinic_locations_selected_sf, s7_clinic_coordinate_policy_list)</span>
+<span id="cb4-4"><a href="#cb4-4"></a>}</span>
+<span id="cb4-5"><a href="#cb4-5"></a>s7_clinic_metadata_located_df &lt;- s7_clinic_metadata_attributes_df %&gt;%</span>
+<span id="cb4-6"><a href="#cb4-6"></a>  left_join(as.data.frame(select(s5_healthshed_clinic_final_sf, clinic_ID = fs_uid, geometry)),</span>
+<span id="cb4-7"><a href="#cb4-7"></a>            by = "clinic_ID") %&gt;%</span>
+<span id="cb4-8"><a href="#cb4-8"></a>  left_join(s7_clinic_selected_coordinates_df, by = c("clinic_ID" = "fs_uid"))</span>
+<span id="cb4-9"><a href="#cb4-9"></a>s7_clinic_metadata_centroid_filled_df &lt;- {</span>
+<span id="cb4-10"><a href="#cb4-10"></a>  s5_spatial_runtime_list</span>
+<span id="cb4-11"><a href="#cb4-11"></a>  x &lt;- s7_clinic_metadata_located_df</span>
+<span id="cb4-12"><a href="#cb4-12"></a>  selected &lt;- which(x$which_use == "shed_centroid")</span>
+<span id="cb4-13"><a href="#cb4-13"></a>  if (length(selected)) {</span>
+<span id="cb4-14"><a href="#cb4-14"></a>    xy &lt;- s7_clinic_centroid_xy_fn(x$geometry[selected])</span>
+<span id="cb4-15"><a href="#cb4-15"></a>    x$clinic_x[selected] &lt;- xy[, "x"]</span>
+<span id="cb4-16"><a href="#cb4-16"></a>    x$clinic_y[selected] &lt;- xy[, "y"]</span>
+<span id="cb4-17"><a href="#cb4-17"></a>  }</span>
+<span id="cb4-18"><a href="#cb4-18"></a>  x %&gt;% rename(healthshed_geometry = geometry) %&gt;%</span>
+<span id="cb4-19"><a href="#cb4-19"></a>    mutate(coordinate_status = case_when(</span>
+<span id="cb4-20"><a href="#cb4-20"></a>      which_use == "unicef" ~ "legacy_unicef_missing",</span>
+<span id="cb4-21"><a href="#cb4-21"></a>      is.na(which_use) | which_use == "none" ~ "no_selected_location",</span>
+<span id="cb4-22"><a href="#cb4-22"></a>      !is.na(clinic_x) &amp; !is.na(clinic_y) ~ "available_pair",</span>
+<span id="cb4-23"><a href="#cb4-23"></a>      TRUE ~ "missing_selected_pair"))</span>
+<span id="cb4-24"><a href="#cb4-24"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</div>
+<div class="manual-procedure callout callout-style-default callout-tip no-icon callout-titled" title="Retain Ownership Inference And Reviewed Neighbor Evidence" data-manual-kind="procedure">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span><i class="fa-solid fa-person-walking" aria-label="person-walking"></i> Procedure: Retain Ownership Inference And Reviewed Neighbor Evidence
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The final ownership fallback marks an otherwise unclassified clinic private when it reported since <code>y2022_m01</code> and is absent from sectorization. The origin field names this inference. Historical comments about 36 such clinics are comparison observations, not assertions.</p>
+<p>Read only the two reviewed pairing fields needed by the legacy join. Preserve missing and blank strings, duplicate pairing rows, and the join’s multiplicity; these are visible in the endpoint and final-key audits. A proposed neighbor does not replace the reporting clinic UID and no merge is performed.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb5-1"><a href="#cb5-1"></a>s7_clinic_metadata_classified_df &lt;- s7_clinic_metadata_centroid_filled_df %&gt;%</span>
+<span id="cb5-2"><a href="#cb5-2"></a>  mutate(pub_priv_origin = ifelse(is.na(pub_priv) &amp; last_report &gt;= "y2022_m01" &amp;</span>
+<span id="cb5-3"><a href="#cb5-3"></a>      !clinic_ID %in% s5_sectorization_2022_clean_sf$fs_uid,</span>
+<span id="cb5-4"><a href="#cb5-4"></a>      "recent_report_absent_sectorization_heuristic", pub_priv_origin),</span>
+<span id="cb5-5"><a href="#cb5-5"></a>    pub_priv = ifelse(is.na(pub_priv) &amp; last_report &gt;= "y2022_m01" &amp;</span>
+<span id="cb5-6"><a href="#cb5-6"></a>      !clinic_ID %in% s5_sectorization_2022_clean_sf$fs_uid, "private", pub_priv))</span>
+<span id="cb5-7"><a href="#cb5-7"></a>s7_clinic_neighbor_member_chr &lt;- s3_dictionary_archive_member_fn(s2_clinic_months_raw_zip,</span>
+<span id="cb5-8"><a href="#cb5-8"></a>  "data/raw/symphonia_verified/VERIFIED public_active_fs_missing_fkt.csv")</span>
+<span id="cb5-9"><a href="#cb5-9"></a>s7_clinic_neighbor_pairings_df &lt;- s3_dictionary_archive_read_fn(</span>
+<span id="cb5-10"><a href="#cb5-10"></a>  s2_clinic_months_raw_zip, s7_clinic_neighbor_member_chr, function(path) {</span>
+<span id="cb5-11"><a href="#cb5-11"></a>    read.csv(path, fileEncoding = "UTF-8", colClasses = "character", stringsAsFactors = FALSE) %&gt;%</span>
+<span id="cb5-12"><a href="#cb5-12"></a>      select(clinic_ID = fs_uid, neighbor_to_merge = clinic.uid.to.be.paired.with)</span>
+<span id="cb5-13"><a href="#cb5-13"></a>  })</span>
+<span id="cb5-14"><a href="#cb5-14"></a>s7_clinic_spatial_metadata_df &lt;- s7_clinic_metadata_classified_df %&gt;%</span>
+<span id="cb5-15"><a href="#cb5-15"></a>  left_join(s7_clinic_neighbor_pairings_df, by = "clinic_ID") %&gt;%</span>
+<span id="cb5-16"><a href="#cb5-16"></a>  mutate(has_healthshed = !sf::st_is_empty(healthshed_geometry)) %&gt;%</span>
+<span id="cb5-17"><a href="#cb5-17"></a>  rename(gps_source = which_use) %&gt;% select(-healthshed_geometry)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</div>
+<div class="manual-procedure callout callout-style-default callout-tip no-icon callout-titled" title="Expose Multiplicity, Calendar, And Pairing Audits" data-manual-kind="procedure">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span><i class="fa-solid fa-person-walking" aria-label="person-walking"></i> Procedure: Expose Multiplicity, Calendar, And Pairing Audits
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The monthly key and clinic-level key are claims to examine with these audits, not enforced by deleting repeated rows. The sectorization audit counts distinct nonmissing source values before summary; incompatible vector lengths may still raise the legacy summary error. The historical audit reports distinct tied latest descriptions. No audit rows are published during notebook rendering.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb6-1"><a href="#cb6-1"></a>s7_clinic_reporting_key_audit_df &lt;- s7_clinic_reporting_metadata_df %&gt;%</span>
+<span id="cb6-2"><a href="#cb6-2"></a>  summarise(rows = n(), codes = n_distinct(clinic_database_code),</span>
+<span id="cb6-3"><a href="#cb6-3"></a>    sources = n_distinct(fname), .by = c(clinic_ID, year, month)) %&gt;%</span>
+<span id="cb6-4"><a href="#cb6-4"></a>  filter(rows != 1 | is.na(clinic_ID) | is.na(year) | is.na(month) | month &lt; 1 | month &gt; 12)</span>
+<span id="cb6-5"><a href="#cb6-5"></a>s7_clinic_reporting_calendar_audit_df &lt;- s7_clinic_reporting_long_df %&gt;%</span>
+<span id="cb6-6"><a href="#cb6-6"></a>  distinct(year_month, year, month) %&gt;%</span>
+<span id="cb6-7"><a href="#cb6-7"></a>  mutate(valid_calendar = grepl("^y[0-9]{4}_m(0[1-9]|1[0-2])$", year_month))</span>
+<span id="cb6-8"><a href="#cb6-8"></a>s7_clinic_sectorization_attribute_audit_df &lt;- s5_sectorization_2022_clean_sf %&gt;%</span>
+<span id="cb6-9"><a href="#cb6-9"></a>  sf::st_drop_geometry() %&gt;%</span>
+<span id="cb6-10"><a href="#cb6-10"></a>  summarise(across(c(region_uid:district_name, fs_type, fs_name, f_or_nf),</span>
+<span id="cb6-11"><a href="#cb6-11"></a>    ~n_distinct(.x, na.rm = TRUE), .names = "{.col}_n_values"), .by = fs_uid) %&gt;%</span>
+<span id="cb6-12"><a href="#cb6-12"></a>  filter(if_any(ends_with("_n_values"), ~.x &gt; 1L))</span>
+<span id="cb6-13"><a href="#cb6-13"></a>s7_clinic_historical_attribute_audit_df &lt;- s7_clinic_latest_historical_attributes_df %&gt;%</span>
+<span id="cb6-14"><a href="#cb6-14"></a>  count(clinic_ID, name = "latest_descriptions") %&gt;% filter(latest_descriptions &gt; 1L)</span>
+<span id="cb6-15"><a href="#cb6-15"></a>s7_clinic_spatial_key_audit_df &lt;- s7_clinic_spatial_metadata_df %&gt;%</span>
+<span id="cb6-16"><a href="#cb6-16"></a>  count(clinic_ID, name = "rows") %&gt;% filter(rows != 1 | is.na(clinic_ID))</span>
+<span id="cb6-17"><a href="#cb6-17"></a>s7_clinic_neighbor_audit_df &lt;- s7_clinic_neighbor_pairings_df %&gt;%</span>
+<span id="cb6-18"><a href="#cb6-18"></a>  add_count(clinic_ID, name = "pairing_rows") %&gt;%</span>
+<span id="cb6-19"><a href="#cb6-19"></a>  mutate(source_in_metadata = clinic_ID %in% s7_clinic_reporting_summary_df$clinic_ID,</span>
+<span id="cb6-20"><a href="#cb6-20"></a>    neighbor_blank = !is.na(neighbor_to_merge) &amp; trimws(neighbor_to_merge) == "",</span>
+<span id="cb6-21"><a href="#cb6-21"></a>    neighbor_missing = is.na(neighbor_to_merge),</span>
+<span id="cb6-22"><a href="#cb6-22"></a>    neighbor_in_metadata = neighbor_to_merge %in% s7_clinic_reporting_summary_df$clinic_ID,</span>
+<span id="cb6-23"><a href="#cb6-23"></a>    self_pair = !is.na(neighbor_to_merge) &amp; clinic_ID == neighbor_to_merge)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</div>
+<div class="manual-procedure callout callout-style-default callout-tip no-icon callout-titled" title="Write The Two Nonspatial Parquet Handoffs" data-manual-kind="procedure">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span><i class="fa-solid fa-person-walking" aria-label="person-walking"></i> Procedure: Write The Two Nonspatial Parquet Handoffs
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>File target</th>
+<th>Destination and grain</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>s7_clinic_reporting_metadata_parquet</code></td>
+<td><code>data/intermediates/clinic_reporting_metadata.parquet</code>; clinic/year/month, with repeated-key evidence retained</td>
+</tr>
+<tr class="even">
+<td><code>s7_clinic_spatial_metadata_parquet</code></td>
+<td><code>data/intermediates/clinic_spatial_metadata.parquet</code>; clinic-level attributes, with source ambiguities retained</td>
+</tr>
+</tbody>
+</table>
+<p>The schemas retain the legacy columns and add field origins, raw location labels, and coordinate status. No <code>sfc</code> columns enter Parquet. Consumers must inspect the key audits before assuming uniqueness. Page 23’s final healthshed <code>sf</code> remains the geometry handoff. These are curated intermediates; release approval and publication belong to the <a href="../releases/19_page-package-release.html">release pages</a>.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb7-1"><a href="#cb7-1"></a>s7_clinic_metadata_write_fn &lt;- function(x, path) {</span>
+<span id="cb7-2"><a href="#cb7-2"></a>  stopifnot(!any(vapply(x, inherits, logical(1), what = "sfc")))</span>
+<span id="cb7-3"><a href="#cb7-3"></a>  s5_healthshed_write_table_fn(x, path)</span>
+<span id="cb7-4"><a href="#cb7-4"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb8-1"><a href="#cb8-1"></a>#| format: file</span>
+<span id="cb8-2"><a href="#cb8-2"></a>s7_clinic_reporting_metadata_parquet &lt;- s7_clinic_metadata_write_fn(s7_clinic_reporting_metadata_df,</span>
+<span id="cb8-3"><a href="#cb8-3"></a>  here::here("data/intermediates/clinic_reporting_metadata.parquet"))</span>
+<span id="cb8-4"><a href="#cb8-4"></a>s7_clinic_spatial_metadata_parquet &lt;- s7_clinic_metadata_write_fn(s7_clinic_spatial_metadata_df,</span>
+<span id="cb8-5"><a href="#cb8-5"></a>  here::here("data/intermediates/clinic_spatial_metadata.parquet"))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</div>
+<div class="manual-check callout callout-style-default callout-warning no-icon callout-titled" title="Explore Metadata Against The Most Recent Archived Data" data-manual-kind="check">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Warning</span><i class="fa-solid fa-clipboard-check" aria-label="clipboard-check"></i> Check: Explore Metadata Against The Most Recent Archived Data
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The synthetic checks exercise reference transformations, code fallback, attribute precedence, selected coordinates and centroid handling, UNICEF parity, ownership, pairings, and Parquet round trips. Graph checks construct declarations without building targets.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode numberSource sh number-lines code-with-copy"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1"></a><span class="ex">scripts/mdg-healthshed-clinic-data</span> exec Rscript tests/check-clinic-metadata.R</span>
+<span id="cb9-2"><a href="#cb9-2"></a><span class="ex">scripts/mdg-healthshed-clinic-data</span> exec Rscript tests/check-data-storage-convention.R</span>
+<span id="cb9-3"><a href="#cb9-3"></a><span class="ex">python3</span> tests/check-manual-structure.py</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>After S7 runs on the compute node, use the following <strong>read-only EDA prompts</strong> in an authorized R session. These plain R examples are not tangled into the graph and do not run during rendering. They write no data and build no targets. The <a href="../pipeline/mapping/legacy-pipeline-map.html#most-recent-archived-data-comparison-baseline">most recent archived data baseline</a> selects the October 2024 ZIP <code>data/clean/</code> CSVs for this stage; no newer final metadata exports were found. These predate the ZIP’s May 4, 2025 diagnosis family and must not be described as outputs associated with that run. Read identifiers as character and decode the old CSVs as CP1252; their accented text is not UTF-8. Fix comparison contracts before interpreting changed values as scientific disagreements.</p>
+<p><strong>Current scope (2026-11-08).</strong> The researcher reports that the initial shape checks on pages 18–21 appear to pass and considers shape checks sufficient to continue building. Begin with the side-by-side summaries below. Different source vintages can produce different dimensions and calendars; record those differences rather than forcing matching counts. The later value/provenance EDA is available when needed.</p>
+<p><strong>Are clinic sets, reporting calendars, and keys comparable?</strong> Inspect both sides’ multiplicity before joining. The new reporting tracker comes from S4; the archived script used an October 2024 intermediate tracker that differs from the selected ZIP’s May 4, 2025 diagnosis tracker. A calendar difference may therefore begin upstream.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1"></a><span class="fu">library</span>(dplyr)</span>
+<span id="cb10-2"><a href="#cb10-2"></a><span class="fu">library</span>(tidyr)</span>
+<span id="cb10-3"><a href="#cb10-3"></a>archived_baseline <span class="ot">&lt;-</span> <span class="fu">dget</span>(here<span class="sc">::</span><span class="fu">here</span>(<span class="st">"src"</span>, <span class="st">"archived-comparison-baseline.R"</span>))</span>
+<span id="cb10-4"><a href="#cb10-4"></a>archive <span class="ot">&lt;-</span> here<span class="sc">::</span><span class="fu">here</span>(archived_baseline<span class="sc">$</span>archive_zip)</span>
+<span id="cb10-5"><a href="#cb10-5"></a>read_fn <span class="ot">&lt;-</span> targets<span class="sc">::</span><span class="fu">tar_read</span>(s3_dictionary_archive_read_fn)</span>
+<span id="cb10-6"><a href="#cb10-6"></a>read_old <span class="ot">&lt;-</span> <span class="cf">function</span>(member, classes) <span class="fu">read_fn</span>(archive, member, <span class="cf">function</span>(path) {</span>
+<span id="cb10-7"><a href="#cb10-7"></a>  <span class="fu">read.csv</span>(path, <span class="at">fileEncoding =</span> <span class="st">"CP1252"</span>, <span class="at">colClasses =</span> classes, <span class="at">stringsAsFactors =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb10-8"><a href="#cb10-8"></a>})</span>
+<span id="cb10-9"><a href="#cb10-9"></a>old_time <span class="ot">&lt;-</span> <span class="fu">read_old</span>(archived_baseline<span class="sc">$</span>reporting_metadata_member,</span>
+<span id="cb10-10"><a href="#cb10-10"></a>  <span class="fu">c</span>(<span class="at">clinic_ID =</span> <span class="st">"character"</span>, <span class="at">clinic_database_code =</span> <span class="st">"character"</span>))</span>
+<span id="cb10-11"><a href="#cb10-11"></a>old_spatial <span class="ot">&lt;-</span> <span class="fu">read_old</span>(archived_baseline<span class="sc">$</span>spatial_metadata_member, <span class="fu">c</span>(<span class="at">clinic_ID =</span> <span class="st">"character"</span>))</span>
+<span id="cb10-12"><a href="#cb10-12"></a>new_time <span class="ot">&lt;-</span> targets<span class="sc">::</span><span class="fu">tar_read</span>(s7_clinic_reporting_metadata_df)</span>
+<span id="cb10-13"><a href="#cb10-13"></a>new_spatial <span class="ot">&lt;-</span> targets<span class="sc">::</span><span class="fu">tar_read</span>(s7_clinic_spatial_metadata_df)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Dimensions and key multiplicity for both metadata products.</strong> Added provenance columns can explain schema differences. For reporting metadata, the key is clinic/year/month; for spatial metadata, it is clinic.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1"></a><span class="co"># Shape check: metadata-dimensions</span></span>
+<span id="cb11-2"><a href="#cb11-2"></a>metadata_shape <span class="ot">&lt;-</span> <span class="cf">function</span>(x, keys) tibble<span class="sc">::</span><span class="fu">tibble</span>(</span>
+<span id="cb11-3"><a href="#cb11-3"></a>  <span class="at">rows =</span> <span class="fu">nrow</span>(x), <span class="at">columns =</span> <span class="fu">length</span>(<span class="fu">names</span>(x)),</span>
+<span id="cb11-4"><a href="#cb11-4"></a>  <span class="at">clinics =</span> dplyr<span class="sc">::</span><span class="fu">n_distinct</span>(x<span class="sc">$</span>clinic_ID, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb11-5"><a href="#cb11-5"></a>  <span class="at">missing_key_rows =</span> <span class="fu">sum</span>(<span class="sc">!</span>stats<span class="sc">::</span><span class="fu">complete.cases</span>(x[keys])),</span>
+<span id="cb11-6"><a href="#cb11-6"></a>  <span class="at">unique_keys =</span> <span class="fu">nrow</span>(dplyr<span class="sc">::</span><span class="fu">distinct</span>(x, dplyr<span class="sc">::</span><span class="fu">across</span>(dplyr<span class="sc">::</span><span class="fu">all_of</span>(keys)))),</span>
+<span id="cb11-7"><a href="#cb11-7"></a>  <span class="at">extra_key_rows =</span> <span class="fu">nrow</span>(x) <span class="sc">-</span> <span class="fu">nrow</span>(dplyr<span class="sc">::</span><span class="fu">distinct</span>(x, dplyr<span class="sc">::</span><span class="fu">across</span>(dplyr<span class="sc">::</span><span class="fu">all_of</span>(keys))))</span>
+<span id="cb11-8"><a href="#cb11-8"></a>)</span>
+<span id="cb11-9"><a href="#cb11-9"></a>metadata_shapes <span class="ot">&lt;-</span> dplyr<span class="sc">::</span><span class="fu">bind_rows</span>(</span>
+<span id="cb11-10"><a href="#cb11-10"></a>  <span class="st">`</span><span class="at">most recent archived data</span><span class="st">`</span> <span class="ot">=</span> dplyr<span class="sc">::</span><span class="fu">bind_rows</span>(</span>
+<span id="cb11-11"><a href="#cb11-11"></a>    <span class="at">reporting =</span> <span class="fu">metadata_shape</span>(old_time, <span class="fu">c</span>(<span class="st">"clinic_ID"</span>, <span class="st">"year"</span>, <span class="st">"month"</span>)),</span>
+<span id="cb11-12"><a href="#cb11-12"></a>    <span class="at">spatial =</span> <span class="fu">metadata_shape</span>(old_spatial, <span class="st">"clinic_ID"</span>), <span class="at">.id =</span> <span class="st">"product"</span>),</span>
+<span id="cb11-13"><a href="#cb11-13"></a>  <span class="st">`</span><span class="at">current pipeline</span><span class="st">`</span> <span class="ot">=</span> dplyr<span class="sc">::</span><span class="fu">bind_rows</span>(</span>
+<span id="cb11-14"><a href="#cb11-14"></a>    <span class="at">reporting =</span> <span class="fu">metadata_shape</span>(new_time, <span class="fu">c</span>(<span class="st">"clinic_ID"</span>, <span class="st">"year"</span>, <span class="st">"month"</span>)),</span>
+<span id="cb11-15"><a href="#cb11-15"></a>    <span class="at">spatial =</span> <span class="fu">metadata_shape</span>(new_spatial, <span class="st">"clinic_ID"</span>), <span class="at">.id =</span> <span class="st">"product"</span>),</span>
+<span id="cb11-16"><a href="#cb11-16"></a>  <span class="at">.id =</span> <span class="st">"source"</span></span>
+<span id="cb11-17"><a href="#cb11-17"></a>) <span class="sc">|&gt;</span></span>
+<span id="cb11-18"><a href="#cb11-18"></a>  tidyr<span class="sc">::</span><span class="fu">pivot_longer</span>(<span class="sc">-</span><span class="fu">c</span>(source, product), <span class="at">names_to =</span> <span class="st">"metric"</span>, <span class="at">values_to =</span> <span class="st">"count"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb11-19"><a href="#cb11-19"></a>  tidyr<span class="sc">::</span><span class="fu">pivot_wider</span>(<span class="at">names_from =</span> source, <span class="at">values_from =</span> count) <span class="sc">|&gt;</span></span>
+<span id="cb11-20"><a href="#cb11-20"></a>  dplyr<span class="sc">::</span><span class="fu">mutate</span>(<span class="at">difference =</span> <span class="st">`</span><span class="at">current pipeline</span><span class="st">`</span> <span class="sc">-</span> <span class="st">`</span><span class="at">most recent archived data</span><span class="st">`</span>)</span>
+<span id="cb11-21"><a href="#cb11-21"></a><span class="fu">print</span>(metadata_shapes, <span class="at">n =</span> <span class="cn">Inf</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1"></a><span class="co"># Shape check: metadata-schema</span></span>
+<span id="cb12-2"><a href="#cb12-2"></a>metadata_columns <span class="ot">&lt;-</span> <span class="cf">function</span>(x) tibble<span class="sc">::</span><span class="fu">tibble</span>(<span class="at">position =</span> <span class="fu">seq_along</span>(<span class="fu">names</span>(x)), <span class="at">column =</span> <span class="fu">names</span>(x))</span>
+<span id="cb12-3"><a href="#cb12-3"></a>dplyr<span class="sc">::</span><span class="fu">bind_rows</span>(</span>
+<span id="cb12-4"><a href="#cb12-4"></a>  <span class="st">`</span><span class="at">most recent archived data</span><span class="st">`</span> <span class="ot">=</span> dplyr<span class="sc">::</span><span class="fu">bind_rows</span>(</span>
+<span id="cb12-5"><a href="#cb12-5"></a>    <span class="at">reporting =</span> <span class="fu">metadata_columns</span>(old_time), <span class="at">spatial =</span> <span class="fu">metadata_columns</span>(old_spatial), <span class="at">.id =</span> <span class="st">"product"</span>),</span>
+<span id="cb12-6"><a href="#cb12-6"></a>  <span class="st">`</span><span class="at">current pipeline</span><span class="st">`</span> <span class="ot">=</span> dplyr<span class="sc">::</span><span class="fu">bind_rows</span>(</span>
+<span id="cb12-7"><a href="#cb12-7"></a>    <span class="at">reporting =</span> <span class="fu">metadata_columns</span>(new_time), <span class="at">spatial =</span> <span class="fu">metadata_columns</span>(new_spatial), <span class="at">.id =</span> <span class="st">"product"</span>),</span>
+<span id="cb12-8"><a href="#cb12-8"></a>  <span class="at">.id =</span> <span class="st">"source"</span></span>
+<span id="cb12-9"><a href="#cb12-9"></a>) <span class="sc">|&gt;</span></span>
+<span id="cb12-10"><a href="#cb12-10"></a>  tidyr<span class="sc">::</span><span class="fu">pivot_wider</span>(<span class="at">names_from =</span> source, <span class="at">values_from =</span> column) <span class="sc">|&gt;</span></span>
+<span id="cb12-11"><a href="#cb12-11"></a>  dplyr<span class="sc">::</span><span class="fu">arrange</span>(product, position) <span class="sc">|&gt;</span></span>
+<span id="cb12-12"><a href="#cb12-12"></a>  <span class="fu">print</span>(<span class="at">n =</span> <span class="cn">Inf</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Reporting rows per period and reporting status.</strong> An absent group contributes zero rows; <code>difference</code> is current minus archived. Repeated clinic-month keys inflate row counts, so inspect the multiplicity summary alongside this table. <code>fname = 0</code> means nonreporting; a missing <code>fname</code> remains a separate category.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb13"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1"></a><span class="co"># Shape check: metadata-periods</span></span>
+<span id="cb13-2"><a href="#cb13-2"></a>dplyr<span class="sc">::</span><span class="fu">bind_rows</span>(</span>
+<span id="cb13-3"><a href="#cb13-3"></a>  <span class="st">`</span><span class="at">most recent archived data</span><span class="st">`</span> <span class="ot">=</span> old_time <span class="sc">|&gt;</span> dplyr<span class="sc">::</span><span class="fu">count</span>(year, month, <span class="at">reported =</span> fname <span class="sc">!=</span> <span class="dv">0</span>, <span class="at">name =</span> <span class="st">"rows"</span>),</span>
+<span id="cb13-4"><a href="#cb13-4"></a>  <span class="st">`</span><span class="at">current pipeline</span><span class="st">`</span> <span class="ot">=</span> new_time <span class="sc">|&gt;</span> dplyr<span class="sc">::</span><span class="fu">count</span>(year, month, <span class="at">reported =</span> fname <span class="sc">!=</span> <span class="dv">0</span>, <span class="at">name =</span> <span class="st">"rows"</span>),</span>
+<span id="cb13-5"><a href="#cb13-5"></a>  <span class="at">.id =</span> <span class="st">"source"</span></span>
+<span id="cb13-6"><a href="#cb13-6"></a>) <span class="sc">|&gt;</span></span>
+<span id="cb13-7"><a href="#cb13-7"></a>  tidyr<span class="sc">::</span><span class="fu">pivot_wider</span>(<span class="at">names_from =</span> source, <span class="at">values_from =</span> rows, <span class="at">values_fill =</span> <span class="dv">0</span>L) <span class="sc">|&gt;</span></span>
+<span id="cb13-8"><a href="#cb13-8"></a>  dplyr<span class="sc">::</span><span class="fu">mutate</span>(<span class="at">difference =</span> <span class="st">`</span><span class="at">current pipeline</span><span class="st">`</span> <span class="sc">-</span> <span class="st">`</span><span class="at">most recent archived data</span><span class="st">`</span>) <span class="sc">|&gt;</span></span>
+<span id="cb13-9"><a href="#cb13-9"></a>  dplyr<span class="sc">::</span><span class="fu">arrange</span>(year, month, reported) <span class="sc">|&gt;</span></span>
+<span id="cb13-10"><a href="#cb13-10"></a>  <span class="fu">print</span>(<span class="at">n =</span> <span class="cn">Inf</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Continue to clinic-set, repeated-key, and calendar evidence when needed:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb14"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1"></a><span class="fu">anti_join</span>(<span class="fu">distinct</span>(old_spatial, clinic_ID), <span class="fu">distinct</span>(new_spatial, clinic_ID), <span class="at">by =</span> <span class="st">"clinic_ID"</span>)</span>
+<span id="cb14-2"><a href="#cb14-2"></a><span class="fu">anti_join</span>(<span class="fu">distinct</span>(new_spatial, clinic_ID), <span class="fu">distinct</span>(old_spatial, clinic_ID), <span class="at">by =</span> <span class="st">"clinic_ID"</span>)</span>
+<span id="cb14-3"><a href="#cb14-3"></a>old_time <span class="sc">%&gt;%</span> <span class="fu">count</span>(clinic_ID, year, month) <span class="sc">%&gt;%</span> <span class="fu">filter</span>(n <span class="sc">!=</span> <span class="dv">1</span>)</span>
+<span id="cb14-4"><a href="#cb14-4"></a>targets<span class="sc">::</span><span class="fu">tar_read</span>(s7_clinic_reporting_key_audit_df)</span>
+<span id="cb14-5"><a href="#cb14-5"></a>targets<span class="sc">::</span><span class="fu">tar_read</span>(s7_clinic_reporting_calendar_audit_df) <span class="sc">%&gt;%</span> <span class="fu">filter</span>(<span class="sc">!</span>valid_calendar)</span>
+<span id="cb14-6"><a href="#cb14-6"></a>targets<span class="sc">::</span><span class="fu">tar_read</span>(s7_clinic_spatial_key_audit_df)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Did reporting counts, codes, or source choices change for uniquely keyed records?</strong> Keep repeated keys outside the first paired comparison. Use explicit missing-value equality instead of dropping missing discrepancies with <code>!=</code>.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb15"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1"></a>time_keys <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"clinic_ID"</span>, <span class="st">"year"</span>, <span class="st">"month"</span>)</span>
+<span id="cb15-2"><a href="#cb15-2"></a>a <span class="ot">&lt;-</span> old_time <span class="sc">%&gt;%</span> <span class="fu">filter</span>(<span class="fu">n</span>() <span class="sc">==</span> <span class="dv">1</span>, <span class="at">.by =</span> <span class="fu">all_of</span>(time_keys))</span>
+<span id="cb15-3"><a href="#cb15-3"></a>b <span class="ot">&lt;-</span> new_time <span class="sc">%&gt;%</span> <span class="fu">filter</span>(<span class="fu">n</span>() <span class="sc">==</span> <span class="dv">1</span>, <span class="at">.by =</span> <span class="fu">all_of</span>(time_keys))</span>
+<span id="cb15-4"><a href="#cb15-4"></a><span class="fu">anti_join</span>(a, b, <span class="at">by =</span> time_keys)</span>
+<span id="cb15-5"><a href="#cb15-5"></a><span class="fu">anti_join</span>(b, a, <span class="at">by =</span> time_keys)</span>
+<span id="cb15-6"><a href="#cb15-6"></a>paired_time <span class="ot">&lt;-</span> <span class="fu">inner_join</span>(a, b, <span class="at">by =</span> time_keys, <span class="at">suffix =</span> <span class="fu">c</span>(<span class="st">"_old"</span>, <span class="st">"_new"</span>))</span>
+<span id="cb15-7"><a href="#cb15-7"></a>same <span class="ot">&lt;-</span> <span class="cf">function</span>(a, b) (<span class="fu">is.na</span>(a) <span class="sc">&amp;</span> <span class="fu">is.na</span>(b)) <span class="sc">|</span> <span class="fu">coalesce</span>(<span class="fu">as.character</span>(a) <span class="sc">==</span> <span class="fu">as.character</span>(b), <span class="cn">FALSE</span>)</span>
+<span id="cb15-8"><a href="#cb15-8"></a>paired_time <span class="sc">%&gt;%</span> <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">same</span>(fname_old, fname_new) <span class="sc">|</span></span>
+<span id="cb15-9"><a href="#cb15-9"></a>  <span class="sc">!</span><span class="fu">same</span>(clinic_database_code_old, clinic_database_code_new))</span>
+<span id="cb15-10"><a href="#cb15-10"></a><span class="co"># Check code provenance, including reported UID fallbacks and missing older codes:</span></span>
+<span id="cb15-11"><a href="#cb15-11"></a>new_time <span class="sc">%&gt;%</span> <span class="fu">count</span>(year, <span class="at">reported =</span> fname <span class="sc">!=</span> <span class="dv">0</span>, database_code_origin)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Are attribute and location differences traceable to a source?</strong> Restrict spatial-attribute pairing to one row per UID on both sides. Compare discrete fields first, then coordinate differences with an explicitly chosen tolerance. Inspect the raw source label, the normalized display label, and coordinate status together; <code>unicef</code> deliberately remains missing under the parity policy.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb16"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1"></a>paired_spatial <span class="ot">&lt;-</span> <span class="fu">inner_join</span>(old_spatial <span class="sc">%&gt;%</span> <span class="fu">filter</span>(<span class="fu">n</span>() <span class="sc">==</span> <span class="dv">1</span>, <span class="at">.by =</span> clinic_ID),</span>
+<span id="cb16-2"><a href="#cb16-2"></a>  new_spatial <span class="sc">%&gt;%</span> <span class="fu">filter</span>(<span class="fu">n</span>() <span class="sc">==</span> <span class="dv">1</span>, <span class="at">.by =</span> clinic_ID), <span class="at">by =</span> <span class="st">"clinic_ID"</span>, <span class="at">suffix =</span> <span class="fu">c</span>(<span class="st">"_old"</span>, <span class="st">"_new"</span>))</span>
+<span id="cb16-3"><a href="#cb16-3"></a>fields <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"n_month"</span>, <span class="st">"first_report"</span>, <span class="st">"last_report"</span>, <span class="st">"fs_name"</span>, <span class="st">"fs_type"</span>, <span class="st">"pub_priv"</span>,</span>
+<span id="cb16-4"><a href="#cb16-4"></a>            <span class="st">"gps_source"</span>, <span class="st">"neighbor_to_merge"</span>, <span class="st">"has_healthshed"</span>)</span>
+<span id="cb16-5"><a href="#cb16-5"></a><span class="fu">bind_rows</span>(<span class="fu">lapply</span>(fields, <span class="cf">function</span>(field) <span class="fu">tibble</span>(<span class="at">field =</span> field,</span>
+<span id="cb16-6"><a href="#cb16-6"></a>  <span class="at">compared =</span> <span class="fu">nrow</span>(paired_spatial), <span class="at">changed =</span> <span class="fu">sum</span>(<span class="sc">!</span><span class="fu">same</span>(paired_spatial[[<span class="fu">paste0</span>(field, <span class="st">"_old"</span>)]],</span>
+<span id="cb16-7"><a href="#cb16-7"></a>    paired_spatial[[<span class="fu">paste0</span>(field, <span class="st">"_new"</span>)]])))))</span>
+<span id="cb16-8"><a href="#cb16-8"></a>paired_spatial <span class="sc">%&gt;%</span> <span class="fu">transmute</span>(clinic_ID, gps_source_old, gps_source_new,</span>
+<span id="cb16-9"><a href="#cb16-9"></a>  <span class="at">x_missing_changed =</span> <span class="fu">is.na</span>(clinic_x_old) <span class="sc">!=</span> <span class="fu">is.na</span>(clinic_x_new),</span>
+<span id="cb16-10"><a href="#cb16-10"></a>  <span class="at">y_missing_changed =</span> <span class="fu">is.na</span>(clinic_y_old) <span class="sc">!=</span> <span class="fu">is.na</span>(clinic_y_new),</span>
+<span id="cb16-11"><a href="#cb16-11"></a>  <span class="at">delta_longitude =</span> clinic_x_new <span class="sc">-</span> clinic_x_old, <span class="at">delta_latitude =</span> clinic_y_new <span class="sc">-</span> clinic_y_old) <span class="sc">%&gt;%</span></span>
+<span id="cb16-12"><a href="#cb16-12"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(<span class="fu">abs</span>(delta_longitude)), <span class="fu">desc</span>(<span class="fu">abs</span>(delta_latitude))) <span class="sc">%&gt;%</span> <span class="fu">head</span>(<span class="dv">20</span>)</span>
+<span id="cb16-13"><a href="#cb16-13"></a>targets<span class="sc">::</span><span class="fu">tar_read</span>(s7_clinic_coordinate_policy_list)</span>
+<span id="cb16-14"><a href="#cb16-14"></a>new_spatial <span class="sc">%&gt;%</span> <span class="fu">count</span>(gps_source_raw, gps_source, coordinate_status)</span>
+<span id="cb16-15"><a href="#cb16-15"></a>new_spatial <span class="sc">%&gt;%</span> <span class="fu">count</span>(fs_name_origin, fs_type_origin, pub_priv_origin)</span>
+<span id="cb16-16"><a href="#cb16-16"></a>targets<span class="sc">::</span><span class="fu">tar_read</span>(s7_clinic_sectorization_attribute_audit_df)</span>
+<span id="cb16-17"><a href="#cb16-17"></a>targets<span class="sc">::</span><span class="fu">tar_read</span>(s7_clinic_historical_attribute_audit_df)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Which reviewed neighbors are unresolved, and which public CSBs still lack healthsheds?</strong> Inspect pairing endpoints and duplicates before treating a neighbor as usable. The legacy count of seven is an observation from its freeze. Do not turn it into a universal assertion or automatically merge rows.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb17"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1"></a>targets<span class="sc">::</span><span class="fu">tar_read</span>(s7_clinic_neighbor_audit_df) <span class="sc">%&gt;%</span></span>
+<span id="cb17-2"><a href="#cb17-2"></a>  <span class="fu">filter</span>(pairing_rows <span class="sc">&gt;</span> <span class="dv">1</span> <span class="sc">|</span> <span class="sc">!</span>source_in_metadata <span class="sc">|</span> neighbor_blank <span class="sc">|</span> neighbor_missing <span class="sc">|</span></span>
+<span id="cb17-3"><a href="#cb17-3"></a>           <span class="sc">!</span>neighbor_in_metadata <span class="sc">|</span> self_pair)</span>
+<span id="cb17-4"><a href="#cb17-4"></a>new_spatial <span class="sc">%&gt;%</span> <span class="fu">filter</span>(last_report <span class="sc">&gt;=</span> <span class="st">"y2022_m01"</span>, pub_priv <span class="sc">==</span> <span class="st">"public"</span> <span class="sc">|</span> <span class="fu">is.na</span>(pub_priv),</span>
+<span id="cb17-5"><a href="#cb17-5"></a>  <span class="sc">!</span>has_healthshed, <span class="fu">is.na</span>(neighbor_to_merge), <span class="fu">grepl</span>(<span class="st">"CSB"</span>, fs_type)) <span class="sc">%&gt;%</span></span>
+<span id="cb17-6"><a href="#cb17-6"></a>  <span class="fu">select</span>(clinic_ID, fs_name, fs_type, pub_priv, pub_priv_origin, gps_source, coordinate_status)</span>
+<span id="cb17-7"><a href="#cb17-7"></a><span class="co"># Compare the same legacy predicate on old_spatial before interpreting count changes.</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Full-data parity remains a compute-node investigation. Differences can arise from reporting selection, identity ties, S5 geometry/native versions, or S6 source choice before this page applies its documented rules.</p>
+</div>
+</div>
+
+
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="../pipeline/24_page-locate-clinics.html" class="pagination-link" aria-label="Compare and Select Clinic Locations">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Compare and Select Clinic Locations</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="../pipeline/26_page-prep-2025-2026.html" class="pagination-link" aria-label="Survey and Read the 2025–2026 Deliveries">
+        <span class="nav-page-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Survey and Read the 2025–2026 Deliveries</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

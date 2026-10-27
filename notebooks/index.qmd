@@ -32,8 +32,10 @@ important assumptions:
 
 - Individual nurses, doctors, and other clinicians hand collect physical notes;
 - These notes are aggregated into counts of disease, giving us an idea (but not strict confirmation) of prevalence;
-- This therefore constitutes _count_ data; as such, we assume that NAs in a particular category
-represent zero-counts for that disease for that time period. 
+- These are recorded counts. Missing categories can mean unavailable or
+  unreported information and must not automatically be converted to zero.
+  The [reader's guide](00_data-guide.qmd) explains the released missing-value
+  and sentinel conventions and shows comparisons with the historical archive.
 
 ## Prior Work & Plan
 
@@ -61,18 +63,16 @@ necessary to communicate more clearly, or speed up a laborious task.
 
 ## Current curation boundary
 
-The repository is ready to establish infrastructure and orchestration, but the
-following scientific decisions are intentionally not encoded yet:
+The notebooks implement historical curation from the frozen May 2025 archive,
+a separate 2025–2026 extension, final schema/key validation, and versioned
+Parquet packaging with a Frictionless descriptor. The reader's guide presents
+measured agreement for three historical diagnosis series and their observed
+extension; full all-variable scientific equivalence and external publication
+remain separate review decisions.
 
-- the authoritative source files and their provenance;
-- the unit of observation and stable identifiers;
-- the boundary between pre-DHIS2 and post-DHIS2 processing;
-- missing-value and zero-count semantics by field and era;
-- validation rules, disclosure controls, and release schema;
-- the release version and publication destination.
-
-Those decisions belong in the Pipeline pages after review by a data steward and
-domain expert. Rendering this Manual never opens files under `data/`.
+Rendering this Manual never opens files under `data/`. The guide embeds
+explicitly generated national aggregate figures; protected source records
+and clinic-level diagnostic evidence remain in the governed workspace.
 
 ## How To Read This Manual
 

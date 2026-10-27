@@ -5,7 +5,33 @@ library(dplyr)
 library(duckplyr)
 
 local({
-  manifest <- targets::tar_manifest(fields = c(name, format, command))
+  manifest <- targets::tar_manifest(fields = c(name, format, pattern, command))
+  validate_branch_dimensions <- function(graph) {
+    for (i in which(!is.na(graph$pattern) & nzchar(graph$pattern))) {
+      dimensions <- all.vars(parse(text = graph$pattern[[i]]))
+      for (dimension in dimensions) {
+        dependency <- match(dimension, graph$name)
+        if (is.na(dependency)) {
+          stop("Branch dimension is not a declared target: ", dimension)
+        }
+        is_file <- graph$format[[dependency]] %in% c("file", "file_fast")
+        has_pattern <- !is.na(graph$pattern[[dependency]]) &&
+          nzchar(graph$pattern[[dependency]])
+        if (is_file && !has_pattern) {
+          stop("Cannot branch over a static file target: ", dimension)
+        }
+      }
+    }
+    invisible(TRUE)
+  }
+  # A static file vector is an indivisible bundle, even when it contains
+  # several paths. This was legal for storage but illegal as a map() input.
+  invalid <- tibble(
+    name = c("raw_csv", "reduced_parquet"), format = c("file", "file"),
+    pattern = c(NA_character_, "map(raw_csv)")
+  )
+  stopifnot(inherits(try(validate_branch_dimensions(invalid), silent = TRUE), "try-error"))
+  validate_branch_dimensions(manifest)
   path_targets <- grepl("_(parquet|csv|xlsx|zip|yml)$", manifest$name) |
     manifest$name == "s0_pipeline_inputs_raw_chr"
   untracked <- manifest$name[path_targets & manifest$format != "file"]
@@ -13,12 +39,15 @@ local({
     stop("File paths must be file targets: ", paste(untracked, collapse = ", "))
   }
 
-  # Source formats are preserved. Every other persisted data artifact is Parquet.
+  # Source formats are preserved. Data artifacts are Parquet; the Frictionless
+  # JSON descriptor is explicitly metadata, tracked as a file as well.
   source_targets <- manifest$name == "s0_pipeline_inputs_raw_chr" |
     manifest$name == "s0_pipeline_stagecoach_yml" |
-    grepl("_raw_(csv|xlsx|zip)$", manifest$name) |
+    grepl("_raw_(csv|xlsx|zip|yml|files)$", manifest$name) |
     manifest$name == "s2_gesis_snips_verified_csv"
-  artifacts <- manifest$format == "file" & !source_targets
+  descriptor <- manifest$name == "srelease_datapackage_json"
+  stopifnot(sum(descriptor)==1L, manifest$format[descriptor]=="file")
+  artifacts <- manifest$format == "file" & !source_targets & !descriptor
   stopifnot(
     any(artifacts),
     all(grepl("_parquet$", manifest$name[artifacts])),
@@ -61,5 +90,5 @@ local({
   stopifnot(identical(result, output), file.exists(result))
   actual <- read_parquet_duckdb(result, prudence = "stingy") |> collect()
   stopifnot(isTRUE(all.equal(actual, fixture_env$s2_clinic_ids_df)))
-  message("Storage convention verified: tracked source files, Parquet artifacts, and lossless clinic-ID round trip.")
+  message("Storage convention verified: legal branch dimensions, tracked source files, Parquet artifacts, and lossless clinic-ID round trip.")
 })

@@ -1,7 +1,7 @@
 ---
 title: "Map the Legacy Clinic Pipeline to Notebooks"
 subtitle: "Responsibilities, data handoffs, and migration context for every archived script"
-date: 2026-10-26
+date: 2026-11-02
 toc: true
 execute:
   eval: false
@@ -29,10 +29,11 @@ old workflow; replacement storage locations still follow the new project's
 staging and release contracts.
 
 **Existing, in development** means a replacement notebook contains relevant
-code, not that migration or equivalence testing is complete. **Proposed** means
-the destination notebook does not yet exist. Proposed names describe a possible
-continuation of the current notebook sequence; they do not create targets or
-settle how many execution steps each notebook should contain.
+code, not that migration or equivalence testing is complete. **Planned** means
+the page records a detailed migration contract, proposed
+target boundaries, and acceptance checks, but does not implement or wire those
+targets. **Proposed** remains available for destinations not yet created. A
+plan page does not establish scientific equivalence or a successful build.
 
 Each implementation notebook should explain the scientific operation before
 its code: what one row represents, which input supplies each decision, what
@@ -49,6 +50,12 @@ target store, it writes Parquet and returns the path from a target declared
 with `format = "file"`. A path stored in an ordinary character target does
 not itself track the file's contents. A `_parquet` suffix documents the
 format; it does not replace the file-target declaration.
+
+Branch-driver path vectors are ordinary targets containing selection metadata.
+When processing files individually, map that vector into a `format = "file"`
+target with its own pattern, then map the transformation over those file
+branches. A static file target treats its returned paths as one indivisible
+bundle, so it cannot be used as the dimension for per-file branching.
 
 Staged source files retain their original CSV, Excel, ZIP, or spatial formats
 and provenance, and are also tracked as file targets. Temporary extraction
@@ -74,6 +81,11 @@ implemented.
 | [19 — Clean mapping](../19_page-clean-mapping-dhis2-gesis.qmd) | Reviewed source paths are file targets; mapping stages are ordinary data targets reused downstream. |
 | [20 — Construct clinic IDs](../20_page-construct-clinic-ids.qmd) | Raw inputs and Parquet inventories are file targets; ID transformations are ordinary data targets; the persisted crosswalk is one Parquet file target. |
 | [21 — Construct dictionary](../21_page-construct-diagnosis-dictionary.qmd) | Small dictionaries and translation provenance stay in targets; the prepared Wave 3 schema is read without collecting measurements; the final dictionary is a Parquet file target. |
+| [22 — Clean diagnoses](../22_page-clean-clinic-diagnosis.qmd) | Implemented S4 declarations use Parquet checkpoints and dynamic monthly/output-group branches; audits remain ordinary targets. |
+| [23 — Sectorization and healthsheds](../23_page-construct-healthsheds.qmd) | Ordered spatial targets, reviewed corrections, synthetic checks, and Parquet audits are wired into the graph. |
+| [24 — Clinic locations](../24_page-locate-clinics.qmd) | Frozen source tables, identity candidates, spatial evidence, selected-source labels, and audits remain ordinary targets. |
+| [25 — Clinic metadata](../25_page-combine-clinic-metadata.qmd) | Monthly reporting and clinic-level attributes use tracked Parquet products; provenance and ambiguity audits remain ordinary targets. |
+| [26 — Remaining validation plan](#remaining-migration-plan) | Proposed large tabular handoffs use Parquet file targets; spatial objects remain ordinary targets; the validation page is not wired yet. |
 | [Release packaging](../../releases/19_page-package-release.qmd), [execution](../../releases/20_page-execute-pipeline.qmd), and [verification](../../releases/21_page-verify-release.qmd) | The graph tracks data objects and Parquet artifacts; future packaging and verification consume those products and retain metadata and evidence in targets. |
 | Setup and infrastructure pages | Declare configuration and runtime artifacts; they do not persist scientific data. |
 
@@ -84,11 +96,290 @@ with synthetic data from the repository root:
 scripts/mdg-healthshed-clinic-data exec Rscript tests/check-data-storage-convention.R
 ```
 
+## Outputs found in the pre-targets repository archive
+
+Scanned **2026-11-02**, directly from the staged archive:
+
+`data/inputs/01_gold_mine/gdn_datafreeze_may2025/madagascar_clinic_data_cleaning.zip`
+
+The ZIP is **4,690,542,039 bytes**. All paths below are relative to its
+`madagascar_clinic_data_cleaning/` member root, **not** paths to newly extracted
+files. The scan read the ZIP directory, all 11 archived scripts, the small
+translated dictionary, and selected small artifacts for byte comparisons.
+It also inspected the embedded `data/intermediate_ref_tables.zip`. It did not
+execute the legacy scripts or load the large measurement tables.
+
+All 11 archived scripts are byte-identical to the local legacy checkout at
+`31e0769683e133e136b09ac0c6608c5a12657a9a`, so the pinned source links elsewhere
+on this page also identify the archived writers. A matching path establishes
+that the artifact is present at the script's declared destination; it does
+not prove that the archived script and archived input versions generated it.
+
+The table separates **exact destination**, **relocated candidate**, and
+**historical variant**. A filename or folder suffix alone does not establish
+run date, reporting-year coverage, dictionary compatibility, or scientific
+equivalence. Use these files as reference candidates and compare their keys,
+schemas, and values before selecting a replication baseline.
+
+### Most recent archived data comparison baseline
+
+**ZIP-only source-of-truth decision, 2026-11-06.** The researcher selected the
+hand-delivered `gdn_datafreeze_may2025/madagascar_clinic_data_cleaning.zip`
+as the sole scientific input freeze and migration comparison baseline for the
+existing waves. The separate new-wave survey on pages 26–28 does not change
+this baseline or register new production inputs. The Google Drive tree is a periodically refreshed rclone mirror and
+can drift. It is excluded even if its files have later timestamps. This
+supersedes the 2026-11-05 proposal to combine ZIP and May 20 Drive references.
+
+Call the reference **the most recent archived data within the hand-delivered
+May 2025 ZIP**, and call rebuilt products **the current pipeline**. Most recent
+is scoped to this one archive, not to all files found across staged sources.
+Different stages in the ZIP have different dates; archive membership alone
+does not establish that they were produced by one synchronized run.
+
+The comparison selectors are versioned in
+[`src/archived-comparison-baseline.R`](../../../src/archived-comparison-baseline.R).
+Page 16 tracks this exact ZIP and extracts only the W3 CSVs and reviewed
+mapping/identity source files needed by the path-based readers. Pages 20–25
+read their other exact source members from the same tracked archive. No
+existing-wave scientific source inventory scans the Drive mirror. The
+Stagecoach manifest also declares the two scoped new-wave survey sources;
+page 16's migration inventory continues to consume only the ZIP. Source copies extracted under
+`data/intermediates/archive_sources/` preserve the archive's bytes and names;
+they are tracked files and may be recreated from the archive.
+
+| Stage | Selected member, relative to ZIP `madagascar_clinic_data_cleaning/` | Archived date / role |
+| --- | --- | --- |
+| W3 inputs (18) | All CSVs under `data/raw/from Symphonia/RMA_W3_FULL/` | Retain the separate `RMA 2021` and `RMA 2022` deliveries, rather than the Drive combined-year delivery. |
+| W3 reference (18) | `data/raw/from_Kevin/wave3_with_keys.csv` | May 2, 2025. The most recent prepared W3 member in this ZIP; earlier inspection verified content identity with the named v3, whose filename is absent here. |
+| Facility mapping (19) | `data/intermediate/mapping_gesis_dhis2_clean.csv` | May 1, 2025. |
+| Clinic IDs (20) | `data/intermediate/w2010_2019_clinicID.rds` | May 1, 2025; the clean-directory RDS is an older, different iteration. |
+| Dictionary (21) | `data/clean/diagnosis_dictionary_translated.csv` | May 3, 2025; byte-identical to `scratch/dictionary_test2.csv`. |
+| Diagnoses (22) | `data/clean/by_diagnosis_2024/file1.feather` through `file40.feather`, plus their `_wrong_fname` companions | May 4, 2025. Newest diagnosis family inside this ZIP. Later May 20 Drive files are excluded. |
+| Reporting tracker | `data/clean/by_diagnosis_2024/clinic_reporting_track.feather` | May 4, 2025; keep it with that diagnosis family. |
+| Sectorization, healthsheds, locations (23–24) | `data/intermediate/sectorization2022_cleaned.feather`, `data/clean/healthsheds2022.rds`, `data/intermediate/clinic_LL.rds` | October 16, 2024; stage-specific references, not proven outputs of the May 2025 run. |
+| Spatial/reporting metadata (25) | `data/clean/clinic_spatial_metadata.csv`, `data/clean/clinic_reporting_metadata.csv` | October 17, 2024; disclose the earlier vintage when comparing reporting coverage. |
+
+The approved ZIP SHA-256 is
+`cdc9e5534b947551cdaee3fe0ef38f0e46b26c7a7bba539d9c5ff518023061cb`.
+`targets` tracks the archive contents; the read-only baseline checker also
+checks this fixed SHA-256 and the selected W3, dictionary, and tracker hashes.
+A different archive requires a reviewed freeze/baseline update.
+
+```sh
+scripts/mdg-healthshed-clinic-data exec Rscript scripts/check-archived-comparison-baseline.R
+```
+
+The prior row-coverage investigation established an input-delivery mismatch
+between the separate-year ZIP sources and combined-year Drive sources. The
+runnable diagnostic is linked from page 18. Existing saved targets built from
+Drive remain products of that old selection until rebuilt through the
+compute-node launcher. Changing the reference selector alone does not rebuild
+or validate those products. Full measurement-value equivalence remains a
+separate check after rebuilding.
+
+### Script-to-archived-output crosswalk
+
+| Legacy script / notebook | Declared output in the archived source | What is actually in the ZIP | Evidence and interpretation |
+| --- | --- | --- | --- |
+| **0** — [Prepare W3](../18_page-prep-w3.qmd) | `data/raw/from_Kevin/wave3_with_keys_may2_v3.csv` | **Exact destination absent.** `data/raw/from_Kevin/wave3_with_keys.csv` is present (2,145,929,531 bytes), alongside named historical versions listed below. | Active writer at [0:275][w3-output]. The generic file is the input named by scripts 3 and 4A. The 2026-11-05 inspection confirmed it is byte-identical to the named v3 in staged Drive sources; see the selected baseline above. |
+| **1** — [Facility mapping](../19_page-clean-mapping-dhis2-gesis.qmd) | `data/intermediate/mapping_gesis_dhis2_clean.csv` | **Exact destination present** (5,680,705 bytes). | Active `write.csv()` at script 1:277–278. Also appears in the embedded reference ZIP. |
+| **2** — [Clinic identities](../20_page-construct-clinic-ids.qmd) | `data/intermediate/w2010_2019_clinicID.rds` and `.csv` | **Both exact destinations present**: RDS 9,268,720 bytes; CSV 44,287,638 bytes. | Active writers at script 2:231–233. The additional `data/clean/w2010_2019_clinicID.rds` is a **different byte sequence**, not a proven copy. |
+| **2** — earlier inventory checkpoint | `data/intermediate/unique_clinic_months_v1-2.rds` | Present (2,581,018 bytes). | Its writer at script 2:33 is **commented out**; script 2 actively reads the checkpoint. Classify it as a pre-existing legacy intermediate, not an output regenerated by the active script. |
+| **3** — [Diagnosis dictionary](../21_page-construct-diagnosis-dictionary.qmd) | `scratch/dictionary_test2.csv` | **Exact destination present** (1,258,545 bytes). `data/clean/diagnosis_dictionary_translated.csv` is **byte-identical** to it. | Active writer at [3:580–581][dictionary-output]. SHA-256 equality confirms the bytes, while the move/copy operation itself is not recorded in the scripts. This resolves the scratch-versus-clean content question for this freeze. |
+| **4A** — [Diagnosis measurements](../22_page-clean-clinic-diagnosis.qmd) | `data/clean/by_diagnosis/<filename>.feather` and `<filename>_wrong_fname.feather` | **Exact directory absent.** Three historical output families exist: `by_diagnosis_2024`, `by_diagnosis_final_2022`, and `by_diagnosis_marissa`, all under `data/clean/`. See coverage below. | Active writers at [4A:412,418][diagnosis-partitions]. These are family-compatible reference candidates; the archive does not identify which family the current script produced. |
+| **4A** — reporting tracker | `data/clean/by_diagnosis/clinic_reporting_track.feather` | **Exact destination absent.** Candidates: `data/clean/by_diagnosis_2024/clinic_reporting_track.feather` (6,233,240 bytes) and `data/intermediate/clinic_reporting_track.feather` (5,095,448 bytes). | Active writer at [4A:373][diagnosis-tracker]. The candidates have different SHA-256 hashes; script 7 reads the intermediate version. Do not combine a diagnosis family with an arbitrary tracker. |
+| **4B** — Slurm launcher | No independent data output; launches script 4A. | No separately attributable scientific dataset. | `R CMD BATCH` at script 4B:17 names `test.out`; Slurm stdout/stderr patterns are `myRjob_%j.out` / `.err` at lines 7–8. These are execution logs, not data products; none is in the ZIP. |
+| **5** — [Sectorization / healthsheds](../23_page-construct-healthsheds.qmd) | `data/intermediate/sectorization2022_cleaned.feather` | **Exact destination present** (5,994,024 bytes). | Active writer at script 5:973. This is the nongeometry sectorization table read by script 7. |
+| **5** — sectorization geometry | `data/intermediate/sectorization2022_cleaned_shapefile/` | **Exact dataset directory present** with `sectorization2022_cleaned_shapefile.{shp,shx,dbf,prj}`. | Active `st_write()` at script 5:988–989. Treat the four components as one spatial dataset; script 6 reads this directory. |
+| **5** — healthsheds | `data/clean/healthsheds2022/` and `data/clean/healthsheds2022.rds` | **Both exact destinations present**: `healthsheds2022.{shp,shx,dbf,prj}` inside the directory, plus the RDS (18,953,440 bytes). | Active writers at script 5:997–1000. Script 6 reads the RDS; script 7 reads the shapefile directory. These serializations should not be assumed to expose identical field names. |
+| **5** — review evidence | Five scratch exports listed below. | **All five exact destinations present.** | Two maps, two PDFs, and the unmatched-clinic CSV are active exports, not scientific handoffs. Commented exploratory exports are not attributed as active outputs. |
+| **6** — [Clinic locations](../24_page-locate-clinics.qmd) | `data/intermediate/clinic_LL.rds` | **Exact destination present** (4,179,325 bytes). | Active `saveRDS()` at script 6:334. An additional embedded-reference version has different bytes. |
+| **7** — [Clinic metadata](../25_page-combine-clinic-metadata.qmd) | `data/clean/clinic_spatial_metadata.csv`; `data/clean/clinic_reporting_metadata.csv` | **Both exact destinations present**: 723,952 and 21,470,321 bytes respectively. | Active writers at script 7:149–154. Spatial CSV excludes the geometry; the reporting CSV has the temporal/reporting metadata. |
+| **999** — shared utilities | No persistent output. | No independently attributable dataset. | Function definitions only; their callers own their outputs. |
+| **data_checks.R** — [Migration checks](../30_page-validate-migration.qmd) | Three mumps CSVs under `data/raw/from Symphonia/RMA_W3_FULL/RMA 2021/`. | Only `oreillon_2021.csv` is present at its exact declared destination. The other two have relocated candidates; see below. | Active writers at script `data_checks.R`:922–954. The two `all_differences.rds` writers at lines 558 and 858 are commented out, and no corresponding artifact was found. |
+
+### Diagnosis output families and dictionary compatibility
+
+The archived clean translated dictionary contains **3,595 rows and 40 distinct
+`filename` groups**, exactly `file1` through `file40`. The following counts
+exclude `.DS_Store`; range notation means every integer in the range was
+checked, not a filename glob assumed to be complete.
+
+| Archive directory under `data/clean/` | Retained measurements | Legacy rejected overlaps | Tracker / variants | Total files |
+| --- | --- | --- | --- | ---: |
+| `by_diagnosis_2024/` | All 40: `file1.feather` … `file40.feather` | All 40: `file1_wrong_fname.feather` … `file40_wrong_fname.feather` | `clinic_reporting_track.feather` | 81 |
+| `by_diagnosis_final_2022/` | All 40: `file1.feather` … `file40.feather` | None | No tracker or extra variants | 40 |
+| `by_diagnosis_marissa/` | All 40: `file1.feather` … `file40.feather` | All 40: `file1_wrong_fname.feather` … `file40_wrong_fname.feather` | Six extra variants listed below; no tracker | 86 |
+
+The six additional files under `by_diagnosis_marissa/` are
+`file1_marissa.feather`, `file5_new.feather`, `file16_smaller.feather`,
+`file20_new.feather`, `file35_marissa.feather`, and `file35_new.feather`.
+There is no explicit writer for those suffixes in archived 4A. Their names
+do not establish which should replace the corresponding unsuffixed output.
+The archive contains **207 diagnosis-family files** across these directories;
+the ZIP-only decision above selects this archive’s May 4 `by_diagnosis_2024`
+family for comparisons. The April and October families are earlier
+iterations within the freeze. Later Drive iterations are outside this baseline.
+
+The clean dictionary has eight named historical CSV variants:
+`diagnosis_dictionary_translated_MC_20250116.csv`,
+`diagnosis_dictionary_translated_final_2022.csv`,
+`diagnosis_dictionary_translated_kevin.csv`,
+`diagnosis_dictionary_translated_dec12.csv`,
+`diagnosis_dictionary_translated_test_unordered.csv`,
+`diagnosis_dictionary_translated_old.csv`,
+`diagnosis_dictionary_translated_test_ordered.csv`,
+`diagnosis_dictionary_translated_corrupt.csv`. Together with the generic
+`diagnosis_dictionary_translated.csv`, these make **nine clean dictionary
+CSVs**. Extra scratch versions are
+`dictionary_test_20250417.csv`, `dictionary_test2_unordered.csv`, and
+`diagnosis_dictionary_translated_MC_20250116.csv`. These are not additional
+active destinations of script 3. Matching `fileN` names across families does
+not establish that their V columns use the same dictionary definitions.
+
+### Relocated mumps supplements
+
+All paths in this table are under `data/raw/from Symphonia/`.
+
+| Script `data_checks.R` destination (line) | Observed archive paths | Evidence |
+| --- | --- | --- |
+| `RMA_W3_FULL/RMA 2021/oreillon_2021.csv` (924) | Exact destination and `mumps only/oreillon_2021.csv` | Both 899,517 bytes with CRC-32 `352eef61`. |
+| `RMA_W3_FULL/RMA 2021/oreillon_2022.csv` (932) | Declared path absent; `RMA_W3_FULL/RMA 2022/oreillon_2022.csv` and `mumps only/oreillon_2022.csv` present | Both candidates 1,344,667 bytes with CRC-32 `9df41c3b`. |
+| `RMA_W3_FULL/RMA 2021/oreillon_2021_males_2_11m.csv` (950) | Declared path absent; `mumps only/oreillon_2021_males_2_11m.csv` present | Candidate 801,786 bytes with CRC-32 `ff3f8ead`. |
+
+CRC-32 and size here are ZIP-directory observations, not proof of generation
+or scientific equivalence. The 2022 and subset candidates have no exact-path
+counterpart to compare against in this archive.
+
+### Other W3 versions and script-5 review exports
+
+The dated script-0 filename is absent from this ZIP, but its contents are
+confirmed under the generic filename by comparison with staged Drive v3.
+The following W3 versions exist under ZIP `data/raw/`; the other historical
+versions were not assumed equivalent:
+
+- `from_Kevin/wave3_with_keys.csv` — the generic downstream input.
+- `from_Kevin/wave3_with_keys_final_ordered.csv`.
+- `from_Kevin/wave3_with_keys_dec_12.csv`.
+- `from_Kevin/wave3_with_keys_corrupt.csv`.
+- `from_Kevin/wave3_with_keys_2022_final.csv`.
+- `from_Kevin/wave3_with_keys_2022_kevin.csv`.
+- `temp/wave3_with_keys_dec_12.csv`.
+- `temp/wave3_with_keys_2022_kevin.csv`.
+
+Script 5's five active review exports are present at these exact paths:
+
+| Archive member | Writer lines |
+| --- | --- |
+| `scratch/match2018_fkt_fs.png` | 383–384 |
+| `scratch/geolocation/match_fkt_fs_commune.png` | 537–538 |
+| `scratch/geolocation/noncontig_healthsheds_v3.pdf` | 875–878 |
+| `scratch/geolocation/multshape_healthsheds_v3.pdf` | 952–955 |
+| `scratch/geolocation/remaining_unmatched_fs_v3.csv` | 965–966 |
+
+### Embedded reference tables and confirmed byte comparisons
+
+`data/intermediate_ref_tables.zip` is itself a **65,035,008-byte ZIP member**.
+Inside it, paths start with `intermediate_ref_tables/`. It contains 13 regular
+reference files (excluding `.DS_Store`), not an additional pipeline stage.
+
+| Embedded member(s), relative to `intermediate_ref_tables/` | Corresponding legacy owner | Comparison to outer-archive artifact |
+| --- | --- | --- |
+| `mapping_gesis_dhis2_clean.csv` | Script 1 | Same size and CRC-32 as `data/intermediate/` member. |
+| `w2010_2019_clinicID.csv` | Script 2 | Same size and CRC-32 as `data/intermediate/` member. |
+| `w2010_2019_clinicID.rds` | Script 2 | Different: 9,268,721 bytes inside, 9,268,720 outside. |
+| `diagnosis_dictionary.csv`; `diagnosis_dictionary_ordered_file.csv` | Dictionary/reference family associated with script 3 | No active writer for these two filenames in archived script 3; retain as historical references. |
+| `clinic_reporting_track.feather` | Script 4A family | Same size and CRC-32 as the outer `data/intermediate/` tracker, not the 2024-family tracker. |
+| `sectorization2022_cleaned.feather` | Script 5 | Same size and CRC-32 as outer `data/intermediate/` member. |
+| `sectorization2022_cleaned_shapefile/sectorization2022_cleaned_shapefile.{shp,shx,dbf,prj}` | Script 5 | The `.shp`, `.shx`, and `.prj` components match outer sizes/CRC-32. The `.dbf` has the same size (35,988,546 bytes) but **different CRC-32**: embedded `f3fc8081`, outer `ad473142`; the attribute tables differ in bytes. |
+| `healthsheds2022.rds` | Script 5 | Different: 18,953,442 bytes inside, 18,953,440 outside. |
+| `clinic_LL.rds` | Script 6 | Different: 4,179,332 bytes inside, 4,179,325 outside. |
+
+Different serialized bytes do not by themselves establish different R values
+or geometries; that requires deserialization and a keyed comparison. Conversely,
+matching ZIP metadata is not a substitute for a byte comparison. Selected
+outer-archive artifacts were read and SHA-256 checked:
+
+| Outer-archive member(s) | SHA-256 |
+| --- | --- |
+| `scratch/dictionary_test2.csv` **and** `data/clean/diagnosis_dictionary_translated.csv` | `121048c18ae0a04183fb0c04a42d724ccb04b3ea3966a6e3d7b5c5cfb8682921` (identical bytes) |
+| `data/intermediate/w2010_2019_clinicID.rds` | `4aeec99e30c78dcd00b298f34a0292a55b30d952eb09a303052b98ad0a22055e` |
+| `data/clean/w2010_2019_clinicID.rds` | `aa8b850cba2d2b0dfa9324898fb86fdbd86906d95d14f29d1449c798451deab6` |
+| `data/intermediate/clinic_reporting_track.feather` | `34262da81ea3770db0e375477e84145969cae73f64cd77f702e6bc585a2ce563` |
+| `data/clean/by_diagnosis_2024/clinic_reporting_track.feather` | `fed6df6bf7219f97d1b9889dc630c83f8eea6878896c938aa4a76c903e932d1d` |
+
+### Reproduce the archive inspection
+
+This read-only command inventories members without extracting the repository
+or running R. It prints active and commented writer sites separately for
+review, expands the diagnosis families, lists embedded reference members,
+and recomputes the selected byte hashes. The top-level inventory has **960
+regular files** after excluding `.DS_Store` and entries outside the repository
+root (including AppleDouble `__MACOSX/` entries); this count includes `.git/`.
+Its SHA-256 fingerprint over sorted `relative_path<TAB>size<TAB>CRC32` records
+joined by newlines, with no trailing newline, is
+`f00e476d2e904a29684e97f4fbe1aab7cd85492221b126cc10c8eef713c6ea84`.
+This fingerprints the directory metadata, **not the entire ZIP byte stream**.
+
+```python
+from pathlib import Path, PurePosixPath
+from io import BytesIO
+import hashlib
+import re
+import zipfile
+
+archive = Path("data/inputs/01_gold_mine/gdn_datafreeze_may2025/"
+               "madagascar_clinic_data_cleaning.zip")
+root = "madagascar_clinic_data_cleaning/"
+with zipfile.ZipFile(archive) as z:
+    members = {
+        i.filename.removeprefix(root): i for i in z.infolist()
+        if i.filename.startswith(root) and not i.is_dir()
+        and PurePosixPath(i.filename).name != ".DS_Store"
+    }
+    records = "\n".join(
+        f"{name}\t{i.file_size}\t{i.CRC:08x}"
+        for name, i in sorted(members.items())
+    )
+    print("Archive bytes:", archive.stat().st_size)
+    print("Inventory files / SHA-256:", len(members),
+          hashlib.sha256(records.encode()).hexdigest())
+    writers = re.compile(r"write\.csv|write_feather|saveRDS|st_write|"
+                         r"tmap_save|ggexport|ggsave|R CMD BATCH")
+    for name, i in sorted(members.items()):
+        if name.startswith("scripts/") and name.endswith((".R", ".slurm")):
+            content = z.read(i)
+            print("SCRIPT", name, "SHA-256", hashlib.sha256(content).hexdigest())
+            for n, line in enumerate(content.decode("utf-8-sig").splitlines(), 1):
+                if writers.search(line):
+                    state = "commented" if line.lstrip().startswith("#") else "active"
+                    print(n, state, line.strip())
+    for name, i in sorted(members.items()):
+        if name.startswith(("data/clean/", "data/intermediate/", "scratch/")) or (
+            "wave3_with_keys" in name or "/oreillon_" in name
+        ):
+            print("MEMBER", name, i.file_size, f"{i.CRC:08x}")
+    with zipfile.ZipFile(BytesIO(z.read(root + "data/intermediate_ref_tables.zip"))) as nested:
+        for i in nested.infolist():
+            if not i.is_dir() and "__MACOSX/" not in i.filename and not i.filename.endswith(".DS_Store"):
+                print("EMBEDDED", i.filename, i.file_size, f"{i.CRC:08x}")
+    for name in (
+        "scratch/dictionary_test2.csv", "data/clean/diagnosis_dictionary_translated.csv",
+        "data/intermediate/w2010_2019_clinicID.rds", "data/clean/w2010_2019_clinicID.rds",
+        "data/intermediate/clinic_reporting_track.feather",
+        "data/clean/by_diagnosis_2024/clinic_reporting_track.feather",
+    ):
+        print("BYTES SHA-256", name, hashlib.sha256(z.read(root + name)).hexdigest())
+```
+
 ## Script-to-notebook crosswalk
 
-Existing notebook links are relative to this page. Proposed filenames are
-shown as text because those files have not been created. Unless stated
-otherwise, destinations are under `notebooks/pipeline/`.
+Notebook links are relative to this page. Pages 22–25 implement S4–S7 and are
+wired into the graph; page 26 remains a detailed plan. The assignment
+inventory below retains its original design recommendations for S4; use
+page 22 and the execution page for its current exact target declarations. Unless stated otherwise, destinations are under
+`notebooks/pipeline/`.
 
 | Legacy file | Replacement notebook or responsibility | Migration state |
 | --- | --- | --- |
@@ -96,18 +387,47 @@ otherwise, destinations are under `notebooks/pipeline/`.
 | [1_clean_mapping_dhis2_gesis.R][legacy-mapping] | [19_page-clean-mapping-dhis2-gesis.qmd](../19_page-clean-mapping-dhis2-gesis.qmd): clean the year-aware facility mapping | Existing, in development |
 | [2_wave1-2_construct_clinicID.R][legacy-identity] | [20_page-construct-clinic-ids.qmd](../20_page-construct-clinic-ids.qmd): construct longitudinal clinic identities | Existing, in development |
 | [3_construct_dictionary.R][legacy-dictionary] | [21_page-construct-diagnosis-dictionary.qmd](../21_page-construct-diagnosis-dictionary.qmd): define comparable diagnosis variables across waves | Existing, in development |
-| [4A_clean_clinic_diagnosis.R][legacy-diagnosis] | `22_page-clean-clinic-diagnosis.qmd`: apply the identity and diagnosis mappings to measurements | Proposed |
-| [4B_clean_clinic_diagnosis.slurm][legacy-slurm] | [Execute the Pipeline](../../releases/20_page-execute-pipeline.qmd), supported by the [runtime runner](../../infrastructure/15_page-runner.qmd): launch scientific execution | Existing execution framework; diagnosis scheduling still to migrate |
-| [5_clean_sect2022_construct_healthsheds.R][legacy-sheds] | `23_page-construct-healthsheds.qmd`: reconcile 2022 sectorization and build clinic catchments | Proposed |
-| [6_locate_clinics.R][legacy-location] | `24_page-locate-clinics.qmd`: compare coordinate sources and select clinic locations | Proposed |
-| [7_combine_clinic_metadata.R][legacy-metadata] | `25_page-combine-clinic-metadata.qmd`: assemble reporting histories and spatial metadata | Proposed |
-| [999_utility_functions.R][legacy-utilities] | Explain helpers in their owning notebooks: the CSV reader in [18](../18_page-prep-w3.qmd), spatial matching helpers in proposed `23_page-construct-healthsheds.qmd` | CSV reader adapted; spatial helpers not migrated |
-| [data_checks.R][legacy-checks] | [17_page-inspect-source-data.qmd](../17_page-inspect-source-data.qmd) for source comparisons; assertions in the relevant transformation notebooks; proposed `26_page-validate-migration.qmd` for comparisons between legacy and replacement outputs | Inspection scaffold exists; consolidated validation not migrated |
+| [4A_clean_clinic_diagnosis.R][legacy-diagnosis] | [22_page-clean-clinic-diagnosis.qmd](../22_page-clean-clinic-diagnosis.qmd): apply the identity and diagnosis mappings to measurements | Existing, in development; wired into targets |
+| [4B_clean_clinic_diagnosis.slurm][legacy-slurm] | [Execute the Pipeline](../../releases/20_page-execute-pipeline.qmd), supported by the [runtime runner](../../infrastructure/15_page-runner.qmd): launch scientific execution | Execution framework exists; local-worker plan not yet enabled |
+| [5_clean_sect2022_construct_healthsheds.R][legacy-sheds] | [23_page-construct-healthsheds.qmd](../23_page-construct-healthsheds.qmd): reconcile 2022 sectorization and build clinic catchments | Implemented and wired into targets; synthetic rules checked |
+| [6_locate_clinics.R][legacy-location] | [24_page-locate-clinics.qmd](../24_page-locate-clinics.qmd): compare coordinate sources and select clinic locations | Implemented and wired into targets; full-data comparison remains for compute-node EDA |
+| [7_combine_clinic_metadata.R][legacy-metadata] | [25_page-combine-clinic-metadata.qmd](../25_page-combine-clinic-metadata.qmd): assemble reporting histories and spatial metadata | Implemented and wired into targets; full-data comparison remains for compute-node EDA |
+| [999_utility_functions.R][legacy-utilities] | Explain helpers in their owning notebooks: the CSV reader in [18](../18_page-prep-w3.qmd), spatial helpers on [23](../23_page-construct-healthsheds.qmd) | CSV reader and spatial helpers implemented |
+| [data_checks.R][legacy-checks] | [17_page-inspect-source-data.qmd](../17_page-inspect-source-data.qmd) for source comparisons; assertions in the relevant transformation notebooks; [30_page-validate-migration.qmd](../30_page-validate-migration.qmd) for comparisons between legacy and replacement outputs | Inspection scaffold exists; detailed validation plan added |
 
 [16_page-stage-inputs.qmd](../16_page-stage-inputs.qmd) supplies the common
 input inventory. It replaces the scattered assumptions about local input
 directories across the legacy scripts, rather than replacing one particular
 scientific script.
+
+## Remaining migration plan
+
+Page 26 remains a detailed implementation plan with prerequisites, procedure
+contracts, storage choices, and acceptance evidence. Its target names remain
+recommendations. Pages 22–25 are implemented and included in
+`_targets.R`; synthetic validation does not by itself establish full-data replication parity.
+
+| Legacy responsibility | Planned page | Implementation and acceptance boundary |
+| --- | --- | --- |
+| 4B Slurm launcher | [Parallel targets execution plan](../../releases/20_page-execute-pipeline.qmd#parallel-targets-execution-plan) | One allocation and one `tar_make()` manager with local workers; no nested stage-4 pools or separate diagnosis launcher |
+| 5 sectorization/healthsheds | [23 — Construct healthsheds](../23_page-construct-healthsheds.qmd) | Ordered review rounds, population/overlap semantics, island geometry, and spatial target handoffs |
+| 6 clinic coordinates | [24 — Locate clinics](../24_page-locate-clinics.qmd) | Frozen candidate sources, identity ties, intersection evidence, and source precedence |
+| 7 clinic metadata | [25 — Combine metadata](../25_page-combine-clinic-metadata.qmd) | Separate temporal/spatial-attribute grains, code and coordinate provenance, ownership heuristics, and Parquet outputs |
+| 999 shared helpers | [23 — Spatial helper procedures](../23_page-construct-healthsheds.qmd) and existing [18](../18_page-prep-w3.qmd) | Explicit helper targets at their first scientific use; no unresolved `source()` dependency |
+| `data_checks.R` | [30 — Validate migration](../30_page-validate-migration.qmd) | Independent keyed comparisons, governed discrepancy artifacts, optional mumps projections, and decision records |
+
+Implement synthetic tests alongside each stage, then wire its declarations
+and validate branch dimensions before an authorized data pilot. Stage 22 and
+stage 23 have different input branches; location selection then needs stage
+23, and metadata assembly joins reporting, spatial, and location products.
+Stage 26's evidence develops alongside those implementations and must be
+complete before a migration-equivalence claim or release decision.
+
+S4 preserves the legacy one-row skip and report-source ties, audits
+discarded fallback reports, and fails explicitly for non-scalar tracker cells.
+Open decisions for later stages include spatial part ordering and UNICEF
+extraction parity. The plan pages identify their owners and tests
+rather than silently changing the scientific rules.
 
 ## How the responsibilities connect
 
@@ -122,21 +442,21 @@ clinics and unions their polygons into healthsheds. These are based on the
 2022 sectorization. Their use alongside earlier reporting data does not itself
 establish historical catchment boundaries.
 
-The diagram shows the intended scientific handoffs, including proposed
+The diagram shows the intended scientific handoffs, including planned
 notebooks. It is a responsibility map, not a claim that all these dependencies
 are already implemented in `_targets.R`.
 
 ```{mermaid}
 flowchart TD
-  W3["18: Prepare Wave 3"] --> D["21 proposed: Diagnosis dictionary"]
+  W3["18: Prepare Wave 3"] --> D["21: Diagnosis dictionary"]
   M["19: Clean facility mapping"] --> I["20: Construct clinic IDs"]
-  M --> H["23 proposed: Sectorization and healthsheds"]
-  W3 --> C["22 proposed: Clean diagnosis data"]
+  M --> H["23: Sectorization and healthsheds"]
+  W3 --> C["22: Clean diagnosis data"]
   D --> C
   I --> C
-  I --> L["24 proposed: Locate clinics"]
+  I --> L["24: Locate clinics"]
   H --> L
-  C -->|Reporting history| F["25 proposed: Combine clinic metadata"]
+  C -->|Reporting history| F["25: Combine clinic metadata"]
   I --> F
   H --> F
   L --> F
@@ -287,11 +607,9 @@ See [ID_checked definition and crosswalk outputs, lines 223–233][identity-outp
 year-aware UID assignment, UID propagation, provisional identity, reviewed
 deletion, and the two reconciliation steps. The current notebook rebuilds the
 inventory from the staged ZIP in DuckDB, decoding Windows-1252 before reduction
-and preserving file/row order. It contains both the newer Parquet correction
-and mapping targets and the longer R transformation that repeats those
-operations from the inventory. This duplication is an open refactoring
-boundary: document which intermediate each later step should consume before
-removing either route. Compare identities and exception records with the
+and preserving file/row order. Corrections, mapping, and reconciliation now
+form one sequence of named data targets; the duplicate correction route has
+been removed. Compare identities and exception records with the
 legacy result, including missing IDs and mode ties.
 
 ## 3 — Construct the diagnosis dictionary across waves
@@ -373,7 +691,7 @@ mapping expressions.
 ## 4A — Clean measurements and combine reporting waves
 
 **Source:** [4A_clean_clinic_diagnosis.R][legacy-diagnosis].
-**Proposed destination:** `22_page-clean-clinic-diagnosis.qmd`.
+**Destination:** [22_page-clean-clinic-diagnosis.qmd](../22_page-clean-clinic-diagnosis.qmd), implemented and wired into targets; full-data parity remains a validation task.
 
 This is the main measurement transformation. It consumes the clinic-ID
 crosswalk, diagnosis dictionary, monthly tall Waves 1–2 files, prepared Wave 3
@@ -453,18 +771,19 @@ See [resources, logs, and notification settings, lines 2–10][slurm-allocation]
 **Handoff:** execution of script 4A and its log files. The scientific artifacts
 are produced by 4A, not by a separate cleaning operation in this launcher.
 
-**Context for the replacement:** the execution page owns how the targets graph
-is launched, while the runner supplies the project runtime. Record the Slurm
-allocation and target-worker settings when diagnosis work is added; four
-requested tasks do not alone configure a parallel targets backend. The
-legacy launcher's allocation and 4A's `future` worker configuration must be
-considered together when reproducing its execution.
-See [script 4A worker and globals settings, lines 18–20][diagnosis-workers].
+**Planned replacement:** the execution page owns one `tar_make()` manager
+with a `crew` local controller inside one approved Slurm allocation. Stage 4A
+will expose bounded, independently schedulable Parquet targets; it will not
+launch nested futures or a dedicated high-memory Slurm job. Worker count,
+engine threads, and measured branch memory must fit the shared allocation.
+The controller is a detailed plan, not enabled configuration. See the
+[parallel execution plan](../../releases/20_page-execute-pipeline.qmd#parallel-targets-execution-plan)
+and [stage-4 procedures](../22_page-clean-clinic-diagnosis.qmd).
 
 ## 5 — Reconcile sectorization and construct 2022 healthsheds
 
 **Source:** [5_clean_sect2022_construct_healthsheds.R][legacy-sheds].
-**Proposed destination:** `23_page-construct-healthsheds.qmd`.
+**Implemented page:** [23_page-construct-healthsheds.qmd](../23_page-construct-healthsheds.qmd), ordered targets with synthetic rule and graph checks.
 
 This script connects the 2022 sectorization's FKT assignments to administrative
 polygons, then unions the assigned polygons for each clinic. Its inputs include
@@ -528,7 +847,7 @@ See [historical residual-contiguity and coverage observations, lines 788–803][
 ## 6 — Compare location sources and select clinic coordinates
 
 **Source:** [6_locate_clinics.R][legacy-location].
-**Proposed destination:** `24_page-locate-clinics.qmd`.
+**Planned page:** [24_page-locate-clinics.qmd](../24_page-locate-clinics.qmd), detailed plan; targets not implemented.
 
 This script assembles candidate coordinates from the cleaned sectorization,
 MDDSS, WHO and UNICEF master lists, and a separate GPS source, using the
@@ -571,7 +890,7 @@ the coordinate reference system and preserve explicit unresolved cases.
 ## 7 — Combine reporting and spatial clinic metadata
 
 **Source:** [7_combine_clinic_metadata.R][legacy-metadata].
-**Proposed destination:** `25_page-combine-clinic-metadata.qmd`.
+**Planned page:** [25_page-combine-clinic-metadata.qmd](../25_page-combine-clinic-metadata.qmd), detailed plan; targets not implemented.
 
 This script brings the measurement and spatial branches together. It reads
 the reporting tracker from 4A, clinic identities from 2, sectorization and
@@ -617,8 +936,8 @@ See [script 6 UNICEF selection, lines 314–329][location-selection];
 ## Shared utilities — Make helper semantics visible where used
 
 **Source:** [999_utility_functions.R][legacy-utilities].
-**Destinations:** [18_page-prep-w3.qmd](../18_page-prep-w3.qmd) and proposed
-`23_page-construct-healthsheds.qmd`, according to the helper's role.
+**Destinations:** [18_page-prep-w3.qmd](../18_page-prep-w3.qmd) and the planned
+[23_page-construct-healthsheds.qmd](../23_page-construct-healthsheds.qmd), according to the helper's role.
 
 The utility file defines a Malagasy-to-French cardinal-direction lookup,
 `grouped_stringdist_fulljoin()`, and `read_csv_nonlogical()`. The grouped join
@@ -652,8 +971,8 @@ See [mismatched legacy utility source path, line 54][sheds-helper-source].
 
 **Source:** [data_checks.R][legacy-checks].
 **Destinations:** [17_page-inspect-source-data.qmd](../17_page-inspect-source-data.qmd),
-checks in the notebooks owning each transformation, and proposed
-`26_page-validate-migration.qmd`.
+checks in the notebooks owning each transformation, and the planned
+[30_page-validate-migration.qmd](../30_page-validate-migration.qmd).
 
 This is a collection of investigations rather than one ordered production
 stage. It compares files and column names between 2021–2022 exports, 2023
@@ -746,7 +1065,7 @@ their owning transformation. Common staging inputs use `s0_pipeline`.
 | --- | --- |
 | `df` | In-memory data frame or tibble |
 | `sf` | Spatial data frame with geometry |
-| `chr` | Character vector, such as a source-path inventory or ZIP member names; file-path inventories still require `format = "file"` |
+| `chr` | Character vector, such as path-selection metadata or ZIP member names; referenced data files are tracked separately by file targets |
 | `list` | Collection of tables, evidence, or plots |
 | `matrix` | Comparison matrix |
 | `fn` | Function assigned at the top level and tracked by `tar_tangle()` |
@@ -767,6 +1086,7 @@ below. Keeping them here makes the naming convention cover the complete graph.
 | --- | --- |
 | `s0_pipeline_stagecoach_yml` | Track the staging manifest. |
 | `s0_pipeline_inputs_raw_chr` | Inventory staged input paths. |
+| `s0_clinic_RMA_W3_raw_paths_chr` | Select the W3 path vector that drives per-file tracking branches. |
 | `s1_gesis_code_corrections_raw_xlsx` | Select the reviewed GESIS correction workbook for script 1. |
 | `s1_gesis_uid_fills_raw_xlsx` | Select the reviewed UID-fill workbook. |
 | `s1_gesis_multiple_codes_raw_csv` | Select the multiple-GESIS review CSV. |
@@ -885,24 +1205,24 @@ below. Keeping them here makes the naming convention cover the complete graph.
 | `4A::diag_map (read)` | Select harmonized variables, wave expressions, and output groups from the dictionary. | `s3_diagnosis_dictionary_df` | Existing | [30–31][assign-4a-30-31] |
 | `4A::wave1_2_dict`; `4A::wave_col` | Expected source-column inventory by wave; wave_col is a local selector. | `s4a_diagnosis_wave12_expected_columns_df` | Recommended | [38–51][assign-4a-38-51] |
 | `4A::diag_map (expression rewrite)` | Prepare wave-specific expression rules for missing summands. | `s4a_diagnosis_evaluation_rules_df` | Recommended | [53–72][assign-4a-53-72] |
-| `4A::drop_na_if`; `4A::x_drop` | Unique-nonmissing reducer and its local result; grouped with duplicate handling. | `s4a_diagnosis_wave12_deduplicated_df` | Recommended | [77–84][assign-4a-77-84] |
-| `4A::addtl_diag_w1_2` | Combine AVC and corrected Wave 1 diarrhea/pneumonia measurements. | `s4a_diagnosis_wave12_supplements_df` | Recommended | [108–110][assign-4a-108-110] |
-| `4A::x_month`; `4A::x_year`; `4A::month_df (source read)` | Extract a monthly member date and read/replace/add the relevant measurements. | `s4a_diagnosis_wave12_month_inputs_df` | Recommended | [113–128][assign-4a-113-128] |
-| `4A::month_df (identity join, exclusion, variable normalization)` | Attach identities, remove the designated UID, and normalize measurement names. | `s4a_diagnosis_wave12_identified_df` | Recommended | [132–148][assign-4a-132-148] |
-| `4A::month_df (tot and reporting filter)` | Retain clinic-month/file groups with positive total reported values. | `s4a_diagnosis_wave12_reporting_df` | Recommended | [150–151][assign-4a-150-151] |
-| `4A::month_df (dist_numeric, dist, is_dup, dup_handling, reduction)` | Classify repeats and reduce by unique, unique-nonmissing, sum, or conflict sentinel. | `s4a_diagnosis_wave12_deduplicated_df` | Recommended | [158–196][assign-4a-158-196] |
-| `4A::month_df (missing-value encoding)`; `4A::waves_wide (pivot and non-NULL filter)` | Encode missing values and pivot the two waves separately. | `s4a_diagnosis_wave12_wide_df` | Recommended | [198–212][assign-4a-198-212] |
-| `4A::add_cols`; `4A::diag_map_col`; `4A::all_col_df`; `4A::waves_wide (evaluate)` | Add expected absent columns and evaluate the wave-specific dictionary; short callback locals stay together. | `s4a_diagnosis_wave12_month_mapped_df` | Recommended | [215–236][assign-4a-215-236] |
-| `4A::w1_2_dt (mapped list and list_rbind)` | Collect mapped monthly results into the earlier-wave product. | `s4a_diagnosis_wave12_mapped_df` | Recommended | [113–116][assign-4a-113-116], [234–238][assign-4a-234-238] |
+| `4A::drop_na_if`; `4A::x_drop` | Unique-nonmissing reducer and its local result; grouped with duplicate handling. | `s4a_diagnosis_wave12_deduplicated_parquet` | Recommended | [77–84][assign-4a-77-84] |
+| `4A::addtl_diag_w1_2` | Combine AVC and corrected Wave 1 diarrhea/pneumonia measurements. | `s4a_diagnosis_wave12_supplements_parquet` | Recommended | [108–110][assign-4a-108-110] |
+| `4A::x_month`; `4A::x_year`; `4A::month_df (source read)` | Extract a monthly member date and read/replace/add the relevant measurements. | `s4a_diagnosis_wave12_month_inputs_parquet` | Recommended | [113–128][assign-4a-113-128] |
+| `4A::month_df (identity join, exclusion, variable normalization)` | Attach identities, remove the designated UID, and normalize measurement names. | `s4a_diagnosis_wave12_deduplicated_parquet` | Recommended | [132–148][assign-4a-132-148] |
+| `4A::month_df (tot and reporting filter)` | Retain clinic-month/file groups with positive total reported values. | `s4a_diagnosis_wave12_deduplicated_parquet` | Recommended | [150–151][assign-4a-150-151] |
+| `4A::month_df (dist_numeric, dist, is_dup, dup_handling, reduction)` | Classify repeats and reduce by unique, unique-nonmissing, sum, or conflict sentinel. | `s4a_diagnosis_wave12_deduplicated_parquet` | Recommended | [158–196][assign-4a-158-196] |
+| `4A::month_df (missing-value encoding)`; `4A::waves_wide (pivot and non-NULL filter)` | Encode missing values and pivot the two waves separately. | `s4a_diagnosis_wave12_month_mapped_parquet` | Recommended | [198–212][assign-4a-198-212] |
+| `4A::add_cols`; `4A::diag_map_col`; `4A::all_col_df`; `4A::waves_wide (evaluate)` | Add expected absent columns and evaluate the wave-specific dictionary; short callback locals stay together. | `s4a_diagnosis_wave12_month_mapped_parquet` | Recommended | [215–236][assign-4a-215-236] |
+| `4A::w1_2_dt (mapped list and list_rbind)` | Retain the per-month mapped Parquet branch paths; do not collect all measurements into R. | `s4a_diagnosis_wave12_month_mapped_parquet` | Recommended | [113–116][assign-4a-113-116], [234–238][assign-4a-234-238] |
 | `4A::w3 (read)` | Reuse the prepared Wave 3 input. | `s0_clinic_RMA_W3_clean_parquet` | Existing | [249][assign-4a-249-249] |
-| `4A::w3_anemia` | Read the same anemia supplement used to define the dictionary schema. | `s3_w3_anemia_source_df` | Recommended | [271–274][assign-4a-271-274] |
-| `4A::w3 (anemia insertion)` | Replace missing 2020 anemia columns and retain the later-year records. | `s4a_diagnosis_wave3_anemia_corrected_df` | Recommended | [279–287][assign-4a-279-287] |
-| `4A::w3 (X names and exact deduplication)` | Assign the dictionary-compatible column identifiers and remove exact duplicate records. | `s4a_diagnosis_wave3_deduplicated_df` | Recommended | [293–302][assign-4a-293-302] |
-| `4A::w3 (negative repairs)`; `4A::w3_diag_cols`; `4A::w3$tot`; `4A::w3 (reporting filter)` | Repair designated negatives and retain reporting rows using the selected measurement columns. | `s4a_diagnosis_wave3_reporting_df` | Recommended | [313–324][assign-4a-313-324] |
-| `4A::w3_mapped` | Apply Wave 3A/3B expressions and attach clinic/year/month/source-file identifiers. | `s4a_diagnosis_wave3_mapped_df` | Recommended | [329–344][assign-4a-329-344] |
-| `4A::clinic_track`; `4A::clinic_track$fname_correct`; `4A::clinic_track$any_fname_correct` | Combine reporting histories and derive period-specific source-file preference flags. | `s4a_clinic_reporting_candidates_df` | Recommended | [350–360][assign-4a-350-360] |
+| `4A::w3_anemia` | Read the anemia measurements; page 21 records only their schema. | `s4a_diagnosis_wave3_anemia_parquet` | Recommended | [271–274][assign-4a-271-274] |
+| `4A::w3 (anemia insertion)` | Replace missing 2020 anemia columns and retain the later-year records. | `s4a_diagnosis_wave3_anemia_corrected_parquet` | Recommended | [279–287][assign-4a-279-287] |
+| `4A::w3 (X names and exact deduplication)` | Assign the dictionary-compatible column identifiers and remove exact duplicate records. | `s4a_diagnosis_wave3_deduplicated_parquet` | Recommended | [293–302][assign-4a-293-302] |
+| `4A::w3 (negative repairs)`; `4A::w3_diag_cols`; `4A::w3$tot`; `4A::w3 (reporting filter)` | Repair designated negatives and retain reporting rows using the selected measurement columns. | `s4a_diagnosis_wave3_reporting_parquet` | Recommended | [313–324][assign-4a-313-324] |
+| `4A::w3_mapped` | Apply Wave 3A/3B expressions and attach clinic/year/month/source-file identifiers. | `s4a_diagnosis_wave3_mapped_parquet` | Recommended | [329–344][assign-4a-329-344] |
+| `4A::clinic_track`; `4A::clinic_track$fname_correct`; `4A::clinic_track$any_fname_correct` | Combine reporting histories and derive period-specific source-file preference flags. | `s4a_clinic_reporting_candidates_parquet` | Recommended | [350–360][assign-4a-350-360] |
 | `4A::clinic_track -> selected wide tracker export` | Select preferred reports, pivot monthly source-file history, and write a tracked Parquet file. | `s4a_clinic_reporting_track_parquet` | Recommended | [362–373][assign-4a-362-373] |
-| `4A::out_vars`; `4A::df_out`; `4A::df_out$fname_correct`; `4A::df_out$any_fname_correct` | Combine harmonized waves for each dictionary output group and mark source-file preference. | `s4a_diagnosis_output_candidates_df` | Recommended | [382–402][assign-4a-382-402] |
+| `4A::out_vars`; `4A::df_out`; `4A::df_out$fname_correct`; `4A::df_out$any_fname_correct` | Combine harmonized waves for each dictionary output group and mark source-file preference. | `s4a_diagnosis_output_candidates_parquet` | Recommended | [382–402][assign-4a-382-402] |
 | `4A::df_out -> retained export`; `4A::df_out -> wrong_fname export` | Keep preferred/closest reports and separately save rejected overlaps as tracked Parquet files. | `s4a_diagnosis_output_parquet` | Recommended | [404–418][assign-4a-404-418] |
 
 ### Script 4B — Slurm launcher
@@ -1042,8 +1362,8 @@ See [the launcher][legacy-slurm].
 | `checks::file_columns` | Map source files to their original column names. | `schecks_source_file_column_inventory_df` | Recommended | [451–464][assign-checks-451-464] |
 | `checks::test (source-file trace)` | Find source files containing the columns flagged by comparison. | `schecks_w3_legacy_problem_sources_df` | Recommended | [472–473][assign-checks-472-473] |
 | `checks::new_w3`; `checks::old_w3 (logical-to-numeric updates)` | Normalize types for the subsequent numeric comparison. | `schecks_w3_legacy_numeric_comparison_inputs_list` | Recommended | [481–482][assign-checks-481-482] |
-| `checks::test (matrix equality attempt)` | Exploratory equality matrix; the code compares old_w3 with itself, so retain the question rather than adopt it as proof. | `schecks_w3_legacy_numeric_comparison_matrix` | Recommended | [499–505][assign-checks-499-505] |
-| `checks::equals_na`; `checks::mismatches`; `checks::out`; `checks::all_mismatches`; `checks::rownames(all_mismatches)` | NA-aware comparison helper, per-column mismatch details, combined evidence, and row-name cleanup. | `schecks_w3_legacy_value_mismatches_df` | Recommended | [515–554][assign-checks-515-554], [556][assign-checks-556-556] |
+| `checks::test (matrix equality attempt)` | Exploratory equality matrix; the code compares old_w3 with itself, so retain the question rather than adopt it as proof. | `schecks_w3_value_mismatches_parquet` | Recommended | [499–505][assign-checks-499-505] |
+| `checks::equals_na`; `checks::mismatches`; `checks::out`; `checks::all_mismatches`; `checks::rownames(all_mismatches)` | NA-aware comparison helper, per-column mismatch details, combined evidence, and row-name cleanup. | `schecks_w3_value_mismatches_parquet` | Recommended | [515–554][assign-checks-515-554], [556][assign-checks-556-556] |
 | `checks::test1`; `checks::test2 (explicit-numeric/base reads)`; `checks::test1 (schema)`; `checks::test2 (schema read)` | Additional reader/source tracing experiments; group the short read/schema steps. | `schecks_csv_reader_comparison_list` | Recommended | [564–568][assign-checks-564-568], [578–589][assign-checks-578-589] |
 | `checks::kevin_w3`; `checks::orig_w3`; `checks::old_w3`; `checks::new_w3 (dictionary reads)` | Alternative dictionary versions; the reused w3 names now identify dictionaries, not measurements. | `schecks_dictionary_legacy_comparison_inputs_list` | Recommended | [653–656][assign-checks-653-656] |
 | `checks::old_w3`; `checks::new_w3 (second sorting block)` | Copied comparison preparation; organisationunitid/periodcode keys need review for dictionary inputs. | `schecks_dictionary_legacy_comparison_aligned_list` | Recommended | [686–687][assign-checks-686-687] |
@@ -1081,7 +1401,7 @@ implemented by this page.
 
 | Handoff or decision | Evidence in the current source | What the owning notebook needs to record |
 | --- | --- | --- |
-| Prepared Wave 3 artifact | Script 0 writes a dated filename; scripts 3 and 4A read the generic `wave3_with_keys.csv` ([0:274–275][w3-output]; [3:31–48][dictionary-w3-input]; [4A:249–249][diagnosis-w3-input]) | Which prepared artifact and source schema supply both dictionary construction and measurement cleaning |
+| Prepared Wave 3 artifact | Script 0 writes a dated filename; scripts 3 and 4A read the generic `wave3_with_keys.csv` ([0:274–275][w3-output]; [3:31–48][dictionary-w3-input]; [4A:249–249][diagnosis-w3-input]) | Use the generic W3 member inside the hand-delivered ZIP; prior byte comparison identified it as v3. All scientific inputs and comparison references now come from this one freeze. Compare source schema ordering separately |
 | Reporting tracker artifact | Script 4A writes under `data/clean/by_diagnosis/`; script 7 reads under `data/intermediate/` ([4A:22–25][diagnosis-output-dir]; [4A:350–373][diagnosis-tracker]; [7:21][metadata-tracker-input]) | The authoritative reporting-tracker artifact and its dependency in metadata assembly |
 | Diagnosis dictionary artifact | Legacy script 3 writes a scratch CSV while 4A reads a different clean CSV; page 21 now declares `s3_diagnosis_dictionary_df` and its tracked Parquet copy ([3:580–581][dictionary-output]; [4A:29–31][diagnosis-dictionary-input]) | Measurement cleaning should consume the page-21 data target and recorded X schema, rather than repeat the legacy filename assumption |
 | Raw versus cleaned facility mapping | Script 0 reads the original mapping; scripts 2 and 5 read the cleaned mapping ([0:191–212][w3-crosswalk]; [2:57–79][identity-mapping-input]; [5:309–328][sheds-mapping-input]) | Why each join uses that version, its year rules, and its expected cardinality |

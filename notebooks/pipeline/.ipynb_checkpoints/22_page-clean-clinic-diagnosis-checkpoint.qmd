@@ -1,0 +1,277 @@
+---
+title: "Clean and Combine Clinic Diagnoses"
+subtitle: "Implementation plan for legacy stage 4A, with execution owned by targets"
+execute:
+  eval: false
+engine: markdown
+---
+
+**Status: detailed implementation plan.** The target names below are proposed
+contracts, not declarations in the current graph. This page plans
+[`4A_clean_clinic_diagnosis.R`][legacy-4a]; the execution plan absorbs
+[`4B_clean_clinic_diagnosis.slurm`][legacy-4b]. No scientific pipeline is run
+or newly wired by this plan.
+
+The result is a harmonized measurement table for each dictionary output group,
+a separate record of the legacy rejected overlaps, and one reporting tracker.
+Large intermediates stay in DuckDB-backed Parquet file targets. Small rules
+and schemas stay in ordinary targets. Each procedure will become a short
+declaration plus a separately explained transformation helper.
+
+::: {.manual-prereq title="Confirm Identities, Definitions, And Resource Boundaries"}
+
+Require the completed clinic identity product from [page 20](20_page-construct-clinic-ids.qmd),
+the dictionary and recorded `X` schema from [page 21](21_page-construct-diagnosis-dictionary.qmd),
+and the prepared Wave 3 file from [page 18](18_page-prep-w3.qmd). The dictionary
+schema checks must pass before interpreting any expression.
+
+| Existing dependency | Role here |
+| --- | --- |
+| `s2_clinic_months_raw_zip`, `s2_clinic_months_members_chr` | Tracked source archive and ordered monthly member selectors |
+| `s2_clinic_ids_df` | Six-field clinic-month identity join and longitudinal ID |
+| `s3_diagnosis_dictionary_df` | Harmonized variables, per-wave expressions, and `filename` groups |
+| `s3_w3_column_dictionary_df` | Authoritative description-to-`X` mapping |
+| `s0_clinic_RMA_W3_clean_parquet` | Prepared Wave 3 measurements, without collection into R |
+
+Inventory the AVC, replacement diarrhea/pneumonia, and 2020 anemia members by
+exact source suffix. Reuse page 21's archive selectors where already defined.
+Record schemas, encodings, periods, and row-order provenance before migration.
+Do not read an old scratch dictionary or independently recreate its `X` names.
+
+Before running later implementations, select a worker count and per-worker
+budget within one approved allocation. The [execution page](../releases/20_page-execute-pipeline.qmd#parallel-targets-execution-plan)
+owns that configuration; this page will contain no `future::plan()`, nested
+worker pool, standalone Slurm launcher, or global object-size override.
+
+:::
+
+::: {.manual-procedure title="Prepare The Dictionary Evaluation Rules"}
+
+Build `s4a_diagnosis_wave12_expected_columns_df` by splitting the Wave 1/2
+expressions into distinct source terms. Build
+`s4a_diagnosis_evaluation_rules_df` from the same dictionary, retaining wave,
+`var`, source terms, and output group. Validate the supported expression
+grammar before compiling it to DuckDB operations; do not evaluate arbitrary
+text from a source file as unrestricted R code.
+
+Preserve the distinction between direct terms and sums:
+
+| Expression | Legacy treatment |
+| --- | --- |
+| Single earlier-wave term | Return the term, including its original missing-value sentinel behavior |
+| Sum of earlier-wave terms | Replace `-1` components with zero before addition |
+| Single Wave 3 term | Preserve the term's missing value |
+| Sum of Wave 3 terms | Replace missing components with zero before addition |
+
+Keep absent expected columns distinct from explicit zero reports. Do not
+convert all negative values or missing values to zero. Record the handling of
+an entirely unavailable expression and test it against the legacy result.
+
+:::
+
+::: {.manual-procedure title="Stage Supplements And Decode One Monthly Member"}
+
+Write `s4a_diagnosis_wave12_supplements_parquet` from AVC and the corrected
+diarrhea/pneumonia input. Retain all measurement rows and normalize the latter's
+`Variable` using its `cCode` and final underscore suffix. The distinct schema
+table from page 21 is not a substitute for these measurements.
+
+Declare one `s4a_diagnosis_wave12_month_inputs_parquet` branch per selected
+monthly member. Extract privately, decode with verified source settings, drop
+the superseded `fname == 1` codes `DySS`, `DiSS`, `DiDy`, `P`, and `PGRA`, then
+append supplements for that member's year and month. Keep source provenance.
+
+Illustrative future wiring, using the existing ordinary member-name vector:
+
+```r
+# Proposed declaration; not tangled or included in _targets.R yet.
+tar_target(
+  s4a_diagnosis_wave12_month_inputs_parquet,
+  s4a_diagnosis_write_month_input_fn(
+    s2_clinic_months_raw_zip,
+    s2_clinic_months_members_chr,
+    s4a_diagnosis_wave12_supplements_parquet
+  ),
+  pattern = map(s2_clinic_months_members_chr),
+  format = "file"
+)
+```
+
+The helper will write a branch-unique destination and return its path. Later
+per-file branches may map over this file target because it has a pattern.
+A static file bundle must not become a per-file branch dimension.
+
+:::
+
+::: {.manual-procedure title="Join Clinic Identities And Apply The Reporting Filter"}
+
+Join on `cAnnee`, `cPeriode`, `cCodeNiv`, `cCodeStru`, `cNom`, and `fname`, with
+the legacy character conversions for codes. Reproduce the actual
+`month_df[clinicID, on = ...]` join direction and multiplicity in fixtures;
+do not silently substitute an inner join or a conventional left join without
+checking unmatched rows and inventory multiplicity.
+
+Exclude `qCHtCHkwqtQ`, including the source filter's removal of missing IDs,
+and apply the three literal variable-name repairs (`c$_`, `_*`, and
+`SOMME ACCTS`). Retain
+clinic/year/month/file groups only when `sum(Value, na.rm = TRUE) > 0`.
+That is the earlier-wave rule; it differs from Wave 3's count of positive
+measurements. A group containing both positive and negative values can expose
+the difference, so it needs a dedicated fixture.
+
+Keep these transformations in the monthly disk-backed relation, owned by the
+next reduced checkpoint, rather than returning the tall table to the manager.
+
+:::
+
+::: {.manual-procedure title="Classify And Reduce Earlier-Wave Duplicates"}
+
+Compute flags per clinic/year/month/file/`Variable`: multiple distinct values,
+multiple distinct nonmissing numeric values, and duplicate row count. Choose
+the reduction at the wider clinic/year/month/file/`cCode` level, in the source's
+ordered precedence:
+
+| Decision | Condition and reduction |
+| --- | --- |
+| `unique` | No variable has differing values; retain the unique value |
+| `unique_nonNA` | No numeric disagreement; retain the unique nonmissing value, or missing if all are missing |
+| `sum` | Numeric disagreement exists and all variable flags indicate differences; sum with missing values omitted |
+| `sum2` | Numeric disagreement exists and every duplicated variable differs; use the same sum |
+| `error` | None of the preceding rules applies; retain the legacy `-99` conflict sentinel |
+
+Persist `s4a_diagnosis_wave12_deduplicated_parquet` and an aggregate decision
+audit. The helper `s4a_diagnosis_drop_na_if_fn` must preserve empty-input and
+multiple-value behavior. Do not reuse page 18's maximum reduction: these are
+different scientific operations.
+
+:::
+
+::: {.manual-procedure title="Map The Earlier-Wave Measurements In Bounded Units"}
+
+For each month, evaluate `fname == 1` and `fname > 1` against their respective
+dictionary columns. Retain the `-1` encoding and add absent expected source
+columns with the correct missing semantics before evaluation. Write
+`s4a_diagnosis_wave12_month_mapped_parquet` with IDs, period, `fname`, and
+harmonized `V` columns. The manager receives paths, not a `list_rbind()` of
+all months.
+
+Prototype a month-wide disk-backed result first. If mapping width still
+exceeds the worker budget, subdivide evaluation by dictionary output group
+after the reporting and duplicate decisions have been made. Keep a common
+report universe so a report with only missing mapped values is not lost.
+Benchmark both layouts before fixing the branch count or adding another cache.
+
+The old code skips a wave subset when its tall row count is at most one.
+Record this edge case and obtain an explicit parity/correction decision;
+do not turn the skipped case into accepted data as an incidental pivot change.
+
+:::
+
+::: {.manual-procedure title="Insert The 2020 Anemia Data And Clean Wave 3"}
+
+Read the actual anemia measurements into
+`s4a_diagnosis_wave3_anemia_parquet`; page 21's anemia schema target contains
+only names. Preserve the question-mark header repair and metadata exclusions.
+For 2020, remove the old anemia fields and reproduce the original full join
+on the shared organisation/period keys. Retain non-2020 rows and the recorded
+column order in `s4a_diagnosis_wave3_anemia_corrected_parquet`.
+
+Use the page-21 schema to assign `X` names while preserving identifier fields.
+Remove `V1`, `TYPE`, `FS`, and `code_fs` before exact-row deduplication. Resolve
+`X1067`, `X1068`, and `X1736` through that schema, record the corresponding
+descriptions, and convert their negative values to missing. The checkpoint is
+`s4a_diagnosis_wave3_deduplicated_parquet`.
+
+For `s4a_diagnosis_wave3_reporting_parquet`, retain rows with at least one
+positive measurement, excluding the refrigerator-temperature fields `X1708`
+and `X1709`. Use 3A expressions for 2020 and 3B for later periods, assign
+`fname = 6`, and write `s4a_diagnosis_wave3_mapped_parquet`. Partition by complete
+periods only after operations requiring the full duplicate group are safe.
+
+:::
+
+::: {.manual-procedure title="Resolve Report Sources And Write The Tracker"}
+
+Create `s4a_clinic_reporting_candidates_parquet` from mapped report keys
+before projecting output variables. Implement one tested source-selection helper shared by the tracker
+and diagnosis outputs.
+
+| Period | Expected `fname` |
+| --- | --- |
+| Before 2015; January–March 2015 | 1 |
+| April–December 2015; 2016 | 2 |
+| 2017 / 2018 / 2019 | 3 / 4 / 5 |
+| 2020 onward | 6 |
+| Otherwise | 0 |
+
+Prefer the expected file when present; otherwise retain candidates at the
+minimum absolute file-number distance. The source retains distance ties.
+Expose them in `s4a_report_selection_audit_df`; do not silently choose a first
+row. A scalar wide reporting tracker needs an agreed resolution of any ties
+that would create list-valued cells.
+
+Write `s4a_clinic_reporting_track_parquet` at
+`data/intermediates/clinic_reporting_track.parquet`, with one clinic row,
+`yYYYY_mMM` columns, and zero for no retained report in the defined calendar.
+This is the single handoff to metadata assembly; there is no separate
+clean-to-intermediate copy step.
+
+Record the legacy set of emitted calendar columns. Expanding it to include
+periods with no reports anywhere is a separate schema decision, not an
+incidental effect of completing a date sequence.
+
+:::
+
+::: {.manual-procedure title="Partition Retained And Rejected Diagnosis Outputs"}
+
+Derive the ordinary character branch driver `s4a_diagnosis_output_groups_chr`
+from the dictionary's actual `filename` values. Each branch reads only its
+`V` columns from mapped Parquet artifacts, resolves `fname` with the shared
+helper, and writes tracked retained and legacy `wrong_fname` Parquet files
+under `data/intermediates/by_diagnosis/`. Keep `fname` in the outputs.
+
+`s4a_diagnosis_output_parquet` may return a two-path bundle per output-group
+branch. Treat that bundle as one branch unit; any later per-file iteration
+needs its own ordinary path selector and dynamic file-tracking target.
+
+The legacy `wrong_fname` predicate records wrong files only when an expected
+file exists. It does not record all non-nearest fallback candidates when no
+expected file exists. Preserve that meaning and report the uncovered
+selection category separately in the audit; changing the rejected-output
+definition requires an explicit decision.
+
+Parallelism comes from the graph's ready monthly, period, and output-group
+branches, dispatched by the controller configured for `tar_make()`. A branch
+does not launch its own futures or submit another Slurm job.
+
+:::
+
+::: {.manual-check title="Specify Stage 4 Acceptance Evidence"}
+
+This block defines tests to implement, not claims that stage 4 has run.
+
+| Verification layer | Required evidence |
+| --- | --- |
+| Synthetic logic tests | Exact duplicates, mixed missing/numeric values, all-missing groups, `sum`/`sum2`, and `-99` conflicts; identity join direction; direct-term versus summed-term missing semantics |
+| Boundary fixtures | One-row wave subsets; March/April 2015; 2019/2020; exact source present, nearest fallback, and equal-distance ties; empty output partitions |
+| Wave 3 fixtures | Anemia-only full-join rows; schema order changes; the three negative repairs; refrigerator fields excluded only from the reporting decision |
+| Parquet round trip | Schema, column order, UTF-8, missing values, sentinels, and exact retained keys |
+| Reference comparison | Canonically keyed values against the legacy result, with reviewed differences recorded rather than normalized away |
+| Post-build summaries | Rows and clinics by period/wave/output group; duplicate decisions; missing IDs; source-choice categories; tracker/output agreement |
+| Resource verification | Peak memory and elapsed time per branch; scalar SQL row counts and file sizes without collecting full data; serial/parallel equality and a no-op second build |
+
+Create `tests/check-clinic-diagnosis.R` with synthetic fixtures before wiring
+the stage. Run graph/branchability checks before any separately authorized
+data build. Historical comments such as 122,924 retained Wave 3 rows are
+comparison points, not unconditional assertions for changed inputs.
+
+The plan's structure can be checked now:
+
+```sh
+python3 tests/check-manual-structure.py
+```
+
+:::
+
+[legacy-4a]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/4A_clean_clinic_diagnosis.R
+[legacy-4b]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/4B_clean_clinic_diagnosis.slurm

@@ -1,0 +1,215 @@
+---
+title: "Reconcile Sectorization and Construct Healthsheds"
+subtitle: "Implementation plan for legacy stage 5 and its spatial utilities"
+execute:
+  eval: false
+engine: markdown
+---
+
+**Status: detailed implementation plan; targets are not wired.** This page
+plans [`5_clean_sect2022_construct_healthsheds.R`][legacy-5] and the spatial
+helpers from [`999_utility_functions.R`][legacy-999]. Its outputs are the
+cleaned 2022 FKT-to-clinic assignments and clinic healthshed geometries.
+
+Spatial objects remain ordinary `sf` targets, serialized by targets. Persisted
+nonspatial tables and evidence use Parquet file targets. The plan does not
+introduce a new spatial interchange format or require repeated shapefile
+round trips between stages.
+
+::: {.manual-prereq title="Inventory Geometry And Reviewed Matching Evidence"}
+
+Require `s1_gesis_xwalk_clean_df` from [page 19](19_page-clean-mapping-dhis2-gesis.qmd),
+the staged input inventory, the 2022 sectorization, the 2018 sectorization,
+the OCHA/BNGRC administrative polygons and code lookup, and every reviewed
+match/unmatch/correction file used by the source.
+
+Track the complete shapefile dataset, including companion files, or its
+containing source archive. Preserve raw source formats and review notes.
+Record source CRS, geometry validity, lookup-sheet number, identifier types,
+and the local source revision before implementing matching.
+
+Keep three decisions explicit: allowed shared FKT assignments, population
+counting, and accepted residual non-contiguity. Historical coverage counts
+do not prove those policies. Record the `sf`, GEOS/GDAL/PROJ, and topology
+settings used for the reference comparison before changing the environment.
+
+:::
+
+::: {.manual-procedure title="Declare The Spatial Helpers Beside Their First Use"}
+
+Declare tracked function targets for the grouped string-distance join and
+healthshed aggregation. Keep the cardinal-direction lookup with the matching
+evidence if the migrated transformation needs it. Reuse page 18's CSV-reader
+responsibility; do not create a second sparse-measurement reader here.
+
+| Helper contract | Behavior to preserve |
+| --- | --- |
+| Grouped fuzzy join | Administrative grouping, cosine distance, case handling, candidate-selection callback, ties, unmatched groups, and optional unnesting |
+| Clinic aggregation | Union of assigned geometry, population from distinct `(fkt_uid, fkt_pop_2022)` pairs, administrative attributes, FKT counts, connected components, and polygon parts |
+| Empty geometry | Explicit construction with the input CRS inside the helper; no dependency on an untracked `empty_geom` global |
+
+Replace the unresolved `source("scripts/0_utility_functions.R")` reference with
+these explicit dependencies on the reviewed `999` implementation. Do not
+rename the source file locally merely to make the old `source()` succeed.
+Specify additional spatial package dependencies when these helpers are
+implemented, then resolve the project lockfile through the existing workflow.
+
+:::
+
+::: {.manual-procedure title="Repair Source Geometry And Split Nosy Mitsio"}
+
+Build `s5_fkt_shapes_initial_sf` from the tracked polygons with the source's
+validity repair. Reproduce the split of `MG71717150005` and its corresponding
+`717150005` sectorization/lookup identifiers, including the reviewed suffixes.
+Create `s5_fkt_code_lookup_initial_df` from lookup sheet 5 with character codes.
+
+Capture the identity of the island and mainland pieces before relying on
+polygon-part ordering. The legacy first-part versus later-part grouping is
+order-sensitive; a changed library's part order must not silently swap the
+assignments. Test area/coverage conservation and lookup consistency without
+assuming that a topology repair is numerically identical across versions.
+
+:::
+
+::: {.manual-procedure title="Reconcile Duplicate FKT Codes And Population"}
+
+Normalize the sectorization schema in `s5_sectorization_2022_source_df` and read
+the reviewed duplicate decisions separately in
+`s5_sectorization_duplicate_reviews_df`. Build
+`s5_sectorization_population_reconciled_df` with the original note-driven
+precedence: retain approved shared assignments, delete the designated zero-
+population record, and combine the populations for reviewed keep/delete pairs.
+
+Retain review provenance and explain every row-count change. The historical
+21927-to-21921 change and unchanged population total are reference observations.
+Do not apply a generic `distinct(fkt_uid)` that would erase shared assignments
+or change the source's population rule.
+
+:::
+
+::: {.manual-procedure title="Apply Initial Matching Rounds In Their Reviewed Order"}
+
+| Proposed target | Responsibility |
+| --- | --- |
+| `s5_sectorization_fkt_match_reviews_list` | Ordered reviewed matching tables and their provenance |
+| `s5_sectorization_fkt_matches_df` | Valid original codes followed by the reviewed fills, with `match_type` |
+| `s5_sectorization_direct_matches_df` | Reviewed clinic assignments not represented by an existing FKT row |
+| `s5_sectorization_initial_geometry_sf` | Lookup PCODE and attached FKT geometry |
+
+Keep each correction round's precedence visible in a short procedure and
+target declaration when implementation begins. Preserve leading zeros and
+reviewed manual overrides. Record conflicting or multiply matched codes
+instead of resolving them through incidental input order.
+
+:::
+
+::: {.manual-procedure title="Evaluate Topology Before Removing Isolated Matches"}
+
+Create `s5_sectorization_initial_topology_sf` with adjacency, component, and
+isolation evidence. Reproduce the legacy DE-9IM relation test; do not replace
+it with a different spatial predicate without a parity test. Point contacts,
+line contacts, overlapping pieces, and holes need separate fixtures.
+
+Apply the reviewed unlinking rule to
+`s5_sectorization_contiguity_filtered_sf`, protecting the manual assignments
+the source exempts. Build `s5_healthshed_clinic_initial_sf` with the same
+aggregation helper used for every later version. Keep component count and
+polygon-part count as distinct diagnostics.
+
+:::
+
+::: {.manual-procedure title="Recover Historical Matches And Apply Follow-Up Reviews"}
+
+Build the 2018 source table, join it through the cleaned GESIS mapping, and
+retain the candidate's clinic, adjacency, and existing-healthshed evidence.
+The proposed stages are `s5_sectorization_2018_candidates_sf`,
+`s5_sectorization_2018_matches_sf`, and
+`s5_sectorization_historical_filled_sf`.
+
+Preserve grouped name matching and the historical distance cutoff `<= 0.11`.
+Minimum-distance ties remain visible. Apply the subsequent manual matches,
+unmatches, and geometry refreshes in `s5_sectorization_reviewed_v2_sf`, then
+rebuild `s5_healthshed_clinic_v2_sf`. Do not let a later fuzzy candidate
+overwrite an earlier reviewed decision without the source's explicit rule.
+
+:::
+
+::: {.manual-procedure title="Evaluate Commune Candidates With The Contiguity Guard"}
+
+Create `s5_sectorization_commune_candidates_sf` by matching within district,
+retaining the closest commune with one clinic and distance `< 0.075`.
+Evaluate the proposed additions in `s5_sectorization_commune_topology_sf`
+before applying them. Preserve the guard against worsening component counts.
+
+Apply accepted candidates to `s5_sectorization_commune_filled_sf` and rebuild
+`s5_healthshed_clinic_v3_sf`. Keep rejected candidates and their reasons as
+small diagnostic targets or Parquet evidence; the check block will inspect
+those results rather than regenerate matching decisions.
+
+:::
+
+::: {.manual-procedure title="Apply Final Reassignments And Island Corrections"}
+
+Apply the reviewed non-contiguous reassignments, unmatched-FKT fixes,
+duplicate/administrative corrections, coastal-island splits, and final
+unlink/replacement rows in source order. The assignment chain ends in
+`s5_sectorization_2022_clean_sf`; the final aggregation is
+`s5_healthshed_clinic_final_sf`.
+
+Retain named intermediate targets for the reassigned, unmatched-fixed,
+miscellaneous-fixed, island-fixed, and final-unlinked states listed in the
+[mapping inventory](mapping/legacy-pipeline-map.qmd#script-5-sectorization-and-healthsheds).
+Each island split must update geometry and the code lookup together, with
+population treatment recorded. Rebuild healthsheds from the corrected
+assignment table rather than patching the unioned geometry independently.
+
+:::
+
+::: {.manual-procedure title="Expose Spatial Handoffs And Review Evidence"}
+
+Pages [24](24_page-locate-clinics.qmd) and [25](25_page-combine-clinic-metadata.qmd)
+will consume the two final `sf` targets directly. This avoids shapefile field
+name truncation and an extra RDS/shapefile export chain. Optional nonspatial
+assignment or diagnostic exports must be Parquet file targets under
+`data/intermediates/`.
+
+Keep per-clinic non-contiguous and multipart review maps as ordinary plot-list
+targets. Do not render protected maps or exception tables into the public
+manual. Small diagrams or synthetic geometries can explain the checks.
+Track any approved publication export under the separate release contract.
+
+Parallelize only independent candidate batches or per-clinic diagnostics
+after their shared input state is fixed. Correction rounds remain ordered;
+running versions v1–v4 simultaneously would violate their dependencies.
+
+:::
+
+::: {.manual-check title="Specify Spatial Acceptance Evidence"}
+
+Implement `tests/check-healthshed-rules.R` using synthetic geometry before
+wiring these targets. The future checks must establish:
+
+| Check | Evidence |
+| --- | --- |
+| Geometry identity | CRS, valid geometry, correct island/mainland assignment, complete code-lookup updates, and conserved source coverage within a declared tolerance |
+| Population | Repeated identical UID/population pairs count once; reviewed population merges conserve totals; shared clinic assignments remain intentional |
+| Matching | Group boundaries, missing strings, distance thresholds, ties, and the precedence of reviewed overrides |
+| Topology | Empty geometries, point/line contacts, disconnected pieces, holes, protected manual assignments, and the commune contiguity guard |
+| Final coverage | Unmatched FKT, clinics without assigned FKT, residual component counts, and multipart geometry counts reported separately |
+| Reproducibility | Same accepted assignments and population summaries on repeated runs, with package/geometry-engine provenance |
+
+Compare legacy observations such as 2773 healthsheds and 26 multi-component
+healthsheds against the exact input revision; do not turn them into universal
+invariants or assert that healthsheds must be disjoint. Validate final source
+membership and reviewed overlap exceptions independently of total counts.
+
+No spatial targets or data-level checks have run as part of this plan.
+
+```sh
+python3 tests/check-manual-structure.py
+```
+
+:::
+
+[legacy-5]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/5_clean_sect2022_construct_healthsheds.R
+[legacy-999]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/999_utility_functions.R

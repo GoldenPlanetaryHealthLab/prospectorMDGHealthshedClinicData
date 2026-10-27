@@ -7,13 +7,11 @@ engine: markdown
 ---
 
 `spack.yaml` declares the native runtime. R 4.5.1 is retained from the
-existing environment. Neovim is retained deliberately as the interactive IDE
-for pipeline development. The scientific workflow itself remains
-command-line-driven.
+existing environment. The scientific workflow remains command-line-driven.
 
 The `x86_64_v3` baseline avoids tying the image to the build node. The system
-libraries follow the exemplar's R, Quarto, `targets`, and graphics build
-baseline; project-specific additions require evidence from reviewed code.
+libraries follow the ERA5 and Nepal Climate Health examples, with the spatial
+requirements traced to legacy stages 5–7 and their shared utility script.
 
 The native layer includes both FlexiBLAS, which Spack's R installation uses,
 and OpenBLAS. The latter is an explicit runtime requirement because binary R
@@ -21,9 +19,35 @@ packages resolved by `uvr` can link directly to the `libopenblas.so.0` SONAME
 instead of going through R's FlexiBLAS interface. Declaring OpenBLAS as a root
 spec ensures that its shared libraries are linked into the final Spack view.
 
+The geospatial layer is a coherent Spack build of GDAL, GEOS, PROJ, SQLite,
+and UDUNITS-2. `sf` needs GDAL/GEOS/PROJ; its R dependency `units` needs
+`libudunits2.so.0`. Declaring `sf` in `uvr.toml` installs R code but cannot
+provide these native libraries. In the previous image, `ldd` reported missing
+UDUNITS, GDAL, GEOS, and PROJ libraries, so changing the existing search path
+would not repair the runtime. The installed binary also requested
+`libgdal.so.30`; a newer GDAL can have a different ABI. Build R packages from
+source against this image, as described on [page 14](14_page-uvr.qmd).
+
+| Native requirement | Evidence and purpose |
+| --- | --- |
+| `gdal`, `geos`, `proj`, `sqlite` | `sf` reads administrative polygons, repairs/unions geometry, evaluates DE-9IM relations, and transforms CRS; GDAL also supports raster packages in the mapping dependency closure |
+| `udunits` | R `units`, used by `sf` areas and distances; includes its XML unit database |
+| `abseil-cpp`, `openssl`, `cmake`, `pkgconf` | R `s2` spherical geometry and native build discovery |
+| `glpk`, BLAS/LAPACK | `igraph` connected components and numerical dependencies; GLPK was already part of the runtime |
+| `cairo`, font and image libraries, `libwebp +libwebpmux` | Headless stage-5 map/plot exports and graphics packages in the `tmap`/`ggpubr` dependency closure |
+| Final-image `dejavu-sans-fonts` | Actual font files for headless map labels; `fontconfig` discovers fonts but does not supply them |
+| R `+X` variant | Spack enables R's Cairo/PNG/JPEG/TIFF devices through this variant; Cairo exports run without a display server |
+| Final-image `gcc`, `gcc-c++`, `gcc-gfortran`, `make` | Compile R packages against the image, including Fortran dependencies of graph/statistical plotting packages |
+
+These are native libraries, not Spack `r-*` packages: `uvr` continues to own
+the R package closure. No Python runtime, external Arrow C++ installation,
+or replacement spatial file format is needed by the reviewed stages.
+See the upstream [sf installation requirements](https://r-spatial.github.io/sf/)
+and [s2 installation requirements](https://r-spatial.github.io/s2/).
+
 ::: {.manual-prereq title="Confirm The Runtime Policy"}
 
-Before building, review the R, Neovim, Rocky Linux, Spack, and CPU target
+Before building, review the R, Rocky Linux, Spack, and CPU target
 versions below. None of these choices are inferred from protected data.
 
 :::
@@ -33,7 +57,14 @@ versions below. None of these choices are inferred from protected data.
 ```yaml
 spack:
   specs:
-  - r@4.5.1
+  - r@4.5.1+X
+  - gdal
+  - geos
+  - proj
+  - sqlite
+  - udunits
+  - abseil-cpp
+  - pkgconf
   - libxml2
   - icu4c
   - libx11
@@ -47,7 +78,8 @@ spack:
   - libjpeg-turbo
   - libpng
   - libtiff
-  - libwebp
+  - libwebp +libwebpmux
+  - cairo
   - fontconfig
   - fribidi
   - harfbuzz
@@ -81,6 +113,8 @@ spack:
       - which
       - gcc
       - gcc-c++
+      - gcc-gfortran
+      - dejavu-sans-fonts
       - make
 ```
 
@@ -89,7 +123,8 @@ spack:
 ::: {.manual-check title="Verify The Declaration"}
 
 ```sh
-rg -n 'r@4.5.1|neovim|flexiblas|openblas|target=x86_64_v3|rockylinux:9' spack.yaml
+rg -n 'r@4.5.1|flexiblas|openblas|target=x86_64_v3|rockylinux:9' spack.yaml
+rg -n 'gdal|geos|proj|sqlite|udunits|abseil-cpp|pkgconf|cairo|libwebpmux|gcc-gfortran' spack.yaml
 ```
 
 :::

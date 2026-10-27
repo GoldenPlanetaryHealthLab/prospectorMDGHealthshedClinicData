@@ -4,7 +4,14 @@
 
 spack:
   specs:
-  - r@4.5.1
+  - r@4.5.1+X
+  - gdal
+  - geos
+  - proj
+  - sqlite
+  - udunits
+  - abseil-cpp
+  - pkgconf
   - libxml2
   - icu4c
   - libx11
@@ -18,7 +25,8 @@ spack:
   - libjpeg-turbo
   - libpng
   - libtiff
-  - libwebp
+  - libwebp +libwebpmux
+  - cairo
   - fontconfig
   - fribidi
   - harfbuzz
@@ -52,4 +60,6 @@ spack:
       - which
       - gcc
       - gcc-c++
+      - gcc-gfortran
+      - dejavu-sans-fonts
       - make

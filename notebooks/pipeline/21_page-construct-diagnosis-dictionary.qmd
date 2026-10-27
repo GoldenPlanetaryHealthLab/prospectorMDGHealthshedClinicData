@@ -880,54 +880,77 @@ s3_diagnosis_dictionary_parquet <- {
 
 :::
 
-::: {.manual-check title="Verify Definitions, Coverage, And Disk Size"}
+::: {.manual-check title="Compare Most Recent Archived Data And Target Diagnosis Dictionaries"}
 
-Run the synthetic logic tests from the repository root. They evaluate helpers
-and selected transformation commands with fixtures, without `tar_make()` or
-staged input data.
+**Review note (2026-11-08).** The researcher reports that the initial
+shape checks on pages 18–21 appear to pass. This covers the inspected dimensions, column layout, and variable-count summaries.
+This is a researcher-reported observation from the interactive review,
+not an independently rerun acceptance test. It does not establish
+key-level equality, measurement-value parity, or unchanged diagnosis
+definitions/IDs. Retain any remaining discrepancies for review.
 
-```sh
-python3 tests/check-manual-structure.py
-scripts/mdg-healthshed-clinic-data exec Rscript tests/check-diagnosis-dictionary.R
-```
+Run these chunks in order from the repository root after the targets build.
+These are exploratory summaries; interpretation is left to the reader.
+[Most recent archived data baseline](mapping/legacy-pipeline-map.qmd#most-recent-archived-data-comparison-baseline)
+records the selected iterations, evidence, and provenance limits. The shared
+selection is versioned in `src/archived-comparison-baseline.R`.
 
-After a separately authorized pipeline build, inspect dictionary coverage in
-an authorized session. These summaries observe completed targets; they do
-not declare targets or rebuild the graph.
+Use the May 3 clean dictionary inside the selected ZIP, the most recent
+archived dictionary data within this freeze. Its SHA-256 matches script 3’s
+`scratch/dictionary_test2.csv`. Later Drive iterations are excluded.
 
-```{r}
-tar_read(s3_diagnosis_dictionary_df) |>
-  count(waves_available, filename, name = "variables")
-
-tar_read(s3_diagnosis_dictionary_df) |>
-  summarise(variables = n(), missing_english = sum(is.na(description_en)))
-
-tar_read(s3_diagnosis_translation_gaps_df)
-```
-
-Check expression uniqueness, repeated summands, and schema references with
-the validation helper. An issue table provides the variable and wave instead
-of silently repairing scientific mappings.
+Load the pair for this page. Braces keep these session assignments out of
+`tar_tangle()`; the objects remain available for interactive exploration.
 
 ```{r}
-stopifnot(nrow(s3_diagnosis_validate_fn(
-  tar_read(s3_diagnosis_dictionary_df),
-  tar_read(s3_w3_column_dictionary_df),
-  bind_rows(tar_read(s3_diagnosis_wave12_dictionary_df),
-            tar_read(s3_diagnosis_supplementary_dictionary_df))
-)) == 0L)
+{
+  archived_baseline <- dget(here::here("src", "archived-comparison-baseline.R"))
+  old_dictionary <- read.csv(unz(
+    here::here(archived_baseline$archive_zip), archived_baseline$dictionary_member
+  ), check.names = FALSE)
+  new_dictionary <- targets::tar_read(s3_diagnosis_dictionary_df)
+}
 ```
 
-Inspect on-disk size and row count for the dictionary and its larger Wave 3
-input without collecting either Parquet table into R. Only the count results
-and file metadata cross the memory boundary.
+**Rows and columns.**
 
 ```{r}
-s3_diagnosis_parquet_stats_fn(tar_read(s3_diagnosis_dictionary_parquet))
-s3_diagnosis_parquet_stats_fn(tar_read(s0_clinic_RMA_W3_clean_parquet))
+tibble::tibble(
+  source = c("most recent archived data", "current pipeline"),
+  rows = c(nrow(old_dictionary), nrow(new_dictionary)),
+  columns = c(ncol(old_dictionary), ncol(new_dictionary))
+)
 ```
 
-The pipeline has not been executed while constructing this page; these
-post-build checks are supplied for later use.
+**Column names and order.**
+
+```{r}
+dplyr::bind_rows(
+  `most recent archived data` = tibble::tibble(position = seq_len(ncol(old_dictionary)), column = names(old_dictionary)),
+  `current pipeline` = tibble::tibble(position = seq_len(ncol(new_dictionary)), column = names(new_dictionary)),
+  .id = "source"
+)
+```
+
+**Variable counts by output group and available waves.**
+
+```{r}
+# Shape check: dictionary-groups
+dplyr::bind_rows(
+  `most recent archived data` = old_dictionary |> dplyr::count(filename, waves_available, name = "variables"),
+  `current pipeline` = new_dictionary |> dplyr::count(filename, waves_available, name = "variables"),
+  .id = "source"
+) |>
+  tidyr::pivot_wider(
+    id_cols = c(filename, waves_available), names_from = source,
+    values_from = variables, values_fill = 0L
+  ) |>
+  dplyr::mutate(difference = `current pipeline` - `most recent archived data`) |>
+  dplyr::arrange(readr::parse_number(filename), waves_available) |>
+  print(n = Inf)
+```
+
+An absent group contributes zero variables. Matching group sizes do not prove
+that the same clinical definitions carry the same `V` IDs.
+
 :::
-

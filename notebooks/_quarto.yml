@@ -20,6 +20,7 @@ book:
     - part: "Project Setup"
       chapters:
         - 00_cover.qmd
+        - 00_data-guide.qmd
         - pipeline/mapping/legacy-pipeline-map.qmd
         - 01_misc-render-isolated.qmd
         - 02_misc-project-contract.qmd
@@ -40,9 +41,18 @@ book:
         - pipeline/19_page-clean-mapping-dhis2-gesis.qmd
         - pipeline/20_page-construct-clinic-ids.qmd
         - pipeline/21_page-construct-diagnosis-dictionary.qmd
+        - pipeline/22_page-clean-clinic-diagnosis.qmd
+        - pipeline/23_page-construct-healthsheds.qmd
+        - pipeline/24_page-locate-clinics.qmd
+        - pipeline/25_page-combine-clinic-metadata.qmd
+        - pipeline/26_page-prep-2025-2026.qmd
+        - pipeline/27_page-clean-2025-2026.qmd
+        - pipeline/28_page-geospatial-aggregate-2025-2026.qmd
+        - pipeline/30_page-validate-migration.qmd
         - releases/19_page-package-release.qmd
         - releases/20_page-execute-pipeline.qmd
         - releases/21_page-verify-release.qmd
+        - releases/22_page-export-frictionless.qmd
 
 execute:
   enabled: false

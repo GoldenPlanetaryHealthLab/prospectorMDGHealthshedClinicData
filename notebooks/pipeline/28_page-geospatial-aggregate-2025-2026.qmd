@@ -1,0 +1,321 @@
+---
+title: "Locate Clinics and Assemble the Final Database"
+subtitle: "Preserve UID evidence and append compatible diagnosis and metadata products"
+execute:
+  eval: false
+engine: markdown
+---
+
+This page ports Kai's unseen-clinic inventory, clinical projection, and
+reviewed NA correction boundaries. Stable source UIDs are retained; name and
+district matches are candidates only. Existing healthsheds remain explicitly
+labelled 2022 references. Missing coordinates do not remove clinical records.
+
+::: {.manual-prereq title="Require Audited Measurements And Reviewed Overrides"}
+
+Require pages 25–27. Identity reviews and NA corrections are ordinary tracked
+R tables declared here. Identity reviews have
+`source_uid,clinic_ID,valid_from,valid_to,decision,reviewer,reason`; decisions
+are `accept` or `exclude`, with inclusive YYYYMM bounds. No row is guessed
+from a normalized name. NA corrections have
+`file,var,period_from,period_to,reason,reviewer`, matching Kai's correction
+input with explicit reviewer provenance. Empty inputs apply no corrections.
+
+The final reporting interface uses one row per clinic-month. Where historical
+codes conflict, preserve all candidates in an audit and expose a missing
+scalar code plus an ambiguity flag. This is a representation of uncertainty,
+not selection of a winning code or a change to historical diagnosis values.
+
+:::
+
+::: {.manual-procedure title="Resolve Stable UIDs And Expose Predecessor Candidates"}
+
+```{r}
+s10_new_wave_identity_fn <- function(reports,review,existing,path) {
+  stopifnot(all(c("source_uid","clinic_ID","valid_from","valid_to","decision","reviewer","reason") %in% names(review)))
+  x <- duckplyr::read_parquet_duckdb(reports,prudence="stingy") |>
+    dplyr::distinct(organisationunitid,periodcode) |> dplyr::collect() |>
+    dplyr::rename(source_uid=organisationunitid) |>
+    dplyr::mutate(clinic_ID=source_uid,identity_status=ifelse(source_uid %in% existing,"existing_uid","new_uid"),decision="retain")
+  x$reviewer <- NA_character_; x$review_reason <- NA_character_
+  if (nrow(review)) {
+    stopifnot(all(review$decision %in% c("accept","exclude")),
+      all(!is.na(review$reviewer) & nzchar(review$reviewer)),all(!is.na(review$reason) & nzchar(review$reason)),
+      all(!is.na(review$valid_from) & !is.na(review$valid_to)),
+      all(grepl("^[0-9]{4}(0[1-9]|1[0-2])$",c(review$valid_from,review$valid_to))),
+      all(as.integer(review$valid_from)<=as.integer(review$valid_to)))
+    for (i in seq_len(nrow(x))) {
+      hits <- which(review$source_uid==x$source_uid[[i]] & as.integer(review$valid_from)<=x$periodcode[[i]] & as.integer(review$valid_to)>=x$periodcode[[i]])
+      if (!length(hits)) next
+      if (length(hits)!=1L) stop("Overlapping identity decisions.")
+      j <- hits[[1L]]
+      if (review$decision[[j]]=="accept" && (is.na(review$clinic_ID[[j]]) || !nzchar(trimws(review$clinic_ID[[j]])))) stop("Reviewed clinic ID is empty.")
+      x$clinic_ID[[i]] <- if(review$decision[[j]]=="accept") review$clinic_ID[[j]] else NA_character_
+      x$identity_status[[i]] <- paste0("reviewed_",review$decision[[j]])
+      x$decision[[i]] <- review$decision[[j]]
+      x$reviewer[[i]] <- review$reviewer[[j]]; x$review_reason[[i]] <- review$reason[[j]]
+    }
+  }
+  s5_healthshed_write_table_fn(x,path)
+}
+s10_new_wave_predecessors_fn <- function(reports,old_w3,existing) {
+  cols <- c("organisationunitid","organisationunitname","orgunitlevel3")
+  new <- duckplyr::read_parquet_duckdb(reports,prudence="stingy") |>
+    dplyr::select(dplyr::all_of(cols)) |> dplyr::distinct() |> dplyr::collect()
+  old <- duckplyr::read_parquet_duckdb(old_w3,prudence="stingy") |>
+    dplyr::select(dplyr::all_of(cols)) |> dplyr::distinct() |> dplyr::collect()
+  key <- function(x) gsub("[^a-z0-9]+"," ",s9_new_wave_normalize_fn(x)) |> trimws()
+  new <- new |> dplyr::filter(!organisationunitid %in% existing) |>
+    dplyr::mutate(name_key=key(organisationunitname),district_key=key(orgunitlevel3))
+  old <- old |> dplyr::mutate(name_key=key(organisationunitname),district_key=key(orgunitlevel3))
+  dplyr::inner_join(dplyr::filter(new,!is.na(name_key),nzchar(name_key),!is.na(district_key),nzchar(district_key)),
+    old,by=c("name_key","district_key"),suffix=c("_new","_old"),relationship="many-to-many") |>
+    dplyr::mutate(applied=FALSE,evidence="same normalized name and district; candidate only")
+}
+```
+
+```{r}
+s10_new_wave_identity_review_df <- tibble::tibble(
+  source_uid = character(), clinic_ID = character(), valid_from = character(),
+  valid_to = character(), decision = character(), reviewer = character(), reason = character()
+)
+s10_new_wave_na_corrections_df <- tibble::tibble(
+  file = character(), var = character(), period_from = character(), period_to = character(),
+  reason = character(), reviewer = character()
+)
+```
+
+```{r}
+#| format: file
+s10_new_wave_identity_parquet <- s10_new_wave_identity_fn(s9_new_wave_reports_parquet,
+  s10_new_wave_identity_review_df,s7_clinic_spatial_metadata_df$clinic_ID,
+  here::here("data/intermediates/new_wave/identity.parquet"))
+```
+
+```{r}
+s10_new_wave_predecessor_candidates_df <- s10_new_wave_predecessors_fn(s9_new_wave_reports_parquet,
+  s0_clinic_RMA_W3_clean_parquet,s7_clinic_spatial_metadata_df$clinic_ID)
+```
+
+:::
+
+::: {.manual-procedure title="Project Clinical Definitions And Apply Guarded Corrections"}
+
+Use the existing dictionary's wave3B expressions and `V`/filename assignments.
+Known negative repairs and refrigerator reporting exclusions use the recorded
+schema descriptions, not a newly sorted header. For sums, an all-missing
+set of components remains missing; measured zero remains zero. This prevents
+the false zeros Kai later repairs when source measurements are unavailable.
+Other negative and sentinel values retain their source semantics.
+
+Corrections create new outputs from immutable upstream products. They fail
+before writing if a rule names an unknown variable or would overwrite a
+nonzero value. There is no in-place editing or `_before` backup dependency.
+
+```{r}
+s10_new_wave_expression_fn <- function(terms) {
+  if (!length(terms)) return("CAST(NULL AS DOUBLE)")
+  q <- s8_new_wave_identifier_fn(terms)
+  if (length(q)==1L) return(q)
+  paste0("CASE WHEN ",paste(paste0(q," IS NOT NULL"),collapse=" OR ")," THEN ",
+    paste(paste0("coalesce(",q,",0)"),collapse="+")," ELSE NULL END")
+}
+s10_new_wave_diagnosis_fn <- function(group,measurements,reports,identity,rules,schema,corrections,config,path) {
+  stopifnot(all(c("file","var","period_from","period_to","reason","reviewer") %in% names(corrections)))
+  allowed <- rules[rules$wave=="wave3B",c("filename","var")]
+  stopifnot(all(paste(corrections$file,corrections$var,sep="/") %in% paste(allowed$filename,allowed$var,sep="/")))
+  r <- rules[rules$wave=="wave3B" & rules$filename==group,]
+  stopifnot(nrow(r)>0L,!anyDuplicated(r$var))
+  terms <- unique(unlist(r$terms,use.names=FALSE))
+  stopifnot(all(terms %in% schema$w3_colname))
+  descriptions <- schema$w3_description[match(terms,schema$w3_colname)]
+  fixed <- schema$w3_description[schema$w3_colname %in% c("X1067","X1068","X1736")]
+  eligible <- paste0("SELECT DISTINCT i.clinic_ID,r.periodcode FROM ",s4a_diagnosis_read_fn(reports),
+    " r JOIN ",s4a_diagnosis_read_fn(identity)," i ON r.organisationunitid=i.source_uid AND r.periodcode=i.periodcode ",
+    "WHERE r.reported AND i.decision<>'exclude'")
+  canonical <- paste0("SELECT i.clinic_ID,m.periodcode,m.target_name,max(CASE WHEN m.target_name IN (",
+    paste(s8_new_wave_literal_fn(c(fixed,"__not_a_measurement__")),collapse=","),") AND m.value<0 THEN NULL ELSE m.value END) AS value FROM ",
+    s4a_diagnosis_read_fn(measurements)," m JOIN ",s4a_diagnosis_read_fn(identity),
+    " i ON m.organisationunitid=i.source_uid AND m.periodcode=i.periodcode WHERE i.decision<>'exclude' GROUP BY ALL")
+  pivot <- if(length(terms)) paste0("PIVOT canonical ON target_name IN (",
+    paste(paste0(s8_new_wave_literal_fn(descriptions)," AS ",s8_new_wave_identifier_fn(terms)),collapse=","),
+    ") USING max(value) GROUP BY clinic_ID,periodcode") else "SELECT DISTINCT clinic_ID,periodcode FROM canonical"
+  values <- vapply(seq_len(nrow(r)),function(i) paste0(s10_new_wave_expression_fn(r$terms[[i]]),
+    "::DOUBLE AS ",s8_new_wave_identifier_fn(r$var[[i]])),"")
+  sql <- paste0("WITH canonical AS (",canonical,"),eligible AS (",eligible,"),wide AS (",pivot,
+    ") SELECT e.clinic_ID,(e.periodcode//100)::INTEGER AS cAnnee,(e.periodcode%100)::INTEGER AS cPeriode,",
+    config$fname,"::INTEGER AS fname,",paste(values,collapse=",")," FROM eligible e LEFT JOIN wide w USING(clinic_ID,periodcode)")
+  corrections <- corrections[corrections$file==group,]
+  if(nrow(corrections)) {
+    stopifnot(all(corrections$var %in% r$var),all(!is.na(corrections$reviewer) & nzchar(corrections$reviewer)),
+      all(!is.na(corrections$reason) & nzchar(corrections$reason)),
+      all(!is.na(corrections$period_from) & !is.na(corrections$period_to)),
+      all(grepl("^[0-9]{4}(0[1-9]|1[0-2])$",c(corrections$period_from,corrections$period_to))),
+      all(as.integer(corrections$period_from)<=as.integer(corrections$period_to)))
+    for(i in seq_len(nrow(corrections))) {
+      c <- corrections[i,]; column <- s8_new_wave_identifier_fn(c$var)
+      period <- paste0("(cAnnee*100+cPeriode) BETWEEN ",as.integer(c$period_from)," AND ",as.integer(c$period_to))
+      bad <- s4a_diagnosis_query_fn(paste0("SELECT count(*) n FROM (",sql,") WHERE ",period," AND ",column," IS NOT NULL AND ",column,"<>0")) |> dplyr::collect()
+      if(bad$n>0) stop("NA correction would replace a nonzero measurement.")
+      sql <- paste0("SELECT * REPLACE(CASE WHEN ",period," THEN NULL ELSE ",column," END AS ",column,") FROM (",sql,")")
+    }
+  }
+  s4a_diagnosis_write_fn(sql,path)
+}
+s10_final_diagnosis_fn <- function(group,old_paths,new_paths,path) {
+  old <- old_paths[basename(old_paths)==paste0(group,".parquet")]
+  new <- new_paths[basename(new_paths)==paste0(group,".parquet")]
+  stopifnot(length(old)==1L,length(new)==1L,
+    identical(s4a_diagnosis_columns_fn(paste("SELECT * FROM",s4a_diagnosis_read_fn(old))),
+              s4a_diagnosis_columns_fn(paste("SELECT * FROM",s4a_diagnosis_read_fn(new)))))
+  overlap <- s4a_diagnosis_query_fn(paste0("SELECT count(*) n FROM ",s4a_diagnosis_read_fn(old),
+    " a JOIN ",s4a_diagnosis_read_fn(new)," b USING(clinic_ID,cAnnee,cPeriode)")) |> dplyr::collect()
+  if(overlap$n>0) stop("Historical and new diagnosis periods overlap; review source selection before appending.")
+  s4a_diagnosis_write_fn(paste0("SELECT * FROM ",s4a_diagnosis_read_fn(old)," UNION ALL SELECT * FROM ",s4a_diagnosis_read_fn(new)),path)
+}
+```
+
+:::
+
+::: {.manual-procedure title="Build Reporting Calendars And Retain Code Ambiguity"}
+
+Reporting eligibility follows the historical positive-measurement rule;
+source presence and source-period coverage are separate flags. The calendar
+ends at the latest observed source period, with missing intervening months
+labelled explicitly. New clinics are not assigned a historical ownership or
+facility-type history. Excluded UIDs remain in the identity audit.
+
+```{r}
+s10_new_wave_reporting_fn <- function(reports,identity,config) {
+  x <- duckplyr::read_parquet_duckdb(reports,prudence="stingy") |> dplyr::collect()
+  ids <- duckplyr::read_parquet_duckdb(identity,prudence="stingy") |> dplyr::collect()
+  x <- dplyr::inner_join(x,ids,by=c("organisationunitid"="source_uid","periodcode"),relationship="one-to-one") |>
+    dplyr::filter(decision!="exclude")
+  get <- function(name) if(name %in% names(x)) as.character(x[[name]]) else rep(NA_character_,nrow(x))
+  x$clinic_database_code <- ifelse(x$reported,ifelse(is.na(get("organisationunitcode")) | !nzchar(get("organisationunitcode")),x$organisationunitid,get("organisationunitcode")),NA_character_)
+  x$database_code_origin <- ifelse(x$reported,"new_delivery_code_or_uid",NA_character_)
+  ambiguous <- x$source_code_count>1L & x$reported
+  x$clinic_database_code[ambiguous] <- NA_character_
+  x$database_code_origin[ambiguous] <- "ambiguous_new_source_codes_in_reports"
+  x$fname <- ifelse(x$reported,as.integer(config$fname),0L)
+  x$year <- x$periodcode%/%100L; x$month <- x$periodcode%%100L
+  x$source_report_present <- TRUE; x$source_covered <- TRUE
+  x$database_code_ambiguous <- ambiguous
+  x
+}
+s10_reporting_resolve_fn <- function(x) {
+  keys <- c("clinic_ID","year","month")
+  stopifnot(!anyNA(x[keys]))
+  if(!"database_code_ambiguous" %in% names(x)) x$database_code_ambiguous <- FALSE
+  repeated <- duplicated(x[keys]) | duplicated(x[keys],fromLast=TRUE)
+  out <- x[!duplicated(x[keys]),,drop=FALSE]
+  audit <- x[repeated,,drop=FALSE]
+  if(any(repeated)) {
+    groups <- audit |> dplyr::group_by(dplyr::across(dplyr::all_of(keys))) |> dplyr::group_split()
+    for(g in groups) {
+      sources <- unique(g$fname[g$fname!=0L])
+      if(length(sources)>1L) stop("A clinic-month has conflicting report sources.")
+      at <- which(out$clinic_ID==g$clinic_ID[[1L]] & out$year==g$year[[1L]] & out$month==g$month[[1L]])
+      codes <- unique(stats::na.omit(g$clinic_database_code))
+      ambiguous <- length(codes)>1L || any(g$database_code_ambiguous,na.rm=TRUE)
+      out$fname[at] <- if(length(sources)) sources else 0L
+      for(flag in intersect(c("source_report_present","source_covered"),names(out))) out[[flag]][at] <- any(g[[flag]],na.rm=TRUE)
+      out$clinic_database_code[at] <- if(length(codes)==1L && !ambiguous) codes else NA_character_
+      out$database_code_ambiguous[at] <- ambiguous
+      origins <- unique(stats::na.omit(g$database_code_origin))
+      out$database_code_origin[at] <- if(length(origins)==1L) origins else if(length(origins)>1L) "multiple_origins_in_audit" else NA_character_
+      if(ambiguous) out$database_code_origin[at] <- "ambiguous_candidates_in_audit"
+    }
+  }
+  list(data=out,audit=audit)
+}
+s10_final_reporting_fn <- function(old,new) {
+  old$source_report_present <- old$fname!=0L; old$source_covered <- TRUE
+  old$database_code_ambiguous <- FALSE
+  fields <- c("clinic_ID","year","month","fname","clinic_database_code","database_code_origin",
+    "database_code_ambiguous","source_report_present","source_covered")
+  for(field in setdiff(fields,names(old))) old[[field]] <- NA_character_
+  old <- old[fields]; new <- new[fields]
+  overlap <- dplyr::inner_join(dplyr::distinct(old,year,month),dplyr::distinct(new,year,month),by=c("year","month"))
+  if(nrow(overlap)) stop("Historical and new reporting calendars overlap.")
+  resolved <- s10_reporting_resolve_fn(dplyr::bind_rows(old,new))
+  x <- resolved$data
+  covered <- unique(x$year*100L+x$month)
+  population <- unique(x$clinic_ID[x$fname!=0L])
+  dates <- as.Date(sprintf("%04d-%02d-01",x$year,x$month))
+  calendar <- seq(min(dates),max(dates),by="month")
+  grid <- tidyr::expand_grid(clinic_ID=population,date=calendar) |>
+    dplyr::mutate(year=as.integer(format(date,"%Y")),month=as.integer(format(date,"%m"))) |> dplyr::select(-date)
+  result <- dplyr::left_join(grid,x,by=c("clinic_ID","year","month"),relationship="one-to-one") |>
+    dplyr::mutate(source_report_present=dplyr::coalesce(source_report_present,FALSE),
+      source_covered=(year*100L+month) %in% covered,fname=dplyr::coalesce(as.integer(fname),0L),
+      database_code_ambiguous=dplyr::coalesce(database_code_ambiguous,FALSE))
+  list(data=result,audit=resolved$audit)
+}
+s10_final_spatial_fn <- function(reporting,old,new_reports,healthsheds,config) {
+  summaries <- reporting |> dplyr::filter(fname!=0L) |>
+    dplyr::mutate(year_month=sprintf("y%04d_m%02d",year,month)) |>
+    dplyr::summarise(n_month=dplyr::n(),first_report=min(year_month),last_report=max(year_month),.by=clinic_ID)
+  attrs <- old |> dplyr::select(-dplyr::any_of(c("n_month","first_report","last_report")))
+  missing <- setdiff(summaries$clinic_ID,attrs$clinic_ID)
+  new <- new_reports[match(missing,new_reports$clinic_ID),,drop=FALSE]
+  field <- function(name) if(name %in% names(new)) as.character(new[[name]]) else rep(NA_character_,length(missing))
+  extra <- tibble::tibble(clinic_ID=missing,fs_name=field("organisationunitname"),region_name=field("orgunitlevel2"),
+    district_name=field("orgunitlevel3"),commune_name=field("orgunitlevel4"),fs_name_origin="new_delivery",
+    clinic_x=NA_real_,clinic_y=NA_real_,gps_source=NA_character_,coordinate_status="no_new_location_evidence")
+  attrs <- dplyr::bind_rows(attrs,extra)
+  good <- healthsheds$fs_uid[!sf::st_is_empty(healthsheds)]
+  dplyr::left_join(summaries,attrs,by="clinic_ID",relationship="one-to-one") |>
+    dplyr::mutate(has_healthshed=clinic_ID %in% good,
+      healthshed_reference_year=ifelse(has_healthshed,as.integer(config$historical_healthshed_year),NA_integer_),
+      healthshed_temporal_status=ifelse(has_healthshed,"historical_reference","no_healthshed_evidence"))
+}
+```
+
+:::
+
+::: {.manual-procedure title="Expose Final Tables And Reference Geometry"}
+
+Clinical partitions are dynamic file targets on the execution page. The
+combined products append to the historical curation without overwriting it.
+The raw historical code candidates remain in a companion Parquet audit.
+Geometry is retained as an ordinary `sf` target; new locations or catchments
+are never fabricated for uncovered clinics.
+
+```{r}
+s10_new_wave_reporting_df <- s10_new_wave_reporting_fn(s9_new_wave_reports_parquet,s10_new_wave_identity_parquet,s8_new_wave_parameters_list)
+s10_final_reporting_list <- s10_final_reporting_fn(s7_clinic_reporting_metadata_df,s10_new_wave_reporting_df)
+s10_final_spatial_metadata_df <- s10_final_spatial_fn(s10_final_reporting_list$data,s7_clinic_spatial_metadata_df,
+  s10_new_wave_reporting_df,s5_healthshed_clinic_final_sf,s8_new_wave_parameters_list)
+s10_final_healthsheds_sf <- s5_healthshed_clinic_final_sf |>
+  dplyr::filter(fs_uid %in% s10_final_spatial_metadata_df$clinic_ID)
+s10_final_output_groups_chr <- unique(stats::na.omit(s3_diagnosis_dictionary_df$filename))
+```
+
+```{r}
+#| format: file
+s10_final_reporting_metadata_parquet <- s5_healthshed_write_table_fn(s10_final_reporting_list$data,
+  here::here("data/intermediates/final/clinic_reporting_metadata.parquet"))
+s10_final_reporting_code_audit_parquet <- s5_healthshed_write_table_fn(s10_final_reporting_list$audit,
+  here::here("data/intermediates/final/reporting_code_candidates.parquet"))
+s10_final_spatial_metadata_parquet <- s5_healthshed_write_table_fn(s10_final_spatial_metadata_df,
+  here::here("data/intermediates/final/clinic_spatial_metadata.parquet"))
+s10_new_wave_predecessor_candidates_parquet <- s5_healthshed_write_table_fn(s10_new_wave_predecessor_candidates_df,
+  here::here("data/intermediates/new_wave/predecessor_candidates.parquet"))
+```
+
+:::
+
+::: {.manual-check title="Verify Projection And Final Contracts On Small Fixtures"}
+
+```sh
+scripts/mdg-healthshed-clinic-data exec Rscript tests/check-new-wave-pipeline.R
+python3 tests/check-manual-structure.py
+```
+
+The fixture checks never run targets. They exercise unavailable sums versus
+zero, source maxima, identity review bounds, explicit exclusions, ambiguous
+historical codes, overlapping-period rejection, final keys, and guarded NA
+corrections. Page 30 defines production shape and continuity evidence.
+
+:::

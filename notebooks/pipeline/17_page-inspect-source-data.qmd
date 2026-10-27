@@ -6,7 +6,9 @@ execute:
 engine: markdown
 ---
 
-This page quickly catalogs and summarizes the available data.
+This page catalogs the selected members of the hand-delivered May 2025 ZIP.
+The Google Drive/rclone mirror is excluded from both source inspection and
+migration comparisons.
 
 ::: {.manual-prereq title="Inputs Staged Successfully"}
 

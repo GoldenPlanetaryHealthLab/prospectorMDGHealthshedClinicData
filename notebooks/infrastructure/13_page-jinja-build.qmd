@@ -34,6 +34,13 @@ login locale. The build-time `%test` runs before Singularity applies this
 image environment, so the post-build verification below is the check that the
 invariant is actually active at runtime.
 
+Following the ERA5 and Nepal runtime templates, the spatial libraries are
+linked into the same immutable view as R. Keep Spack's inherited environment:
+it carries data-file paths such as the UDUNITS XML database as well as native
+library paths. Image acceptance checks the native layer without a project R
+library. After rebuilding, [page 14](14_page-uvr.qmd) installs R packages from
+source and exercises the complete geospatial runtime on synthetic data.
+
 ::: {.manual-prereq title="Confirm The Builder And Container Runtime"}
 
 ```sh
@@ -114,6 +121,18 @@ EOF
   arf --version | grep -Fx "arf 0.5.2"
   LANG=C.UTF-8 LC_ALL=C.UTF-8 Rscript --vanilla -e 'quit(status = if (l10n_info()[["UTF-8"]]) 0 else 1)'
   test -r /opt/views/view/lib/libopenblas.so.0
+  # The project R library is not present during image construction.
+  Rscript --vanilla -e 'stopifnot(capabilities("cairo"))'
+  command -v gfortran
+  command -v pkg-config
+  gdal-config --version
+  geos-config --version
+  pkg-config --exists gdal geos proj sqlite3 absl_base
+  pkg-config --exists cairo freetype2 libpng libtiff-4 libjpeg libwebp libwebpmux
+  test -r "$(fc-match --format '%{file}' sans)"
+  test -r /opt/views/view/lib/libudunits2.so.0 || test -r /opt/views/view/lib64/libudunits2.so.0
+  test -r /opt/views/view/share/udunits/udunits2.xml
+  test -r /opt/views/view/share/proj/proj.db
   r_home=$(R RHOME)
   test -r "${r_home}/lib/libR.so"
   test -r /opt/spack-environment/spack.lock
@@ -126,7 +145,11 @@ EOF
 
 ::: {.manual-procedure title="Generate And Build The Runtime"}
 
-Run from the repository root inside an adequate allocation:
+Run from the repository root inside an adequate allocation.
+The native manifest has changed; regenerate the definition before building.
+The existing SIF is a build artifact and continues to contain the old runtime
+until this build succeeds. Stop running pipeline/R sessions before replacing
+that image or its project package library.
 
 ```sh
 mkdir -p containers/build artifacts/containers
@@ -134,9 +157,15 @@ singularity exec --cleanenv --pwd /work --bind "$PWD:/work" \
     artifacts/containers/spack-builder.sif \
     spack -e . containerize \
     > containers/build/mdg-healthshed-clinic-data.def
-singularity build --fakeroot \
+singularity build --fakeroot --force \
   artifacts/containers/mdg-healthshed-clinic-data.sif \
   containers/build/mdg-healthshed-clinic-data.def
+singularity test artifacts/containers/mdg-healthshed-clinic-data.sif
+singularity exec artifacts/containers/mdg-healthshed-clinic-data.sif \
+  cat /opt/spack-environment/spack.lock \
+  > artifacts/containers/mdg-healthshed-clinic-data.spack.lock
+sha256sum artifacts/containers/mdg-healthshed-clinic-data.sif \
+  > artifacts/containers/mdg-healthshed-clinic-data.sif.sha256
 ```
 
 :::
@@ -145,7 +174,6 @@ singularity build --fakeroot \
 
 ```sh
 singularity exec artifacts/containers/mdg-healthshed-clinic-data.sif R --version
-singularity exec artifacts/containers/mdg-healthshed-clinic-data.sif nvim --version
 singularity exec artifacts/containers/mdg-healthshed-clinic-data.sif uvr --version
 singularity exec artifacts/containers/mdg-healthshed-clinic-data.sif arf --version
 singularity exec artifacts/containers/mdg-healthshed-clinic-data.sif \
@@ -155,6 +183,8 @@ singularity exec artifacts/containers/mdg-healthshed-clinic-data.sif \
   test -r /opt/views/view/lib/libopenblas.so.0
 singularity exec artifacts/containers/mdg-healthshed-clinic-data.sif \
   test -r /opt/spack-environment/spack.lock
+scripts/mdg-healthshed-clinic-data exec pkg-config --modversion gdal geos proj sqlite3 absl_base
+scripts/mdg-healthshed-clinic-data exec sh -c 'test -r "$UDUNITS2_XML_PATH"'
 if singularity inspect --environment \
   artifacts/containers/mdg-healthshed-clinic-data.sif | \
   rg -q '^export (UVR_LIBRARY|UVR_CACHE_DIR|R_LIBS_USER|R_LIBS)='; then
@@ -162,5 +192,10 @@ if singularity inspect --environment \
   exit 1
 fi
 ```
+
+Keep the exported native lock, SIF checksum, and accepted `uvr.lock` together
+with the build log. They identify the geometry engines used by future parity
+checks. `sf` topology settings remain a stage-5 scientific decision; the
+container does not globally disable s2 or change a CRS to make a check pass.
 
 :::

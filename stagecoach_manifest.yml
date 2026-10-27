@@ -22,11 +22,14 @@ sources:
   01_gold_mine:
     enabled: true
     items:
-    - name: RMA_clinic_data_gdrive
-      path_regex: '/n/holylabs/LABS/cgolden_lab/Lab/frontier/gold_mine/01_ore/golden_googledrive_rclone/Climate-Smart Public Health - Madagascar/4. Datasets/Health Data/National clinic data'
-      required: true
     - name: gdn_datafreeze_may2025
-      path_regex: '/n/holylabs/LABS/cgolden_lab/Lab/frontier/gold_mine/01_ore/qualtrics_sync/manual/madagascar_clinic_data_cleaning.zip'
+      path_regex: '/n/holylabs/cgolden_lab/Lab/frontier/gold_mine/01_ore/qualtrics_sync/manual/madagascar_clinic_data_cleaning.zip'
+      required: true
+    - name: harvard_2025_2026
+      path_regex: '/n/holylabs/cgolden_lab/Lab/frontier/gold_mine/01_ore/golden_googledrive_rclone/Climate-Smart Public Health - Madagascar/4. Datasets/Health Data/National clinic data/Raw/RMA 2025-2026 - DONNEES HARVARD'
+      required: true
+    - name: july_2025_candidate
+      path_regex: '/n/holylabs/cgolden_lab/Lab/frontier/gold_mine/01_ore/golden_googledrive_rclone/Climate-Smart Public Health - Madagascar/4. Datasets/Health Data/National clinic data/Raw/RMA 2025 - july'
       required: true
   02_globus:
     enabled: false

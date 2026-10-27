@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>19&nbsp; Package a Versioned Release – Madagascar Healthshed Clinic Data Curation Manual</title>
+<title>28&nbsp; Inventory and Package a Versioned Release – Madagascar Healthshed Clinic Data Curation Manual</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -69,7 +69,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="../site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="../">
 <link href="../releases/20_page-execute-pipeline.html" rel="next">
-<link href="../pipeline/21_page-construct-diagnosis-dictionary.html" rel="prev">
+<link href="../pipeline/30_page-validate-migration.html" rel="prev">
 <script src="../site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
 <script src="../site_libs/quarto-html/popper.min.js"></script>
@@ -122,7 +122,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../pipeline/16_page-stage-inputs.html">Pipeline</a></li><li class="breadcrumb-item"><a href="../releases/19_page-package-release.html"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Package a Versioned Release</span></a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../pipeline/16_page-stage-inputs.html">Pipeline</a></li><li class="breadcrumb-item"><a href="../releases/19_page-package-release.html"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">Inventory and Package a Versioned Release</span></a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
@@ -170,26 +170,32 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="../00_data-guide.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">A Reader’s Guide to the Cleaned Database</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="../pipeline/mapping/legacy-pipeline-map.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Map the Legacy Clinic Pipeline to Notebooks</span></span></a>
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Map the Legacy Clinic Pipeline to Notebooks</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../01_misc-render-isolated.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Render In Isolation</span></span></a>
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Render In Isolation</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../02_misc-project-contract.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Project Contract</span></span></a>
+ <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Project Contract</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../03_misc-data-governance.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Data Governance</span></span></a>
+ <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Data Governance</span></span></a>
   </div>
 </li>
       </ul>
@@ -206,37 +212,37 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../infrastructure/10_page-direnv.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Local Operator Environment</span></span></a>
+ <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Local Operator Environment</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../infrastructure/11_page-spack.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Bootstrap the Spack Builder</span></span></a>
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Bootstrap the Spack Builder</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../infrastructure/12_page-jinja.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Declare the Native Runtime</span></span></a>
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Declare the Native Runtime</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../infrastructure/13_page-jinja-build.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Customize and Build the Runtime</span></span></a>
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Customize and Build the Runtime</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../infrastructure/14_page-uvr.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Lock and Synchronize R Packages</span></span></a>
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Lock and Synchronize R Packages</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../infrastructure/15_page-runner.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Run the Project Environment</span></span></a>
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Run the Project Environment</span></span></a>
   </div>
 </li>
       </ul>
@@ -253,55 +259,109 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../pipeline/16_page-stage-inputs.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Stage Inputs</span></span></a>
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Stage Inputs</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../pipeline/17_page-inspect-source-data.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Inspect Source Data</span></span></a>
+ <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Inspect Source Data</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../pipeline/18_page-prep-w3.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Curate the Healthshed Clinic Data</span></span></a>
+ <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Curate the Healthshed Clinic Data</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../pipeline/19_page-clean-mapping-dhis2-gesis.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Clean the DHIS2–GESIS Mapping</span></span></a>
+ <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">Clean the DHIS2–GESIS Mapping</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../pipeline/20_page-construct-clinic-ids.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">Construct Clinic IDs</span></span></a>
+ <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Construct Clinic IDs</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../pipeline/21_page-construct-diagnosis-dictionary.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Construct the Diagnosis Dictionary</span></span></a>
+ <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Construct the Diagnosis Dictionary</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/22_page-clean-clinic-diagnosis.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Clean and Combine Clinic Diagnoses</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/23_page-construct-healthsheds.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Reconcile Sectorization and Construct Healthsheds</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/24_page-locate-clinics.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Compare and Select Clinic Locations</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/25_page-combine-clinic-metadata.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Combine Reporting and Spatial Clinic Metadata</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/26_page-prep-2025-2026.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Survey and Read the 2025–2026 Deliveries</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/27_page-clean-2025-2026.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">Clean and Harmonize the 2025–2026 Waves</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/28_page-geospatial-aggregate-2025-2026.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">Locate Clinics and Assemble the Final Database</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/30_page-validate-migration.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">Validate the Migrated Clinic Pipeline</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../releases/19_page-package-release.html" class="sidebar-item-text sidebar-link active">
- <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Package a Versioned Release</span></span></a>
+ <span class="menu-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">Inventory and Package a Versioned Release</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../releases/20_page-execute-pipeline.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Execute the Pipeline</span></span></a>
+ <span class="menu-text"><span class="chapter-number">29</span>&nbsp; <span class="chapter-title">Execute the Pipeline</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../releases/21_page-verify-release.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Verify a Release</span></span></a>
+ <span class="menu-text"><span class="chapter-number">30</span>&nbsp; <span class="chapter-title">Verify an Internal Candidate</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../releases/22_page-export-frictionless.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">31</span>&nbsp; <span class="chapter-title">Export the Frictionless Data Package</span></span></a>
   </div>
 </li>
       </ul>
@@ -317,10 +377,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../pipeline/16_page-stage-inputs.html">Pipeline</a></li><li class="breadcrumb-item"><a href="../releases/19_page-package-release.html"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Package a Versioned Release</span></a></li></ol></nav>
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../pipeline/16_page-stage-inputs.html">Pipeline</a></li><li class="breadcrumb-item"><a href="../releases/19_page-package-release.html"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">Inventory and Package a Versioned Release</span></a></li></ol></nav>
 <div class="quarto-title">
-<h1 class="title"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Package a Versioned Release</span></h1>
-<p class="subtitle lead">Separate curation from publication</p>
+<h1 class="title"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">Inventory and Package a Versioned Release</span></h1>
+<p class="subtitle lead">Serialize curated products without re-cleaning or publishing them</p>
 </div>
 
 
@@ -337,55 +397,229 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<p>Release packaging begins only after curated targets and disclosure rules are approved. Data resources follow the workflow’s Parquet storage convention; this page leaves the schema, version, and destination to the release contract.</p>
-<div class="manual-prereq callout callout-style-default callout-important no-icon callout-titled" title="Approve The Release Contract" data-manual-kind="prereq">
+<p>Packaging consumes pages 26–30’s final curated products. The default is an internal candidate in canonical Parquet, with explicit schemas and source, code, and environment provenance. It is not an external publication action. No CSV/Feather compatibility export or public disclosure policy is inferred.</p>
+<div class="manual-prereq callout callout-style-default callout-important no-icon callout-titled" title="Require Passing Final Contracts" data-manual-kind="prereq">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
 <i class="callout-icon no-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-<span class="screen-reader-only">Important</span><i class="fa-solid fa-list-check" aria-label="list-check"></i> Prerequisite: Approve The Release Contract
+<span class="screen-reader-only">Important</span><i class="fa-solid fa-list-check" aria-label="list-check"></i> Prerequisite: Require Passing Final Contracts
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>A human owner must decide:</p>
-<ul>
-<li>release resources and their grain;</li>
-<li>public, restricted, or internal access classification;</li>
-<li>allowed identifiers, geographies, and temporal resolution;</li>
-<li>required data dictionaries and provenance metadata;</li>
-<li>validation standard and publication destination;</li>
-<li>semantic version and immutability policy.</li>
-</ul>
+<p>All final shape/key checks must pass. Unavailable measurements remain missing; ambiguous historical codes retain their candidates and ambiguity flags. Missing new-clinic locations remain explicit. Geometry is a 2022 reference. A version is immutable: changed data, code, or resource selection requires a new version, including after a partially completed package attempt.</p>
 </div>
 </div>
-<div class="manual-procedure callout callout-style-default callout-tip no-icon callout-titled" title="Package Without Re-Cleaning" data-manual-kind="procedure">
+<div class="manual-procedure callout callout-style-default callout-tip no-icon callout-titled" title="Declare Tracked R Release Parameters" data-manual-kind="procedure">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
 <i class="callout-icon no-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-<span class="screen-reader-only">Tip</span><i class="fa-solid fa-person-walking" aria-label="person-walking"></i> Procedure: Package Without Re-Cleaning
+<span class="screen-reader-only">Tip</span><i class="fa-solid fa-person-walking" aria-label="person-walking"></i> Procedure: Declare Tracked R Release Parameters
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>Future package targets should consume curated targets, attach reviewed schema and provenance, write to a versioned directory under <code>data/processed</code>, and refuse to overwrite a nonempty immutable release. Packaging must not contain a second, hidden implementation of cleaning rules. Workflow tables remain data targets or Parquet file targets. Any persisted data resources use Parquet and return their paths from <code>format = "file"</code> targets; schema and provenance metadata can remain ordinary targets.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1"></a><span class="co"># Human-owned placeholder; choose the release contract before implementation.</span></span>
-<span id="cb1-2"><a href="#cb1-2"></a><span class="co"># release_package_validated_list &lt;- { ... }</span></span>
-<span id="cb1-3"><a href="#cb1-3"></a><span class="co"># release_files_published_paths &lt;- { ... }</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb1-1"><a href="#cb1-1"></a>srelease_parameters_list &lt;- list(</span>
+<span id="cb1-2"><a href="#cb1-2"></a>  name = "mdg-healthshed-clinic-data",</span>
+<span id="cb1-3"><a href="#cb1-3"></a>  title = "Madagascar Healthshed Clinic Data",</span>
+<span id="cb1-4"><a href="#cb1-4"></a>  version = "0.1.0",</span>
+<span id="cb1-5"><a href="#cb1-5"></a>  previous_version = NULL,</span>
+<span id="cb1-6"><a href="#cb1-6"></a>  change = "initial",</span>
+<span id="cb1-7"><a href="#cb1-7"></a>  notes = "Initial versioned Parquet data package.",</span>
+<span id="cb1-8"><a href="#cb1-8"></a>  access = "internal",</span>
+<span id="cb1-9"><a href="#cb1-9"></a>  status = "candidate",</span>
+<span id="cb1-10"><a href="#cb1-10"></a>  prohibited_columns = character()</span>
+<span id="cb1-11"><a href="#cb1-11"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The release name is stable across versions. The initial release is <code>0.1.0</code>; <code>access</code> and <code>status</code> remain separate metadata. Following KiribatiBiomarkers, release directories use <strong>vMAJOR.MINOR.BUGFIX</strong> under <code>data/outputs/releases/</code>, starting with <code>data/outputs/releases/v0.1.0/</code>. Package metadata stores the unprefixed version (<code>0.1.0</code>). BUGFIX is the semantic-version PATCH component; numeric components have no leading zeroes or suffixes:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Change</th>
+<th>Increment</th>
+<th>Examples</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Breaking for external collaborators</td>
+<td>MAJOR; reset MINOR and PATCH</td>
+<td>Renamed/removed columns, changed keys, units, geometry interpretation, or resource paths</td>
+</tr>
+<tr class="even">
+<td>Non-breaking addition</td>
+<td>MINOR; reset PATCH</td>
+<td>Additional periods, clinics, diagnoses, or optional fields compatible with existing readers</td>
+</tr>
+<tr class="odd">
+<td>Bug fix</td>
+<td>PATCH</td>
+<td>Corrected values or metadata without changing the interface</td>
+</tr>
+</tbody>
+</table>
+<p>For subsequent releases set <code>previous_version</code>, choose <code>change</code> as <code>major</code>, <code>minor</code>, or <code>patch</code>, and record the reason in <code>notes</code>. The validator checks the exact increment. The researcher classifies compatibility with collaborators; schema inspection alone cannot determine whether a scientific meaning changed. Existing <code>data/processed/0.1.0-internal/</code> artifacts remain historical candidates.</p>
+<p>The spatial resource carries WKT at 17-digit precision, CRS WKT, the facility UID, empty-geometry status and reference year. It is ordinary Parquet with an explicit spatial schema, not an implied GeoParquet or shapefile export. The ordinary <code>sf</code> target remains available for native R consumers.</p>
 </div>
 </div>
-<div class="manual-check callout callout-style-default callout-warning no-icon callout-titled" title="Verify Release Evidence" data-manual-kind="check">
+<div class="manual-procedure callout callout-style-default callout-tip no-icon callout-titled" title="Prepare Resource Schemas And Provenance" data-manual-kind="procedure">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
 <i class="callout-icon no-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-<span class="screen-reader-only">Warning</span><i class="fa-solid fa-clipboard-check" aria-label="clipboard-check"></i> Check: Verify Release Evidence
+<span class="screen-reader-only">Tip</span><i class="fa-solid fa-person-walking" aria-label="person-walking"></i> Procedure: Prepare Resource Schemas And Provenance
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>Future checks must validate the package schema, disclosure controls, round-trip equality with curated targets, provenance, checksums, and a no-op second targets run.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb2-1"><a href="#cb2-1"></a>srelease_parameters_fn &lt;- function(config) {</span>
+<span id="cb2-2"><a href="#cb2-2"></a>  valid &lt;- function(x) is.character(x) &amp;&amp; length(x)==1L &amp;&amp; !is.na(x) &amp;&amp;</span>
+<span id="cb2-3"><a href="#cb2-3"></a>    grepl("^(0|[1-9][0-9]*)[.](0|[1-9][0-9]*)[.](0|[1-9][0-9]*)$",x)</span>
+<span id="cb2-4"><a href="#cb2-4"></a>  if(!valid(config$version)) stop("Release version must be MAJOR.MINOR.PATCH without leading zeroes.")</span>
+<span id="cb2-5"><a href="#cb2-5"></a>  if(length(config$name)!=1L || is.na(config$name) ||</span>
+<span id="cb2-6"><a href="#cb2-6"></a>     !grepl("^[a-z0-9][a-z0-9._-]*$",config$name)) stop("Invalid release name.")</span>
+<span id="cb2-7"><a href="#cb2-7"></a>  if(length(config$title)!=1L || is.na(config$title) || !nzchar(config$title) ||</span>
+<span id="cb2-8"><a href="#cb2-8"></a>     length(config$notes)!=1L || is.na(config$notes) || !nzchar(config$notes)) stop("Release title and notes are required.")</span>
+<span id="cb2-9"><a href="#cb2-9"></a>  if(is.null(config$previous_version)) {</span>
+<span id="cb2-10"><a href="#cb2-10"></a>    if(!identical(config$change,"initial")) stop("Initial release must declare change = initial.")</span>
+<span id="cb2-11"><a href="#cb2-11"></a>  } else {</span>
+<span id="cb2-12"><a href="#cb2-12"></a>    if(!valid(config$previous_version) || !config$change %in% c("major","minor","patch")) stop("Declare the previous semantic version and change category.")</span>
+<span id="cb2-13"><a href="#cb2-13"></a>    parts &lt;- as.numeric(strsplit(config$previous_version,".",fixed=TRUE)[[1L]])</span>
+<span id="cb2-14"><a href="#cb2-14"></a>    i &lt;- match(config$change,c("major","minor","patch"))</span>
+<span id="cb2-15"><a href="#cb2-15"></a>    parts[[i]] &lt;- parts[[i]]+1</span>
+<span id="cb2-16"><a href="#cb2-16"></a>    if(i&lt;3L) parts[(i+1L):3L] &lt;- 0</span>
+<span id="cb2-17"><a href="#cb2-17"></a>    if(!identical(config$version,paste(parts,collapse="."))) stop("Version does not match the declared semantic increment.")</span>
+<span id="cb2-18"><a href="#cb2-18"></a>  }</span>
+<span id="cb2-19"><a href="#cb2-19"></a>  invisible(config)</span>
+<span id="cb2-20"><a href="#cb2-20"></a>}</span>
+<span id="cb2-21"><a href="#cb2-21"></a>srelease_directory_fn &lt;- function(root,config) {</span>
+<span id="cb2-22"><a href="#cb2-22"></a>  srelease_parameters_fn(config)</span>
+<span id="cb2-23"><a href="#cb2-23"></a>  file.path(root,paste0("v",config$version))</span>
+<span id="cb2-24"><a href="#cb2-24"></a>}</span>
+<span id="cb2-25"><a href="#cb2-25"></a>srelease_geometry_fn &lt;- function(x,year,path) {</span>
+<span id="cb2-26"><a href="#cb2-26"></a>  table &lt;- tibble::tibble(fs_uid=as.character(x$fs_uid),geometry_wkt=sf::st_as_text(sf::st_geometry(x),digits=17),</span>
+<span id="cb2-27"><a href="#cb2-27"></a>    crs_wkt=sf::st_crs(x)$wkt,is_empty=sf::st_is_empty(x),reference_year=as.integer(year))</span>
+<span id="cb2-28"><a href="#cb2-28"></a>  s5_healthshed_write_table_fn(table,path)</span>
+<span id="cb2-29"><a href="#cb2-29"></a>}</span>
+<span id="cb2-30"><a href="#cb2-30"></a>srelease_provenance_fn &lt;- function(files,source_inventory,config,archive) {</span>
+<span id="cb2-31"><a href="#cb2-31"></a>  packages &lt;- c("targets","duckdb","duckplyr","sf","dplyr","tidyr","frictionless","jsonlite")</span>
+<span id="cb2-32"><a href="#cb2-32"></a>  baseline &lt;- dget(here::here("src/archived-comparison-baseline.R"))</span>
+<span id="cb2-33"><a href="#cb2-33"></a>  archive_sha256 &lt;- srelease_sha256_fn(archive)</span>
+<span id="cb2-34"><a href="#cb2-34"></a>  if(!identical(archive_sha256,baseline$archive_sha256)) stop("Historical archive differs from the reviewed freeze.")</span>
+<span id="cb2-35"><a href="#cb2-35"></a>  dplyr::bind_rows(</span>
+<span id="cb2-36"><a href="#cb2-36"></a>    tibble::tibble(component=paste0("file:",files),value=unname(tools::md5sum(files))),</span>
+<span id="cb2-37"><a href="#cb2-37"></a>    tibble::tibble(component=paste0("package:",packages),value=vapply(packages,function(p) as.character(utils::packageVersion(p)),"")),</span>
+<span id="cb2-38"><a href="#cb2-38"></a>    tibble::tibble(component=c("R","source_inventory_sha256","historical_archive_sha256","release_version","access","status"),</span>
+<span id="cb2-39"><a href="#cb2-39"></a>      value=c(as.character(getRversion()),srelease_sha256_fn(source_inventory),archive_sha256,config$version,config$access,config$status)))</span>
+<span id="cb2-40"><a href="#cb2-40"></a>}</span>
+<span id="cb2-41"><a href="#cb2-41"></a>srelease_resources_fn &lt;- function(diagnoses,dictionary,reporting,spatial,geometry,schema_audit,mapping_audit,</span>
+<span id="cb2-42"><a href="#cb2-42"></a>  identity,codes,availability,seams,provenance,source_inventory,numeric_audit,key_audit,predecessors,reviews,reports) {</span>
+<span id="cb2-43"><a href="#cb2-43"></a>  named &lt;- c(setNames(diagnoses,paste0("by_diagnosis/",basename(diagnoses))),</span>
+<span id="cb2-44"><a href="#cb2-44"></a>    diagnosis_dictionary=dictionary,clinic_reporting_metadata=reporting,clinic_spatial_metadata=spatial,</span>
+<span id="cb2-45"><a href="#cb2-45"></a>    healthsheds2022=geometry,`audits/final_shape`=schema_audit,`audits/mapping`=mapping_audit,</span>
+<span id="cb2-46"><a href="#cb2-46"></a>    `audits/identity`=identity,`audits/reporting_code_candidates`=codes,`audits/availability`=availability,</span>
+<span id="cb2-47"><a href="#cb2-47"></a>    setNames(seams,paste0("audits/seams/",basename(seams))),provenance=provenance,source_inventory=source_inventory,</span>
+<span id="cb2-48"><a href="#cb2-48"></a>    `audits/numeric`=numeric_audit,`audits/source_keys`=key_audit,`audits/predecessor_candidates`=predecessors,</span>
+<span id="cb2-49"><a href="#cb2-49"></a>    `audits/review_inputs`=reviews,`audits/new_source_reports`=reports)</span>
+<span id="cb2-50"><a href="#cb2-50"></a>  names(named) &lt;- ifelse(endsWith(names(named),".parquet"),names(named),paste0(names(named),".parquet"))</span>
+<span id="cb2-51"><a href="#cb2-51"></a>  stopifnot(!anyDuplicated(names(named)),all(file.exists(named)))</span>
+<span id="cb2-52"><a href="#cb2-52"></a>  lapply(seq_along(named),function(i) list(name=names(named)[[i]],source=unname(named[[i]])))</span>
+<span id="cb2-53"><a href="#cb2-53"></a>}</span>
+<span id="cb2-54"><a href="#cb2-54"></a>srelease_sha256_fn &lt;- function(path) {</span>
+<span id="cb2-55"><a href="#cb2-55"></a>  out &lt;- system2("sha256sum",shQuote(path),stdout=TRUE)</span>
+<span id="cb2-56"><a href="#cb2-56"></a>  stopifnot(length(out)==1L,is.null(attr(out,"status")),grepl("^[a-f0-9]{64}",out))</span>
+<span id="cb2-57"><a href="#cb2-57"></a>  substr(out,1L,64L)</span>
+<span id="cb2-58"><a href="#cb2-58"></a>}</span>
+<span id="cb2-59"><a href="#cb2-59"></a>srelease_contract_fn &lt;- function(resources,shape,config,root) {</span>
+<span id="cb2-60"><a href="#cb2-60"></a>  srelease_parameters_fn(config)</span>
+<span id="cb2-61"><a href="#cb2-61"></a>  stopifnot(identical(config$access,"internal"),identical(config$status,"candidate"))</span>
+<span id="cb2-62"><a href="#cb2-62"></a>  if(!nrow(shape) || !all(shape$ok)) stop("Final product checks failed; inspect the governed shape audit.")</span>
+<span id="cb2-63"><a href="#cb2-63"></a>  stopifnot(length(resources)&gt;0L)</span>
+<span id="cb2-64"><a href="#cb2-64"></a>  contract &lt;- dplyr::bind_rows(lapply(resources,function(x) {</span>
+<span id="cb2-65"><a href="#cb2-65"></a>    if(grepl("^/|(^|/)\\.\\.(/|$)",x$name)) stop("Unsafe release resource name.")</span>
+<span id="cb2-66"><a href="#cb2-66"></a>    columns &lt;- s4a_diagnosis_columns_fn(paste("SELECT * FROM",s4a_diagnosis_read_fn(x$source)))</span>
+<span id="cb2-67"><a href="#cb2-67"></a>    if(any(columns %in% config$prohibited_columns)) stop("Release resource contains a prohibited field.")</span>
+<span id="cb2-68"><a href="#cb2-68"></a>    tibble::tibble(resource=x$name,source_sha256=srelease_sha256_fn(x$source),</span>
+<span id="cb2-69"><a href="#cb2-69"></a>      release_name=config$name,version=config$version,title=config$title,</span>
+<span id="cb2-70"><a href="#cb2-70"></a>      previous_version=if(is.null(config$previous_version)) NA_character_ else config$previous_version,</span>
+<span id="cb2-71"><a href="#cb2-71"></a>      change=config$change,notes=config$notes,access=config$access,status=config$status)</span>
+<span id="cb2-72"><a href="#cb2-72"></a>  })) |&gt; dplyr::arrange(resource)</span>
+<span id="cb2-73"><a href="#cb2-73"></a>  directory &lt;- srelease_directory_fn(root,config); path &lt;- file.path(directory,"_contract.parquet")</span>
+<span id="cb2-74"><a href="#cb2-74"></a>  if(file.exists(path)) {</span>
+<span id="cb2-75"><a href="#cb2-75"></a>    old &lt;- duckplyr::read_parquet_duckdb(path,prudence="stingy") |&gt; dplyr::collect() |&gt; dplyr::arrange(resource)</span>
+<span id="cb2-76"><a href="#cb2-76"></a>    if(!isTRUE(all.equal(as.data.frame(old),as.data.frame(contract),check.attributes=FALSE))) stop("Immutable release version differs; select a new version.")</span>
+<span id="cb2-77"><a href="#cb2-77"></a>    return(path)</span>
+<span id="cb2-78"><a href="#cb2-78"></a>  }</span>
+<span id="cb2-79"><a href="#cb2-79"></a>  if(dir.exists(directory) &amp;&amp; length(list.files(directory,all.files=TRUE,no..=TRUE))) stop("Nonempty release has no matching immutable contract.")</span>
+<span id="cb2-80"><a href="#cb2-80"></a>  s5_healthshed_write_table_fn(contract,path)</span>
+<span id="cb2-81"><a href="#cb2-81"></a>}</span>
+<span id="cb2-82"><a href="#cb2-82"></a>srelease_copy_fn &lt;- function(resource,contract,config,root) {</span>
+<span id="cb2-83"><a href="#cb2-83"></a>  stopifnot(file.exists(contract))</span>
+<span id="cb2-84"><a href="#cb2-84"></a>  manifest &lt;- duckplyr::read_parquet_duckdb(contract,prudence="stingy") |&gt; dplyr::collect()</span>
+<span id="cb2-85"><a href="#cb2-85"></a>  row &lt;- manifest[manifest$resource==resource$name,]</span>
+<span id="cb2-86"><a href="#cb2-86"></a>  stopifnot(nrow(row)==1L,identical(srelease_sha256_fn(resource$source),row$source_sha256))</span>
+<span id="cb2-87"><a href="#cb2-87"></a>  destination &lt;- file.path(srelease_directory_fn(root,config),resource$name)</span>
+<span id="cb2-88"><a href="#cb2-88"></a>  if(file.exists(destination)) {</span>
+<span id="cb2-89"><a href="#cb2-89"></a>    if(!identical(srelease_sha256_fn(destination),row$source_sha256)) stop("Existing immutable resource differs.")</span>
+<span id="cb2-90"><a href="#cb2-90"></a>    return(destination)</span>
+<span id="cb2-91"><a href="#cb2-91"></a>  }</span>
+<span id="cb2-92"><a href="#cb2-92"></a>  dir.create(dirname(destination),recursive=TRUE,showWarnings=FALSE)</span>
+<span id="cb2-93"><a href="#cb2-93"></a>  temporary &lt;- tempfile("package-",tmpdir=dirname(destination),fileext=".parquet")</span>
+<span id="cb2-94"><a href="#cb2-94"></a>  on.exit(unlink(temporary),add=TRUE)</span>
+<span id="cb2-95"><a href="#cb2-95"></a>  if(!file.copy(resource$source,temporary) || !identical(srelease_sha256_fn(temporary),row$source_sha256)) stop("Release copy failed checksum verification.")</span>
+<span id="cb2-96"><a href="#cb2-96"></a>  if(!file.rename(temporary,destination)) stop("Could not atomically install release resource.")</span>
+<span id="cb2-97"><a href="#cb2-97"></a>  destination</span>
+<span id="cb2-98"><a href="#cb2-98"></a>}</span>
+<span id="cb2-99"><a href="#cb2-99"></a>srelease_write_once_fn &lt;- function(table,path) {</span>
+<span id="cb2-100"><a href="#cb2-100"></a>  if(file.exists(path)) {</span>
+<span id="cb2-101"><a href="#cb2-101"></a>    old &lt;- duckplyr::read_parquet_duckdb(path,prudence="stingy") |&gt; dplyr::collect()</span>
+<span id="cb2-102"><a href="#cb2-102"></a>    if(!isTRUE(all.equal(as.data.frame(old),as.data.frame(table),check.attributes=FALSE))) stop("Immutable release metadata differs.")</span>
+<span id="cb2-103"><a href="#cb2-103"></a>    return(path)</span>
+<span id="cb2-104"><a href="#cb2-104"></a>  }</span>
+<span id="cb2-105"><a href="#cb2-105"></a>  s5_healthshed_write_table_fn(table,path)</span>
+<span id="cb2-106"><a href="#cb2-106"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb3-1"><a href="#cb3-1"></a>#| format: file</span>
+<span id="cb3-2"><a href="#cb3-2"></a>srelease_code_raw_files &lt;- c(here::here("_targets.R"),here::here("uvr.lock"),here::here("spack.yaml"),</span>
+<span id="cb3-3"><a href="#cb3-3"></a>  here::here("src/archived-comparison-baseline.R"),</span>
+<span id="cb3-4"><a href="#cb3-4"></a>  list.files(here::here("notebooks/pipeline"),"[.]qmd$",full.names=TRUE),</span>
+<span id="cb3-5"><a href="#cb3-5"></a>  list.files(here::here("notebooks/releases"),"[.]qmd$",full.names=TRUE))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb4-1"><a href="#cb4-1"></a>#| format: file</span>
+<span id="cb4-2"><a href="#cb4-2"></a>srelease_geometry_parquet &lt;- srelease_geometry_fn(s10_final_healthsheds_sf,s8_new_wave_parameters_list$historical_healthshed_year,</span>
+<span id="cb4-3"><a href="#cb4-3"></a>  here::here("data/intermediates/final/healthsheds2022_wkt.parquet"))</span>
+<span id="cb4-4"><a href="#cb4-4"></a>srelease_source_inventory_parquet &lt;- s5_healthshed_write_table_fn(</span>
+<span id="cb4-5"><a href="#cb4-5"></a>  dplyr::select(s8_new_wave_source_snapshot_df,source_id,relative_path,content_md5),</span>
+<span id="cb4-6"><a href="#cb4-6"></a>  here::here("data/intermediates/final/source_inventory.parquet"))</span>
+<span id="cb4-7"><a href="#cb4-7"></a>srelease_review_inputs_parquet &lt;- s5_healthshed_write_table_fn(dplyr::bind_rows(</span>
+<span id="cb4-8"><a href="#cb4-8"></a>  mapping=s9_new_wave_mapping_review_df,</span>
+<span id="cb4-9"><a href="#cb4-9"></a>  identity=s10_new_wave_identity_review_df,</span>
+<span id="cb4-10"><a href="#cb4-10"></a>  na_corrections=s10_new_wave_na_corrections_df,.id="review_type"),</span>
+<span id="cb4-11"><a href="#cb4-11"></a>  here::here("data/intermediates/final/review_inputs.parquet"))</span>
+<span id="cb4-12"><a href="#cb4-12"></a>srelease_provenance_parquet &lt;- s5_healthshed_write_table_fn(srelease_provenance_fn(c(srelease_code_raw_files,s0_pipeline_stagecoach_yml),</span>
+<span id="cb4-13"><a href="#cb4-13"></a>  srelease_source_inventory_parquet,srelease_parameters_list,s0_pipeline_raw_zip),here::here("data/intermediates/final/provenance.parquet"))</span>
+<span id="cb4-14"><a href="#cb4-14"></a>srelease_contract_parquet &lt;- srelease_contract_fn(srelease_resources_list,schecks_final_shape_df,</span>
+<span id="cb4-15"><a href="#cb4-15"></a>  srelease_parameters_list,here::here("data","outputs","releases"))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Resource records and package files are explicitly branched on the execution page. Every package copy depends on the immutable contract above.</p>
+</div>
+</div>
+<div class="manual-check callout callout-style-default callout-warning no-icon callout-titled" title="Check Packaging On Synthetic Products" data-manual-kind="check">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Warning</span><i class="fa-solid fa-clipboard-check" aria-label="clipboard-check"></i> Check: Check Packaging On Synthetic Products
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode numberSource sh number-lines code-with-copy"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1"></a><span class="ex">scripts/mdg-healthshed-clinic-data</span> exec Rscript tests/check-new-wave-pipeline.R</span>
+<span id="cb5-2"><a href="#cb5-2"></a><span class="ex">python3</span> tests/check-manual-structure.py</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Small fixtures must confirm equal-content retries, different-content refusal, explicit schemas and geometry CRS, and independent round-trip verification. No release files are created by rendering or by implementing these declarations.</p>
 </div>
 </div>
 
@@ -794,13 +1028,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   </script>
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
-      <a href="../pipeline/21_page-construct-diagnosis-dictionary.html" class="pagination-link" aria-label="Construct the Diagnosis Dictionary">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Construct the Diagnosis Dictionary</span></span>
+      <a href="../pipeline/30_page-validate-migration.html" class="pagination-link" aria-label="Validate the Migrated Clinic Pipeline">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">Validate the Migrated Clinic Pipeline</span></span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
       <a href="../releases/20_page-execute-pipeline.html" class="pagination-link" aria-label="Execute the Pipeline">
-        <span class="nav-page-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Execute the Pipeline</span></span> <i class="bi bi-arrow-right-short"></i>
+        <span class="nav-page-text"><span class="chapter-number">29</span>&nbsp; <span class="chapter-title">Execute the Pipeline</span></span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>

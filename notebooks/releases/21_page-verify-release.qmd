@@ -1,51 +1,88 @@
 ---
-title: "Verify a Release"
-subtitle: "Retain evidence independently of pipeline success"
+title: "Verify an Internal Candidate"
+subtitle: "Check the packaged files independently of successful target execution"
 execute:
   eval: false
 engine: markdown
 ---
 
-There is no release to verify during scaffolding. This page defines the
-evidence boundary that the future release implementation must satisfy.
+Verification reopens each candidate resource, compares its schema and complete
+row multiset with its curated source, and records checksums and row counts.
+It verifies serialization, not scientific equivalence with an archived release.
 
-::: {.manual-prereq title="Confirm Release Completion"}
+::: {.manual-prereq title="Require The Immutable Resource Contract"}
 
-The versioned release target must have completed, and the approving reviewer
-must identify the exact release directory and expected resources.
-
-:::
-
-::: {.manual-procedure title="Validate The Published Artifact"}
-
-Future verification must:
-
-- load the published artifact through its declared interchange format;
-- validate every resource against its schema;
-- confirm identifiers and prohibited fields are absent;
-- compare published resources with their curated targets;
-- record package versions, source provenance, checksums, and review approval;
-- run the pipeline again and confirm that no target rebuilds.
-
-Verification code belongs here only after the release contract is approved.
+Package copies must refer to the exact source hashes in the versioned
+contract. A changed source or modified package must fail verification.
+The default access remains internal and the release status remains candidate.
 
 :::
 
-::: {.manual-procedure title="Retain Reproducible Evidence"}
+::: {.manual-procedure title="Verify Every Resource And Record Its Schema"}
 
-Retain verification evidence in ordinary targets or tracked Parquet file
-targets and associate it with the release record. Never include
-protected rows or values in the rendered Manual, scheduler logs, or version
-control.
+```{r}
+srelease_verify_fn <- function(resource,package,contract,config) {
+  manifest <- duckplyr::read_parquet_duckdb(contract,prudence="stingy") |> dplyr::collect()
+  row <- manifest[manifest$resource==resource$name,]
+  stopifnot(nrow(row)==1L,identical(srelease_sha256_fn(package),row$source_sha256),
+    identical(srelease_sha256_fn(resource$source),row$source_sha256))
+  a <- paste("SELECT * FROM",s4a_diagnosis_read_fn(resource$source))
+  b <- paste("SELECT * FROM",s4a_diagnosis_read_fn(package))
+  schema_a <- s4a_diagnosis_query_fn(paste("DESCRIBE",a)) |> dplyr::collect()
+  schema_b <- s4a_diagnosis_query_fn(paste("DESCRIBE",b)) |> dplyr::collect()
+  differences <- schecks_key_difference_fn(a,b)
+  if(!identical(schema_a$column_name,schema_b$column_name) || !identical(schema_a$column_type,schema_b$column_type) || any(differences!=0)) stop("Packaged resource does not round-trip to its curated source.")
+  if(any(schema_b$column_name %in% config$prohibited_columns)) stop("Prohibited column in packaged resource.")
+  rows <- s4a_diagnosis_query_fn(paste0("SELECT count(*) AS n FROM (",b,")")) |> dplyr::collect()
+  tibble::tibble(resource=resource$name,rows=rows$n,columns=nrow(schema_b),sha256=row$source_sha256,
+    schema_equal=TRUE,rows_equal=TRUE,access=config$access,status=config$status)
+}
+srelease_schema_fn <- function(paths,root,path) {
+  table <- dplyr::bind_rows(lapply(paths,function(input) {
+    schema <- s4a_diagnosis_query_fn(paste("DESCRIBE SELECT * FROM",s4a_diagnosis_read_fn(input))) |> dplyr::collect()
+    tibble::tibble(resource=substring(input,nchar(root)+2L),position=seq_len(nrow(schema)),column=schema$column_name,type=schema$column_type)
+  }))
+  srelease_write_once_fn(table,path)
+}
+srelease_manifest_fn <- function(checks,resources,config,path) {
+  stopifnot(nrow(checks)==length(resources),!anyDuplicated(checks$resource),all(checks$schema_equal & checks$rows_equal))
+  stopifnot(all(checks$access==config$access),all(checks$status==config$status))
+  if(file.exists(path)) {
+    old <- duckplyr::read_parquet_duckdb(path,prudence="stingy") |> dplyr::collect() |> dplyr::arrange(resource)
+    if(!isTRUE(all.equal(as.data.frame(old),as.data.frame(dplyr::arrange(checks,resource)),check.attributes=FALSE))) stop("Immutable verification manifest differs.")
+    return(path)
+  }
+  s5_healthshed_write_table_fn(dplyr::arrange(checks,resource),path)
+}
+```
+
+```{r}
+#| format: file
+srelease_schema_parquet <- srelease_schema_fn(srelease_package_parquet,
+  srelease_directory_fn(here::here("data","outputs","releases"),srelease_parameters_list),
+  file.path(srelease_directory_fn(here::here("data","outputs","releases"),srelease_parameters_list),"resource_schemas.parquet"))
+srelease_manifest_parquet <- srelease_manifest_fn(srelease_resource_checks_df,srelease_resources_list,
+  srelease_parameters_list,file.path(srelease_directory_fn(here::here("data","outputs","releases"),srelease_parameters_list),"manifest.parquet"))
+```
+
+The per-resource verification branches are declared on the execution page.
+A subsequent unchanged-input target build is an operational check for the
+researcher after execution is authorized; implementation and fixture tests
+make no claim that such a build has occurred.
 
 :::
 
-::: {.manual-check title="Confirm The Release Verification Record"}
+::: {.manual-check title="Retain Independent Candidate Evidence"}
 
-When the release targets exist, confirm that the retained record identifies
-the exact release version and artifact checksums, contains passing schema
-and disclosure checks, and reports equality with the curated products.
-The second pipeline run must leave every release target current. Until those
-results exist, this scaffold does not establish a verified release.
+```sh
+scripts/mdg-healthshed-clinic-data exec Rscript tests/check-new-wave-pipeline.R
+python3 tests/check-manual-structure.py
+```
+
+Inspect the version's `_contract.parquet`, `manifest.parquet`, and
+`resource_schemas.parquet`, together with packaged provenance and governed
+audits. Corrupted or changed files must fail the independent verifier.
+Source-level scientific decisions remain in their owning inputs and pages;
+verification never repairs measurements or rewrites the historical reference.
 
 :::

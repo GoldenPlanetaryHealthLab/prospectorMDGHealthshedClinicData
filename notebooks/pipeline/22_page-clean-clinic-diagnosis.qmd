@@ -1,0 +1,721 @@
+---
+title: "Clean and Combine Clinic Diagnoses"
+subtitle: "Replicate stage 4A with tracked, disk-backed targets"
+execute:
+  eval: false
+engine: markdown
+---
+
+This page implements the pinned legacy `4A_clean_clinic_diagnosis.R` at
+commit `31e0769683e133e136b09ac0c6608c5a12657a9a`. Scientific rules and ambiguous
+edge cases retain legacy behavior. Measurement tables remain in DuckDB and
+tracked Parquet files; only rules, schemas, and aggregate audits enter R.
+The execution page owns dynamic branches. No nested futures or Slurm setup is
+introduced here.
+
+::: {.manual-prereq title="Require The Identity And Dictionary Products"}
+
+Require pages 18–21: the prepared W3 Parquet, clinic-ID Parquet, monthly source
+archive/selectors, and diagnosis dictionary with its recorded W3 schema.
+S4 validates those dictionary rules as a dependency before interpreting them.
+This page stays unevaluated during rendering.
+
+:::
+
+::: {.manual-procedure title="Declare Disk And SQL Helpers"}
+
+SQL uses quoted identifiers and literals, never unrestricted R evaluation.
+DuckDB owns joins, reductions, and projection. Helpers return paths and clean
+up their temporary tables even after an error. CSV extraction remains private
+to the branch. CP1252 decoding reuses the official encodings extension.
+
+```{r}
+s4a_diagnosis_literal_fn <- function(x) {
+  paste0("'", gsub("'", "''", x, fixed = TRUE), "'")
+}
+s4a_diagnosis_identifier_fn <- function(x) {
+  paste0('"', gsub('"', '""', x, fixed = TRUE), '"')
+}
+s4a_diagnosis_query_fn <- function(sql) {
+  duckplyr::read_sql_duckdb(sql, prudence = "stingy")
+}
+s4a_diagnosis_read_fn <- function(paths) {
+  stopifnot(length(paths) > 0L, all(file.exists(paths)))
+  paste0("read_parquet([", paste(s4a_diagnosis_literal_fn(paths), collapse = ","),
+         "], union_by_name = true)")
+}
+s4a_diagnosis_write_fn <- function(sql, path) {
+  dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
+  duckplyr::compute_parquet(s4a_diagnosis_query_fn(sql), path)
+  path
+}
+s4a_diagnosis_table_fn <- function(name, sql) {
+  duckplyr::db_exec(paste0("CREATE OR REPLACE TEMP TABLE ", name, " AS ", sql))
+  name
+}
+s4a_diagnosis_cleanup_fn <- function(names) {
+  for (name in names) duckplyr::db_exec(paste("DROP TABLE IF EXISTS", name))
+}
+s4a_diagnosis_columns_fn <- function(sql) {
+  names(s4a_diagnosis_query_fn(paste0("SELECT * FROM (", sql, ") LIMIT 0")))
+}
+s4a_diagnosis_csv_fn <- function(path, encoding = "CP1252") {
+  if (encoding == "CP1252") {
+    duckplyr::db_exec("INSTALL encodings")
+    duckplyr::db_exec("LOAD encodings")
+  }
+  paste0("read_csv(", s4a_diagnosis_literal_fn(path),
+         ", header=true, delim=',', quote='\"', escape='\"', nullstr='NA', ",
+         "all_varchar=true, encoding=", s4a_diagnosis_literal_fn(encoding), ")")
+}
+s4a_diagnosis_tall_fn <- function(sql, source) {
+  paste0("SELECT cNom, CAST(nullif(cAnnee,'') AS INTEGER) cAnnee, ",
+    "CAST(nullif(cPeriode,'') AS INTEGER) cPeriode, ",
+    "CAST(CAST(nullif(cCodeNiv,'') AS BIGINT) AS VARCHAR) cCodeNiv, ",
+    "CAST(CAST(nullif(cCodeStru,'') AS BIGINT) AS VARCHAR) cCodeStru, ",
+    "CAST(nullif(fname,'') AS INTEGER) fname, cCode, Variable, ",
+    "CAST(nullif(Value,'') AS DOUBLE) AS \"Value\", row_number() OVER () source_row, ",
+    s4a_diagnosis_literal_fn(source), " source_file FROM ", sql)
+}
+s4a_diagnosis_drop_na_if_fn <- function(x) {
+  values <- unique(stats::na.omit(x))
+  if (length(values)) values else NA_integer_
+}
+```
+
+:::
+
+::: {.manual-procedure title="Validate And Compile Dictionary Rules"}
+
+The grammar is one exact source term or terms separated by ` + `. Missing
+expressions produce numeric missing values. All harmonized measurements use
+a numeric Parquet schema, including columns R would infer as all-NA logical. Direct terms preserve sentinels;
+earlier-wave sums replace only `-1`, while W3 sums replace missing components.
+Repeated summands and unknown terms fail through the existing S3 validator.
+
+```{r}
+s4a_diagnosis_rules_fn <- function(dictionary, schema, wave12) {
+  issues <- s3_diagnosis_validate_fn(dictionary, schema, wave12)
+  if (nrow(issues)) stop("S4 dictionary validation failed: ", paste(capture.output(print(issues)), collapse = "\n"))
+  stopifnot(!anyDuplicated(dictionary$var), all(grepl("^V[0-9]+$", dictionary$var)))
+  rules <- purrr::map_dfr(c("wave1", "wave2", "wave3A", "wave3B"), function(wave) {
+    source_expressions <- dictionary[[paste0(wave, "_colname")]]
+    tibble::tibble(wave = wave, var = dictionary$var, filename = dictionary$filename,
+                   expression = source_expressions)
+  })
+  rules$terms <- lapply(rules$expression, function(x) {
+    if (is.na(x)) character() else strsplit(x, " + ", fixed = TRUE)[[1L]]
+  })
+  if (any(vapply(rules$terms, function(x) any(!nzchar(x)), logical(1)))) stop("Empty source term")
+  rules
+}
+s4a_diagnosis_expression_fn <- function(terms, wave) {
+  if (!length(terms)) return("CAST(NULL AS DOUBLE)")
+  quoted <- s4a_diagnosis_identifier_fn(terms)
+  if (length(terms) == 1L) return(quoted)
+  parts <- if (wave %in% c("wave1", "wave2")) {
+    paste0("CASE WHEN ", quoted, " = -1 THEN 0 ELSE ", quoted, " END")
+  } else paste0("coalesce(", quoted, ", 0)")
+  paste(parts, collapse = " + ")
+}
+s4a_diagnosis_evaluation_rules_df <- s4a_diagnosis_rules_fn(
+  s3_diagnosis_dictionary_df, s3_w3_column_dictionary_df,
+  dplyr::bind_rows(
+    dplyr::select(s3_diagnosis_wave12_dictionary_df, Column.Name),
+    dplyr::select(s3_diagnosis_supplementary_dictionary_df, Column.Name)
+  )
+)
+s4a_diagnosis_wave12_expected_columns_df <- s4a_diagnosis_evaluation_rules_df |>
+  dplyr::filter(wave %in% c("wave1", "wave2")) |>
+  dplyr::select(wave, terms) |> tidyr::unnest_longer(terms) |> dplyr::distinct()
+s4a_diagnosis_output_groups_chr <- unique(stats::na.omit(s3_diagnosis_dictionary_df$filename))
+```
+
+:::
+
+::: {.manual-procedure title="Stage Supplement Measurements"}
+
+AVC is selected by exact archive suffix; the other selectors reuse S3.
+All measurement rows are retained. A complete byte scan of both staged
+supplements found CP1252 bytes (including `9C`), matching the monthly inputs. Replacement Variable names use `cCode`
+and the final underscore suffix, exactly as in the original script.
+
+```{r}
+s4a_diagnosis_supplement_members_chr <- c(
+  AVC = s3_dictionary_archive_member_fn(s2_clinic_months_raw_zip, "data/raw/from_Kevin/mdg_tall_split/AVC.csv"),
+  diar_pneu = s3_dictionary_archive_members_chr[["diar_pneu"]]
+)
+s4a_diagnosis_supplements_fn <- function(archive, members, path) {
+  tables <- c("s4_avc", "s4_diar")
+  on.exit(s4a_diagnosis_cleanup_fn(tables), add = TRUE)
+  for (i in seq_along(members)) {
+    s3_dictionary_archive_read_fn(archive, members[[i]], function(csv) {
+      s4a_diagnosis_table_fn(tables[[i]], s4a_diagnosis_tall_fn(
+        s4a_diagnosis_csv_fn(csv), members[[i]]))
+    })
+  }
+  s4a_diagnosis_write_fn(paste0("SELECT * FROM s4_avc UNION ALL SELECT * REPLACE ",
+    "(cCode || regexp_replace(Variable, '^.*_', '_') AS Variable) FROM s4_diar"), path)
+}
+```
+
+```{r}
+#| format: file
+s4a_diagnosis_wave12_supplements_parquet <- s4a_diagnosis_supplements_fn(
+  s2_clinic_months_raw_zip, s4a_diagnosis_supplement_members_chr,
+  here::here("data/intermediates/clinic_diagnosis/wave12_supplements.parquet")
+)
+```
+
+:::
+
+::: {.manual-procedure title="Decode One Month And Join Identities"}
+
+The monthly branch appends supplements, then reproduces `month_df[clinicID]`
+with an identity-preserving join, including missing-key matches and inventory
+multiplicity. Unmatched inventory rows have no measurements and fail the
+positive-total reporting filter. Keeping that filter after the join preserves
+its interaction with repeated identities. Provenance stays in the input file.
+
+```{r}
+s4a_diagnosis_month_input_fn <- function(archive, member, supplements, path) {
+  year <- as.integer(substr(basename(member), 1, 4))
+  month <- as.integer(substr(basename(member), 6, 7))
+  s3_dictionary_archive_read_fn(archive, member, function(csv) {
+    sql <- paste0("SELECT * FROM (", s4a_diagnosis_tall_fn(s4a_diagnosis_csv_fn(csv), member),
+      ") WHERE NOT (cCode IN ('DySS','DiSS','DiDy','P','PGRA') AND fname=1) ",
+      "UNION ALL SELECT * FROM ", s4a_diagnosis_read_fn(supplements),
+      " WHERE cAnnee=", year, " AND cPeriode=", month)
+    s4a_diagnosis_write_fn(sql, path)
+  })
+}
+s4a_diagnosis_join_fn <- function(input, identities) {
+  keys <- c("cAnnee", "cPeriode", "cCodeNiv", "cCodeStru", "cNom", "fname")
+  joins <- paste0("m.", keys, " IS NOT DISTINCT FROM i.", keys, collapse = " AND ")
+  paste0("WITH measured AS (SELECT * FROM ", s4a_diagnosis_read_fn(input),
+    " WHERE Variable IS NOT NULL), joined AS (SELECT i.clinic_ID, ",
+    paste0("i.", keys, collapse = ","), ", m.cCode, ",
+    "replace(replace(replace(m.Variable, 'c$_', 'c__'), '_*', '__'), ",
+    "'SOMME ACCTS', 'SOMME_ACCTS') AS \"Variable\", m.Value FROM ",
+    s4a_diagnosis_read_fn(identities), " i LEFT JOIN measured m ON ", joins,
+    " WHERE i.clinic_ID != 'qCHtCHkwqtQ') SELECT * FROM joined ",
+    "QUALIFY sum(Value) OVER (PARTITION BY clinic_ID,cAnnee,cPeriode,fname)>0")
+}
+```
+
+:::
+
+::: {.manual-procedure title="Classify And Reduce Monthly Duplicates"}
+
+Flags count missing as a distinct value, unlike SQL `count(DISTINCT)` alone.
+Decisions use the wider cCode group and their original precedence. Reduction
+then groups by Variable within each decision class, matching the four legacy
+rbind inputs. Each branch returns a reduced file and an aggregate audit file.
+
+```{r}
+s4a_diagnosis_reduce_sql_fn <- function(sql) {
+  keys <- "clinic_ID,cAnnee,cPeriode,fname"
+  paste0("WITH joined AS (", sql, "), flags AS (SELECT *, ",
+    "count(DISTINCT Value) OVER v > 1 dist_numeric, ",
+    "(count(DISTINCT Value) OVER v + CASE WHEN count(*) OVER v > count(Value) OVER v THEN 1 ELSE 0 END)>1 dist, ",
+    "count(*) OVER v > 1 is_dup FROM joined WINDOW v AS (PARTITION BY ", keys,
+    ",Variable)) SELECT *, CASE WHEN NOT bool_or(dist) OVER c THEN 'unique' ",
+    "WHEN NOT bool_or(dist_numeric) OVER c THEN 'unique_nonNA' ",
+    "WHEN bool_and(dist) OVER c THEN 'sum' ",
+    "WHEN bool_and(dist) FILTER (WHERE is_dup) OVER c THEN 'sum2' ",
+    "ELSE 'error' END decision FROM flags WINDOW c AS (PARTITION BY ", keys, ",cCode)")
+}
+s4a_diagnosis_reduce_fn <- function(input, identities, path) {
+  on.exit(s4a_diagnosis_cleanup_fn("s4_flags"), add = TRUE)
+  s4a_diagnosis_table_fn("s4_flags", s4a_diagnosis_reduce_sql_fn(s4a_diagnosis_join_fn(input, identities)))
+  reduced <- s4a_diagnosis_write_fn(paste0(
+    "SELECT clinic_ID,cAnnee,cPeriode,fname,Variable, CASE ",
+    "WHEN decision IN ('sum','sum2') THEN coalesce(sum(Value),0) ",
+    "WHEN decision='error' THEN -99 ELSE max(Value) END AS \"Value\" ",
+    "FROM (SELECT * REPLACE (CASE WHEN decision='sum2' THEN 'sum' ELSE decision END AS decision) FROM s4_flags) GROUP BY clinic_ID,cAnnee,cPeriode,fname,Variable,decision"), path)
+  audit <- s4a_diagnosis_write_fn(paste0(
+    "SELECT cAnnee,cPeriode,fname,decision,count(*) input_rows, ",
+    "count(DISTINCT clinic_ID) clinics FROM s4_flags GROUP BY ALL"),
+    sub("\\.parquet$", "_audit.parquet", path))
+  c(reduced = reduced, audit = audit)
+}
+s4a_diagnosis_wave12_decision_audit_df <- {
+  paths <- s4a_diagnosis_wave12_deduplicated_parquet
+  paths <- paths[endsWith(paths, "_audit.parquet")]
+  s4a_diagnosis_query_fn(paste0("SELECT * FROM ", s4a_diagnosis_read_fn(paths))) |> dplyr::collect()
+}
+```
+
+:::
+
+::: {.manual-procedure title="Map A Month Without Collecting Measurements"}
+
+Only dictionary source terms are pivoted. The report universe is established
+before projection, preserving reports whose mapped values are all missing.
+Explicit missing tall values become -1; absent cells remain missing. A whole
+wave subset with at most one tall row is skipped. If duplicate cells survive
+the four legacy reductions, reproduce dcast's fallback to length (including
+its zero fill) across that wave, rather than silently taking their maximum.
+Collect only a per-wave summary of the row count, duplicate flag, and present
+Variable names before generating the pivot. Repeating an `EXISTS` subquery
+in every pivot column exceeds DuckDB's expression-depth limit at the wave 2
+dictionary's 1,237 source terms. The summary also avoids a window aggregate
+per column to distinguish globally absent variables from missing cells.
+Use DuckDB's native `PIVOT` with an explicit term list so it can select its
+implementation for wide tables; thousands of hand-written filtered
+aggregates also consumed excessive memory in a two-row reproduction.
+
+```{r}
+s4a_diagnosis_mapping_audit_fn <- function(paths) {
+  inputs <- paths[!endsWith(paths, "_audit.parquet")]
+  source <- sub("union_by_name = true", "union_by_name = true, filename = true",
+                s4a_diagnosis_read_fn(inputs), fixed = TRUE)
+  s4a_diagnosis_query_fn(paste0(
+    "WITH cells AS (SELECT filename,cAnnee,cPeriode,CASE WHEN fname=1 THEN 'wave1' ELSE 'wave2' END wave,",
+    "clinic_ID,fname,Variable,count(*) n FROM ", source,
+    " WHERE fname>=1 GROUP BY ALL) SELECT filename,cAnnee,cPeriode,wave,",
+    "sum(n) tall_rows,sum(n)<=1 skipped_one_row,bool_or(n>1) dcast_length_fallback ",
+    "FROM cells GROUP BY ALL")) |> dplyr::collect()
+}
+s4a_diagnosis_wave12_mapping_audit_df <- s4a_diagnosis_mapping_audit_fn(
+  s4a_diagnosis_wave12_deduplicated_parquet
+)
+s4a_diagnosis_month_map_fn <- function(paths, rules, path) {
+  input <- paths[!endsWith(paths, "_audit.parquet")]
+  queries <- lapply(c("wave1", "wave2"), function(wave) {
+    r <- rules[rules$wave == wave, ]
+    terms <- unique(unlist(r$terms))
+    source <- paste0("SELECT * FROM ", s4a_diagnosis_read_fn(input),
+                     if (wave == "wave1") " WHERE fname=1" else " WHERE fname>1")
+    keys <- "clinic_ID,cAnnee,cPeriode,fname"
+    stats <- s4a_diagnosis_query_fn(paste0(
+      "SELECT coalesce(sum(n),0) tall_rows, coalesce(bool_or(n>1),false) length_fallback, ",
+      "list(DISTINCT Variable) present_terms FROM (SELECT Variable,count(*) n FROM (",
+      source, ") GROUP BY ", keys, ",Variable)")) |> dplyr::collect()
+    present <- stats$present_terms[[1L]]
+    pivot <- if (length(terms)) paste0(
+      "PIVOT src ON Variable IN (", paste(s4a_diagnosis_literal_fn(terms),collapse=","), ") USING ",
+      if (stats$length_fallback) "count(*)" else "max(coalesce(Value,-1))",
+      " GROUP BY ", keys
+    ) else paste0("SELECT ", keys, " FROM src GROUP BY ", keys)
+    projection <- vapply(terms, function(term) {
+      quoted <- s4a_diagnosis_identifier_fn(term)
+      value <- if (!stats$length_fallback) quoted else if (term %in% present) {
+        paste0("coalesce(CAST(", quoted, " AS DOUBLE),0::DOUBLE)")
+      } else "CAST(NULL AS DOUBLE)"
+      paste0(value, " AS ", quoted)
+    }, character(1))
+    mapped <- vapply(seq_len(nrow(r)), function(i) paste0(
+      s4a_diagnosis_expression_fn(r$terms[[i]], wave), " AS ",
+      s4a_diagnosis_identifier_fn(r$var[[i]])), character(1))
+    paste0("WITH src AS (", source, "), pivoted AS (", pivot, "), wide AS (SELECT ", keys,
+      if (length(projection)) paste0(",", paste(projection, collapse = ",")),
+      " FROM pivoted) SELECT ", keys, ",", paste(mapped, collapse = ","),
+      " FROM wide WHERE ", if (stats$tall_rows>1) "true" else "false", " ORDER BY ", keys)
+  })
+  s4a_diagnosis_write_fn(paste0("(", queries[[1]], ") UNION ALL (", queries[[2]], ")"), path)
+}
+```
+
+:::
+
+::: {.manual-procedure title="Insert The Actual 2020 Anemia Measurements"}
+
+The anemia schema from S3 does not contain measurements. Decode the source
+CSV as UTF-8, repair question-mark headers, and remove the two descriptive
+organisation fields. Replace original anemia fields only in 2020, full join
+on organisationunitid and periodcode, and preserve original column order
+before appending new fields. Anemia-only rows remain in the report universe.
+The anemia period key is cast to the prepared W3 period type before joining.
+Period prefix checks and substring extraction cast explicitly to text, matching
+R's implicit coercion for numeric `periodcode` inputs without changing their
+stored type.
+
+```{r}
+s4a_diagnosis_anemia_fn <- function(archive, member, path) {
+  s3_dictionary_archive_read_fn(archive, member, function(csv) {
+    source <- s4a_diagnosis_csv_fn(csv, "UTF-8")
+    columns <- s4a_diagnosis_columns_fn(paste("SELECT * FROM", source))
+    columns <- setdiff(columns, c("organisationunitcode", "organisationunitdescription"))
+    projection <- vapply(columns, function(column) {
+      original <- s4a_diagnosis_identifier_fn(column)
+      value <- if (grepl("^org|^period", column)) original else paste0("CAST(nullif(", original, ",'') AS DOUBLE)")
+      paste0(value, " AS ", s4a_diagnosis_identifier_fn(gsub("?", "≥", column, fixed = TRUE)))
+    }, character(1))
+    s4a_diagnosis_write_fn(paste("SELECT", paste(projection, collapse=","), "FROM", source), path)
+  })
+}
+```
+
+```{r}
+#| format: file
+s4a_diagnosis_wave3_anemia_parquet <- s4a_diagnosis_anemia_fn(
+  s2_clinic_months_raw_zip, s3_dictionary_archive_members_chr[["anemia"]],
+  here::here("data/intermediates/clinic_diagnosis/wave3_anemia.parquet")
+)
+```
+
+```{r}
+s4a_diagnosis_anemia_correct_fn <- function(w3, anemia, schema, path) {
+  source <- s4a_diagnosis_read_fn(w3)
+  supplement <- s4a_diagnosis_read_fn(anemia)
+  # The prepared W3 CSV reader can infer numeric periods. Match its key type
+  # before joining the text-only anemia reader, retaining the W3 output type.
+  period_schema <- s4a_diagnosis_query_fn(paste(
+    "DESCRIBE SELECT periodcode FROM", source
+  )) |> dplyr::collect()
+  supplement <- paste0("(SELECT * REPLACE (CAST(periodcode AS ",
+    period_schema$column_type[[1L]], ") AS periodcode) FROM ", supplement, ")")
+  original <- s4a_diagnosis_columns_fn(paste("SELECT * FROM", source))
+  added <- s4a_diagnosis_columns_fn(paste("SELECT * FROM", supplement))
+  measurements <- added[!grepl("^org|^period", added)]
+  kept <- setdiff(original, c(measurements, "organisationunitid", "periodcode"))
+  keys <- c("organisationunitid", "periodcode")
+  projection <- c(paste0("coalesce(w.", keys, ",a.", keys, ") AS ", keys),
+    paste0("w.", s4a_diagnosis_identifier_fn(kept)),
+    paste0("a.", s4a_diagnosis_identifier_fn(measurements)))
+  joined <- paste0("SELECT ", paste(projection, collapse=","), " FROM (SELECT * FROM ",
+    source, " WHERE starts_with(CAST(periodcode AS VARCHAR),'2020')) w FULL JOIN ", supplement,
+    " a ON w.organisationunitid IS NOT DISTINCT FROM a.organisationunitid ",
+    "AND w.periodcode IS NOT DISTINCT FROM a.periodcode")
+  sql <- paste0("WITH combined AS (SELECT * FROM ", source,
+    " WHERE NOT coalesce(starts_with(CAST(periodcode AS VARCHAR),'2020'),false) UNION ALL BY NAME ",
+    joined, ") SELECT ", paste(s4a_diagnosis_identifier_fn(c(original, setdiff(measurements, original))), collapse=","),
+    " FROM combined")
+  actual <- s4a_diagnosis_columns_fn(sql)
+  if (!identical(actual, schema$w3_description)) stop("Corrected W3 column order differs from the S3 schema")
+  s4a_diagnosis_write_fn(sql, path)
+}
+```
+
+```{r}
+#| format: file
+s4a_diagnosis_wave3_anemia_corrected_parquet <- s4a_diagnosis_anemia_correct_fn(
+  s0_clinic_RMA_W3_clean_parquet, s4a_diagnosis_wave3_anemia_parquet,
+  s3_w3_column_dictionary_df,
+  here::here("data/intermediates/clinic_diagnosis/wave3_anemia_corrected.parquet")
+)
+```
+
+:::
+
+::: {.manual-procedure title="Deduplicate And Filter Wave 3"}
+
+Rename through the recorded S3 schema, preserving identifiers. Exact-row
+deduplication precedes negative repairs, as in 4A; do not deduplicate again
+following those repairs. Reporting requires a positive measurement outside
+the two refrigerator-temperature columns. The audit records the descriptions
+behind all five legacy X references.
+
+```{r}
+s4a_diagnosis_wave3_repair_columns_df <- s3_w3_column_dictionary_df |>
+  dplyr::filter(w3_colname %in% c("X1067","X1068","X1736","X1708","X1709"))
+s4a_diagnosis_w3_deduplicate_fn <- function(input, schema, path) {
+  current <- schema$w3_description
+  stopifnot(identical(s4a_diagnosis_columns_fn(paste("SELECT * FROM", s4a_diagnosis_read_fn(input))), current))
+  names <- ifelse(grepl("^org|^period", current) | current %in% c("V1","TYPE","FS","code_fs"), current, schema$w3_colname)
+  keep <- !names %in% c("V1","TYPE","FS","code_fs")
+  projection <- paste0(s4a_diagnosis_identifier_fn(current[keep]), " AS ", s4a_diagnosis_identifier_fn(names[keep]))
+  fixed <- c("X1067","X1068","X1736")
+  stopifnot(all(c(fixed,"X1708","X1709") %in% names[keep]))
+  repairs <- paste0("CASE WHEN ", fixed, "<0 THEN NULL ELSE ", fixed, " END AS ", fixed)
+  s4a_diagnosis_write_fn(paste0("WITH dedup AS (SELECT DISTINCT ", paste(projection,collapse=","),
+    " FROM ", s4a_diagnosis_read_fn(input), ") SELECT * REPLACE (", paste(repairs,collapse=","), ") FROM dedup"), path)
+}
+```
+
+```{r}
+#| format: file
+s4a_diagnosis_wave3_deduplicated_parquet <- s4a_diagnosis_w3_deduplicate_fn(
+  s4a_diagnosis_wave3_anemia_corrected_parquet, s3_w3_column_dictionary_df,
+  here::here("data/intermediates/clinic_diagnosis/wave3_deduplicated.parquet")
+)
+```
+
+```{r}
+s4a_diagnosis_w3_reporting_fn <- function(input, path) {
+  source <- s4a_diagnosis_read_fn(input)
+  columns <- s4a_diagnosis_columns_fn(paste("SELECT * FROM", source))
+  measured <- setdiff(columns[!grepl("^org|^period",columns)], c("X1708","X1709"))
+  positive <- paste0("coalesce(", s4a_diagnosis_identifier_fn(measured), ">0,false)")
+  s4a_diagnosis_write_fn(paste0("SELECT * FROM ", source, " WHERE list_contains([", paste(positive,collapse=","), "],true)"), path)
+}
+```
+
+```{r}
+#| format: file
+s4a_diagnosis_wave3_reporting_parquet <- s4a_diagnosis_w3_reporting_fn(
+  s4a_diagnosis_wave3_deduplicated_parquet,
+  here::here("data/intermediates/clinic_diagnosis/wave3_reporting.parquet")
+)
+```
+
+```{r}
+s4a_diagnosis_w3_map_fn <- function(input, rules, path) {
+  queries <- lapply(c("wave3A", "wave3B"), function(wave) {
+    r <- rules[rules$wave == wave, ]
+    projection <- vapply(seq_len(nrow(r)), function(i) paste0(
+      s4a_diagnosis_expression_fn(r$terms[[i]], wave), " AS ", s4a_diagnosis_identifier_fn(r$var[[i]])), character(1))
+    paste0("SELECT organisationunitid clinic_ID, try_cast(substr(CAST(periodcode AS VARCHAR),1,4) AS INTEGER) cAnnee, ",
+      "try_cast(substr(CAST(periodcode AS VARCHAR),5,2) AS INTEGER) cPeriode, 6::INTEGER fname, ", paste(projection,collapse=","),
+      " FROM ", s4a_diagnosis_read_fn(input), " WHERE ",
+      if (wave == "wave3A") "coalesce(starts_with(CAST(periodcode AS VARCHAR),'2020'),false)" else "NOT coalesce(starts_with(CAST(periodcode AS VARCHAR),'2020'),false)")
+  })
+  s4a_diagnosis_write_fn(paste(queries, collapse=" UNION ALL "), path)
+}
+```
+
+```{r}
+#| format: file
+s4a_diagnosis_wave3_mapped_parquet <- s4a_diagnosis_w3_map_fn(
+  s4a_diagnosis_wave3_reporting_parquet, s4a_diagnosis_evaluation_rules_df,
+  here::here("data/intermediates/clinic_diagnosis/wave3_mapped.parquet")
+)
+```
+
+:::
+
+::: {.manual-procedure title="Select Report Sources Once For All Consumers"}
+
+Selection is report-based, before projecting diagnosis variables. Preserve
+candidate multiplicity, prefer the expected file, and otherwise keep every
+nearest-distance tie. Only wrong files with an expected alternative belong
+to the legacy rejected output. More distant fallbacks get a separate audit
+category. Missing join keys use R/data.table missing-key equality.
+
+```{r}
+s4a_diagnosis_candidates_fn <- function(w12, w3, path) {
+  paths <- c(w12,w3)
+  pieces <- vapply(seq_along(paths), function(i) paste0(
+    "SELECT clinic_ID,cAnnee,cPeriode,fname,", i,
+    " source_file_order,row_number() OVER () source_row_order FROM ",
+    s4a_diagnosis_read_fn(paths[[i]])), character(1))
+  s4a_diagnosis_write_fn(paste0("SELECT *,row_number() OVER ",
+    "(ORDER BY source_file_order,source_row_order) report_order FROM (",
+    paste(pieces,collapse=" UNION ALL "), ")"), path)
+}
+s4a_diagnosis_selection_sql_fn <- function(source) {
+  paste0("WITH expected AS (SELECT *, CASE WHEN cAnnee<2015 OR (cAnnee=2015 AND cPeriode<=3) THEN 1 ",
+    "WHEN cAnnee IN (2015,2016) THEN 2 WHEN cAnnee=2017 THEN 3 WHEN cAnnee=2018 THEN 4 ",
+    "WHEN cAnnee=2019 THEN 5 WHEN cAnnee>2019 THEN 6 ELSE 0 END fname_correct FROM ", source,
+    "), distances AS (SELECT *, bool_or(fname=fname_correct) OVER k any_fname_correct, ",
+    "abs(fname-fname_correct) fname_dist FROM expected WINDOW k AS (PARTITION BY clinic_ID,cAnnee,cPeriode)), ",
+    "ranked AS (SELECT *, min(fname_dist) OVER (PARTITION BY clinic_ID,cAnnee,cPeriode) min_dist FROM distances) ",
+    "SELECT *, CASE WHEN fname=fname_correct THEN 'expected' ",
+    "WHEN any_fname_correct THEN 'wrong_fname' WHEN fname_dist=min_dist THEN 'nearest_fallback' ",
+    "ELSE 'discarded_fallback' END selection FROM ranked")
+}
+```
+
+```{r}
+#| format: file
+s4a_clinic_reporting_candidates_parquet <- s4a_diagnosis_candidates_fn(
+  s4a_diagnosis_wave12_month_mapped_parquet, s4a_diagnosis_wave3_mapped_parquet,
+  here::here("data/intermediates/clinic_diagnosis/reporting_candidates.parquet")
+)
+```
+
+```{r}
+#| format: file
+s4a_clinic_reporting_selection_parquet <- s4a_diagnosis_write_fn(
+  s4a_diagnosis_selection_sql_fn(s4a_diagnosis_read_fn(s4a_clinic_reporting_candidates_parquet)),
+  here::here("data/intermediates/clinic_diagnosis/reporting_selection.parquet")
+)
+```
+
+```{r}
+s4a_report_selection_audit_df <- s4a_diagnosis_query_fn(paste0(
+  "SELECT cAnnee,cPeriode,selection,count(*) reports,count(DISTINCT clinic_ID) clinics FROM ",
+  s4a_diagnosis_read_fn(s4a_clinic_reporting_selection_parquet), " GROUP BY ALL")) |> dplyr::collect()
+s4a_report_multiplicity_audit_df <- s4a_diagnosis_query_fn(paste0(
+  "SELECT clinic_ID,cAnnee,cPeriode,count(*) reports,count(DISTINCT fname) sources FROM ",
+  s4a_diagnosis_read_fn(s4a_clinic_reporting_selection_parquet),
+  " WHERE selection IN ('expected','nearest_fallback') GROUP BY ALL HAVING count(*)>1")) |> dplyr::collect()
+```
+
+:::
+
+::: {.manual-procedure title="Write The Reporting Tracker"}
+
+The tracker keeps the calendar columns emitted by the retained reports,
+in their legacy first-occurrence order (monthly archive order, then W3).
+No empty calendar periods are invented. A duplicate clinic/date would make
+legacy pivot_wider produce list cells that Feather cannot store. Fail with
+the multiplicity audit available; never silently resolve such cases.
+
+```{r}
+s4a_diagnosis_tracker_fn <- function(selection, path) {
+  source <- s4a_diagnosis_read_fn(selection)
+  retained <- paste0("SELECT *, 'y' || coalesce(CAST(CAST(cAnnee AS INTEGER) AS VARCHAR),'NA') || '_m' || coalesce(printf('%02d',CAST(cPeriode AS INTEGER)),'NA') report_date ",
+    "FROM ", source, " WHERE selection IN ('expected','nearest_fallback')")
+  duplicate <- s4a_diagnosis_query_fn(paste0("SELECT count(*) n FROM (SELECT clinic_ID,report_date FROM (",
+    retained, ") GROUP BY ALL HAVING count(*)>1)")) |> dplyr::collect()
+  if (duplicate$n > 0) stop("Legacy tracker has non-scalar clinic/date cells; inspect s4a_report_multiplicity_audit_df")
+  dates <- s4a_diagnosis_query_fn(paste0("SELECT report_date FROM (",
+    retained, ") GROUP BY report_date ORDER BY min(report_order)")) |> dplyr::collect()
+  projection <- vapply(dates$report_date, function(date) paste0(
+    "coalesce(max(fname) FILTER (WHERE report_date=", s4a_diagnosis_literal_fn(date), "),0)::INTEGER AS ",
+    s4a_diagnosis_identifier_fn(date)), character(1))
+  s4a_diagnosis_write_fn(paste0("SELECT clinic_ID", if(length(projection)) paste0(",",paste(projection,collapse=",")),
+    " FROM (", retained, ") GROUP BY clinic_ID ORDER BY min(report_order)"), path)
+}
+```
+
+```{r}
+#| format: file
+s4a_clinic_reporting_track_parquet <- s4a_diagnosis_tracker_fn(
+  s4a_clinic_reporting_selection_parquet,
+  here::here("data/intermediates/clinic_reporting_track.parquet")
+)
+```
+
+:::
+
+::: {.manual-procedure title="Write Retained And Legacy Rejected Diagnosis Groups"}
+
+One branch per ordinary filename selector reads only its V columns.
+The two-path return is one file bundle per branch. Distinct selection keys
+prevent a join from multiplying measurements; original measurement rows,
+including W3 repeated keys with different values, remain intact. Both empty
+and nonempty rejected partitions have the same declared schema.
+
+```{r}
+s4a_diagnosis_output_fn <- function(group, dictionary, w12, w3, selection, directory) {
+  vars <- dictionary$var[!is.na(dictionary$filename) & dictionary$filename == group]
+  stopifnot(length(group)==1L, grepl("^[A-Za-z0-9_-]+$", group), length(vars)>0)
+  keys <- c("clinic_ID","cAnnee","cPeriode","fname")
+  projection <- paste0("m.",s4a_diagnosis_identifier_fn(c(keys,vars)),collapse=",")
+  joins <- paste0("m.",keys," IS NOT DISTINCT FROM s.",keys,collapse=" AND ")
+  sql <- paste0("SELECT ", projection, " FROM ", s4a_diagnosis_read_fn(c(w12,w3)),
+    " m JOIN (SELECT DISTINCT clinic_ID,cAnnee,cPeriode,fname,selection FROM ",
+    s4a_diagnosis_read_fn(selection), ") s ON ", joins)
+  retained <- s4a_diagnosis_write_fn(paste0(sql," WHERE s.selection IN ('expected','nearest_fallback')"),
+    file.path(directory,paste0(group,".parquet")))
+  rejected <- s4a_diagnosis_write_fn(paste0(sql," WHERE s.selection='wrong_fname'"),
+    file.path(directory,paste0(group,"_wrong_fname.parquet")))
+  c(retained=retained,wrong_fname=rejected)
+}
+```
+
+:::
+
+::: {.manual-check title="Verify Replication Logic And Graph Boundaries"}
+
+Run synthetic checks before a data build. Tests exercise the notebook helpers
+and compare small fixtures to legacy reductions and source selection, without
+running targets or collecting scientific measurement tables.
+
+```sh
+python3 tests/check-manual-structure.py
+scripts/mdg-healthshed-clinic-data exec Rscript tests/check-clinic-diagnosis.R
+scripts/mdg-healthshed-clinic-data exec Rscript tests/check-data-storage-convention.R
+scripts/mdg-healthshed-clinic-data exec Rscript tests/check-shape-comparison-examples.R
+```
+
+For an authorized data build, inspect the duplicate-decision, skipped-subset, dcast-fallback, and source-selection audits,
+the retained-report multiplicity audit, and the descriptions of the W3 repair
+columns. Compare canonical keys and values to the [most recent archived data](mapping/legacy-pipeline-map.qmd#most-recent-archived-data-comparison-baseline), with
+input/dictionary differences recorded explicitly. Load the shared selection
+with `dget(here::here("src", "archived-comparison-baseline.R"))`: use its
+`archive_zip` with `diagnosis_directory_member` for the ZIP’s May 4
+retained/rejected Feather family, `dictionary_member` for its May 3
+definitions, and `reporting_tracker_member` for that family’s tracker.
+Extract only the members needed for a comparison. All Drive iterations,
+including the later May 20 outputs, are excluded from this migration. Historical row counts are
+reference points, not unconditional assertions. Measure branch memory/time
+before selecting concurrency; this implementation leaves execution serial.
+A no-op second build and full-data reference comparison remain data-build
+acceptance checks, not claims made by these synthetic tests.
+
+**Current scope (2026-11-08): shape checks are sufficient to continue building.**
+The researcher reports that the initial checks on pages 18–21 appear to pass.
+Use the following read-only examples after this stage completes. They build
+no targets and do not run during rendering. Archived diagnosis partitions
+are Feather; their comparison is deferred, with no Feather reader added.
+The checks below inspect current Parquet products and their dictionary.
+Keep results in the authorized session, outside rendered HTML.
+
+**Load the retained partitions and dictionary.** The `_wrong_fname` files are
+rejected reports and are excluded from this retained-output survey.
+
+```r
+# Shape check: diagnosis-setup
+diagnosis_paths <- unname(targets::tar_read(s4a_diagnosis_output_parquet))
+retained_paths <- diagnosis_paths[!grepl("_wrong_fname[.]parquet$", diagnosis_paths)]
+stopifnot(length(retained_paths) > 0L, all(file.exists(retained_paths)))
+current_dictionary <- targets::tar_read(s3_diagnosis_dictionary_df)
+diagnosis_keys <- c("clinic_ID", "cAnnee", "cPeriode", "fname")
+```
+
+**Rows, columns, and dictionary agreement for every retained partition.**
+Only scalar row counts are collected; column names come from the schema.
+Compare each partition's ordered measurement columns to its dictionary group.
+A missing or extra partition is listed separately from a column mismatch.
+
+```r
+# Shape check: diagnosis-partitions
+diagnosis_shapes <- dplyr::bind_rows(lapply(retained_paths, function(path) {
+  relation <- duckplyr::read_parquet_duckdb(path, prudence = "stingy")
+  partition <- tools::file_path_sans_ext(basename(path))
+  measurements <- setdiff(names(relation), diagnosis_keys)
+  expected <- current_dictionary$var[!is.na(current_dictionary$filename) & current_dictionary$filename == partition]
+  row_count <- relation |> dplyr::summarise(rows = dplyr::n()) |> dplyr::collect()
+  tibble::tibble(
+    partition = partition, rows = row_count$rows, columns = length(names(relation)),
+    key_columns_present = all(diagnosis_keys %in% names(relation)),
+    variables = length(measurements), expected_variables = length(expected),
+    variable_names_match = setequal(measurements, expected),
+    variable_order_matches = identical(measurements, expected)
+  )
+})) |>
+  dplyr::arrange(readr::parse_number(partition))
+print(diagnosis_shapes, n = Inf)
+tibble::tibble(
+  missing_partitions = list(setdiff(unique(current_dictionary$filename), diagnosis_shapes$partition)),
+  extra_partitions = list(setdiff(diagnosis_shapes$partition, unique(current_dictionary$filename))),
+  repeated_partition_names = list(diagnosis_shapes$partition[duplicated(diagnosis_shapes$partition)])
+)
+```
+
+**Inspect one partition's schema, clinic-month multiplicity, and calendar.**
+Change `partition` to repeat this inspection for another group. A multiplicity
+above one is evidence to inspect; do not remove rows to force uniqueness.
+Matching partition sizes alone does not prove that their key sets agree.
+
+```r
+# Shape check: diagnosis-select
+partition <- "file1"
+selected_path <- retained_paths[basename(retained_paths) == paste0(partition, ".parquet")]
+stopifnot(length(selected_path) == 1L)
+new_diagnosis <- duckplyr::read_parquet_duckdb(selected_path, prudence = "stingy")
+```
+
+```r
+# Shape check: diagnosis-schema
+tibble::tibble(position = seq_along(names(new_diagnosis)), column = names(new_diagnosis)) |>
+  print(n = Inf)
+```
+
+```r
+# Shape check: diagnosis-multiplicity
+new_diagnosis |>
+  dplyr::count(clinic_ID, cAnnee, cPeriode, name = "reports") |>
+  dplyr::count(reports, name = "clinic_month_keys") |>
+  dplyr::collect() |>
+  dplyr::arrange(reports)
+```
+
+```r
+# Shape check: diagnosis-periods
+new_diagnosis |>
+  dplyr::count(cAnnee, cPeriode, fname, name = "rows") |>
+  dplyr::collect() |>
+  dplyr::arrange(cAnnee, cPeriode, fname) |>
+  print(n = Inf)
+```
+
+These checks support the current development step. Archived measurement
+values, diagnosis definition/ID compatibility, and full key-set comparisons
+remain outside this shape review.
+
+:::

@@ -1,0 +1,571 @@
+---
+title: "Compare and Select Clinic Locations"
+subtitle: "Implement legacy stage 6 with candidate and selection evidence"
+execute:
+  eval: false
+engine: markdown
+---
+
+This page implements [`6_locate_clinics.R`][legacy-6] at pinned revision
+`31e0769683e133e136b09ac0c6608c5a12657a9a`. Each row is a clinic-location
+candidate, not necessarily a unique clinic. Matching ties and full-join-only
+clinics remain visible. Five reported coordinate sources, a matched FKT,
+and a healthshed supply the evidence for the fixed source-selection order.
+A selected centroid label denotes an inferred location, not a measured point.
+
+::: {.manual-prereq title="Require Identities, Geometry, And Frozen Location Sources"}
+
+Require `s2_clinic_ids_df`, `s5_sectorization_2022_clean_sf`, and
+`s5_healthshed_clinic_final_sf` from pages [20](20_page-construct-clinic-ids.qmd)
+and [23](23_page-construct-healthsheds.qmd). Read the four exact source members
+from the tracked `s2_clinic_months_raw_zip`; do not retrieve current master lists.
+The GPS source describes FKT centers. Other location files mentioned only in
+the legacy scratch section are not active inputs.
+
+Reuse the page-23 spatial runtime and page-21 archive extraction helpers.
+Spatial handoffs retain full field names, including `distance_csb_fkt` and
+`fkt_instat_clean`, instead of reconstructing truncated shapefile names
+`km_fkt` and `fkt_nst`. Raw source tables retain coordinate text and source IDs.
+Scientific targets run only in the compute-node allocation. Rendering and
+synthetic checks do not build targets.
+
+:::
+
+::: {.manual-procedure title="Declare Source, Point, And Intersection Helpers"}
+
+`unique_nonNA()` follows the legacy rule: remove missing values only when
+nonmissing values exist, retaining multiple distinct values as ambiguity.
+The unused legacy `mode()` has no consumer and is omitted.
+
+Point conversion retains all original coordinate columns. Numeric coercion
+has the legacy missing-coordinate behavior (`na.fail = FALSE`); malformed
+text raises a coercion warning; the original text remains in the raw source
+targets. No
+coordinate swap, range clipping, or inferred sign correction is introduced.
+
+The fields ending in `Contains` use `st_intersects()`, including boundary
+intersections. The sparse result is checked at matching row indices, giving
+the same diagonal as the legacy dense matrix without allocating that matrix.
+An empty point produces `NA`, while a nonempty point against an empty polygon
+produces zero. The input CRS and global s2 setting remain unchanged.
+
+```{r}
+s6_clinic_location_unique_nonNA_fn <- function(x) {
+  x <- unique(x)
+  if (any(is.na(x)) && !all(is.na(x))) x <- stats::na.omit(x)
+  x
+}
+s6_clinic_location_read_fn <- function(archive, member) {
+  s3_dictionary_archive_read_fn(archive, member, function(path) {
+    read.csv(path, colClasses = "character", fileEncoding = "UTF-8",
+             stringsAsFactors = FALSE)
+  })
+}
+s6_clinic_location_points_fn <- function(x) {
+  x <- as.data.frame(x)
+  for (source in c("sect", "mdss", "who", "unicef", "gps")) {
+    columns <- paste0(source, c("_x", "_y"))
+    xy <- as.data.frame(lapply(x[columns], as.numeric))
+    x[[paste0(source, "_ll")]] <- sf::st_geometry(sf::st_as_sf(
+      xy, coords = columns, remove = FALSE, na.fail = FALSE, crs = 4326))
+  }
+  sf::st_as_sf(x, sf_column_name = "sect_ll")
+}
+s6_clinic_location_intersects_fn <- function(points, polygons) {
+  stopifnot(length(points) == length(polygons))
+  hits <- sf::st_intersects(points, polygons)
+  result <- as.numeric(vapply(seq_along(hits), function(i) i %in% hits[[i]], logical(1)))
+  result[sf::st_is_empty(points)] <- NA_real_
+  result
+}
+s6_clinic_location_select_fn <- function(x) {
+  mutate(x, which_use = case_when(
+    who_ll_fktContains == 1 ~ "who",
+    sect_ll_fktContains == 1 ~ "sect",
+    unicef_ll_fktContains == 1 ~ "unicef",
+    mdss_ll_fktContains == 1 ~ "mdss",
+    gps_ll_shedContains == 1 ~ "gps",
+    who_ll_shedContains == 1 ~ "who2",
+    sect_ll_shedContains == 1 ~ "sect2",
+    unicef_ll_shedContains == 1 ~ "unicef2",
+    mdss_ll_shedContains == 1 ~ "mdss2",
+    gps_ll_shedContains == 1 ~ "gps2",
+    !sf::st_is_empty(fkt_geometry) ~ "fkt_centroid",
+    !sf::st_is_empty(shed_geometry) ~ "shed_centroid",
+    TRUE ~ "none"))
+}
+```
+
+:::
+
+::: {.manual-procedure title="Select Exact Archived Sources And Prepare Clinic Attributes"}
+
+Only MDDSS's pair `(0, 0)` is excluded; an individual zero is not an exclusion
+rule. The WHO longitude remains text until its reviewed trailing-minus repair.
+Source rows with missing values retain the legacy filter behavior. All raw
+text remains separately available for parsing diagnostics.
+
+```{r}
+s6_clinic_location_archive_members_chr <- {
+  suffixes <- c(
+    mdss = "data/raw/clinic_location_sources/MDDSS.csv",
+    who = "data/raw/clinic_location_sources/WHO clinic master list.xlsx - SECTO DEPSI PUB.csv",
+    unicef = "data/raw/clinic_location_sources/UNICEF clinic master list.xlsx - Feuil1.csv",
+    gps = "data/raw/clinic_location_sources/CSB GPS points.txt")
+  vapply(suffixes, function(suffix) s3_dictionary_archive_member_fn(
+    s2_clinic_months_raw_zip, suffix), character(1))
+}
+s6_clinic_location_raw_sources_list <- lapply(s6_clinic_location_archive_members_chr,
+  function(member) s6_clinic_location_read_fn(s2_clinic_months_raw_zip, member))
+s6_clinic_location_mdss_source_df <- s6_clinic_location_raw_sources_list$mdss %>%
+  mutate(across(c(Latitude, Longitude), as.numeric)) %>%
+  filter(!(Latitude == 0 & Longitude == 0))
+s6_clinic_location_other_sources_list <- list(
+  who = s6_clinic_location_raw_sources_list$who %>%
+    rename_with(function(x) gsub(".", "_", x, fixed = TRUE)) %>%
+    mutate(latitude = as.numeric(latitude)),
+  unicef = s6_clinic_location_raw_sources_list$unicef,
+  gps = s6_clinic_location_raw_sources_list$gps %>%
+    mutate(across(c(Latitude, Longitude), as.numeric)))
+s6_clinic_location_sectorization_df <- s5_sectorization_2022_clean_sf %>%
+  sf::st_drop_geometry() %>%
+  summarise(across(c(region_uid:commune_name, fs_type, f_or_nf, fs_ll, fs_name),
+                   s6_clinic_location_unique_nonNA_fn), .by = fs_uid) %>%
+  mutate(public = grepl("CSB", fs_type), fs_ll_raw = fs_ll,
+         fs_ll = gsub("POINT |\\(|\\)", "", fs_ll)) %>%
+  tidyr::separate(fs_ll, into = c("sect_x", "sect_y"), sep = " ") %>%
+  mutate(across(starts_with("sect_"), ~as.numeric(na_if(.x, ""))))
+```
+
+:::
+
+::: {.manual-procedure title="Join MDDSS Through Historical Clinic Codes"}
+
+The first ranking chooses minimum cosine name distance within each FacilityID
+across the historical crosswalk, after Latin-ASCII normalization. The second
+ranking compares surviving MDDSS candidates with sectorization clinic names.
+Equal minima survive; `min()` deliberately does not remove missing values.
+The commented-out name threshold is not an active rule. Retain the identity
+candidate table so unmatched codes and join expansion can be inspected.
+
+```{r}
+s6_clinic_location_mdss_identity_candidates_df <- s6_clinic_location_mdss_source_df %>%
+  left_join(s2_clinic_ids_df %>%
+    select(clinic_ID, cCodeStru, cNom) %>% distinct() %>%
+    mutate(cCodeStru = as.character(cCodeStru),
+           cNom = stringi::stri_trans_general(cNom, id = "Latin-ASCII")),
+    by = c("FacilityID" = "cCodeStru"), multiple = "all") %>%
+  mutate(name_dist = stringdist::stringdist(tolower(GeSISNom), tolower(cNom), method = "cosine"))
+s6_clinic_location_mdss_joined_df <- {
+  candidates <- s6_clinic_location_mdss_identity_candidates_df %>%
+    filter(name_dist == min(name_dist), .by = FacilityID) %>%
+    select(mdss_id = FacilityID, mdss_name = GeSISNom,
+           mdss_x = Longitude, mdss_y = Latitude, clinic_ID) %>% distinct()
+  s6_clinic_location_sectorization_df %>%
+    left_join(candidates, by = c("fs_uid" = "clinic_ID")) %>%
+    mutate(name_dist = stringdist::stringdist(tolower(mdss_name), tolower(fs_name), method = "cosine")) %>%
+    filter(name_dist == min(name_dist) | n() == 1, .by = fs_uid) %>%
+    select(-name_dist)
+}
+```
+
+:::
+
+::: {.manual-procedure title="Apply The Reviewed WHO Exceptions"}
+
+UID replacements, four duplicate-name choices, five ambiguous UID exclusions,
+and the `#N/A` exclusion follow legacy lines 143–173. The trailing ` -` in
+**longitude** controls the sign of **latitude**. Keep that source-specific
+repair literal; changing it would be a separate scientific correction.
+The full join includes WHO-only clinics.
+
+```{r}
+s6_clinic_location_who_clean_df <- s6_clinic_location_other_sources_list$who %>%
+  mutate(Facility_UID = case_when(grepl("SOATANANA", Nom_complet_FS) & Facility_UID == "" ~ "VCf9Tra2OM4",
+                                  grepl("MANGATANY", Nom_complet_FS) & Facility_UID == "" ~ "GqEjMC845Qj",
+                                  grepl("ZANAPOSA", Nom_complet_FS) ~ "Ba8QnbIIa3t",
+                                  grepl("MANANDRIANA", Nom_complet_FS) ~ "yKbbKKhZicA",
+                                  grepl("CARMMA ANDRAISORO", Nom_complet_FS) ~ "HmTrkNYWWOV",
+                                  grepl("SERANAMBE", Nom_complet_FS) & Facility_UID == "#N/A" ~ "YQ9XN4vE4T6",
+                                  grepl("MAROVOVONANA", Nom_complet_FS) & Facility_UID == "#N/A" ~ "xt1C9F1Flqu",
+                                  grepl("ANTOKOBORITELO", Nom_complet_FS) & Facility_UID == "#N/A" ~ "ealevALSs3e",
+                                  grepl("INOSY", Nom_complet_FS) & Facility_UID == "#N/A" ~ "KbA0FuyUEfY",
+                                  grepl("MERIMANDROSO", Nom_complet_FS) & Facility_UID == "#N/A" ~ "C4jmEurKKq2",
+                                  grepl("ANJANOMANANA", Nom_complet_FS) & Facility_UID == "#N/A"~ "GzJJVUSBpXW",
+                                  grepl("ANTETEZANINTSINA", Nom_complet_FS) & Facility_UID == "#N/A" ~ "LsevaLWVyXM",
+                                  grepl("MANAKARA BE", Nom_complet_FS) & Facility_UID == "#N/A" ~ "W5fydynAP1n",
+                                  grepl("AMBODIAVIAVY", Nom_complet_FS) & Facility_UID == "#N/A" ~ "AxTFbOBjP1K",
+                                  T ~ trimws(Facility_UID))) %>%
+  select(fs_uid = Facility_UID, who_name = Nom_complet_FS, who_fkt = Nom_Fokontany_par_CSB,
+         who_x = longitude, who_y = latitude) %>%
+  filter(fs_uid != "#N/A") %>%
+  # drop some incorrect entries (multiple rows for a single clinic, select the correct one)
+  # or drop both if its unclear, or keep only the ll (not fkt) if same in both rows
+  filter(fs_uid != "WmBYR1JepA7" | who_name == "CSB2 AMBODIMANGAVALO") %>%
+  filter(fs_uid != "OGI9QrTBQy9" | who_name == "CSB2 AMPASY CSBU") %>%
+  filter(fs_uid != "b912DLTCXvT" | who_name == "CSB2 MAROFANDILIA") %>%
+  filter(fs_uid != "wLLSCFzaVc5" | who_name == "CSB2 BEREVO") %>%
+  filter(fs_uid %in% c("p8ldnmLbC0v", "ZmPivRqpI9X", "hzPWgcl7y53",
+                       "UgMnJXFhciB", "Og23D1GURi1") == FALSE) %>%
+  # nrow # 2692
+  group_by(fs_uid) %>%
+  summarise(across(c(who_name, who_x, who_y), unique),
+            who_fkt = case_when(n() == 1 ~ first(who_fkt))) %>% #nrow #2688
+  mutate(who_y = ifelse(grepl(" -$", who_x), -who_y, who_y),
+         who_x = gsub(" -$", "", who_x) %>% as.numeric)
+s6_clinic_location_who_joined_df <- full_join(
+  s6_clinic_location_mdss_joined_df, s6_clinic_location_who_clean_df, by = "fs_uid")
+```
+
+:::
+
+::: {.manual-procedure title="Add UNICEF And GPS Candidates"}
+
+UNICEF's bracketed pair is longitude then latitude. GPS points join historical
+GESIS codes, preserve closest-name ties, and exclude the code `110443043`
+and the name `AMBALABONGO` independently. The GPS full join uses all shared
+columns, as in the legacy call; its candidate table exposes those columns.
+
+```{r}
+s6_clinic_location_unicef_joined_df <- full_join(
+  s6_clinic_location_who_joined_df,
+  s6_clinic_location_other_sources_list$unicef %>%
+    mutate(Coordinates_raw = Coordinates, Coordinates = gsub("\\[|\\]", "", Coordinates)) %>%
+    tidyr::separate(Coordinates, c("unicef_x", "unicef_y"), sep = ",") %>%
+    rename(unicef_name = Name, fs_uid = UID, unicef_commune_uid = Parent.UID),
+  by = "fs_uid")
+s6_clinic_location_gps_identity_candidates_df <- s6_clinic_location_other_sources_list$gps %>%
+  filter(clinic_cod != "110443043" & clinic_nam != "AMBALABONGO") %>%
+  left_join(s2_clinic_ids_df %>%
+    select(clinic_ID, cCodeStru, cNom) %>% distinct() %>%
+    mutate(cCodeStru = as.character(cCodeStru),
+           cNom = stringi::stri_trans_general(cNom, id = "Latin-ASCII")),
+    by = c("clinic_cod" = "cCodeStru"), multiple = "all") %>%
+  mutate(name_dist = stringdist::stringdist(tolower(clinic_nam), tolower(cNom), method = "cosine"))
+s6_clinic_location_gps_joined_df <- full_join(
+  s6_clinic_location_unicef_joined_df,
+  s6_clinic_location_gps_identity_candidates_df %>%
+    filter(name_dist == min(name_dist), .by = clinic_cod) %>%
+    select(gps_gesis = clinic_cod, gps_name = clinic_nam,
+           gps_x = Longitude, gps_y = Latitude, fs_uid = clinic_ID) %>% distinct(),
+  multiple = "all")
+```
+
+:::
+
+::: {.manual-procedure title="Identify A Unique Matching FKT"}
+
+Keep the combined minimum-name-distance, `<= 0.12` or name-containment, and
+minimum-geographic-distance condition. A single FKT qualifies independently
+of that condition. Distances retain the legacy comma and kilometer-string
+conversion. `sum()` and name `min()` retain missing values; ties or missing
+evidence may prevent a unique match rather than force a winner. The full
+ranked table remains available, including rejected candidates.
+
+Name containment uses stringi's ICU regex matcher, the same regex engine
+used by stringr, with missing patterns propagated as `NA`. A missing clinic
+name becomes the pattern in the reverse containment test; stringr rejects
+that pattern before matching. Retaining `NA` preserves unknown evidence and
+the separate single-FKT rule without dropping assignment rows or filling
+missing names with empty strings.
+
+```{r}
+s6_clinic_location_fkt_candidates_fn <- function(sect) {
+  sect %>% filter(fkt_name != "" & !is.na(fkt_name)) %>%
+    mutate(name_noPre = gsub("CSB1 |CSB2 |HP_|HP |FSP_|FSP_ |FSP ", "", fs_name),
+      fkt_fs_stringdist = stringdist::stringdist(tolower(name_noPre), tolower(fkt_name), method = "cosine"),
+      name_contain = stringi::stri_detect_regex(tolower(name_noPre), tolower(fkt_name)) |
+        stringi::stri_detect_regex(tolower(fkt_name), tolower(name_noPre)),
+      dist = gsub(",", ".", distance_csb_fkt) %>%
+        gsub("Km|Km| km|km", "", .) %>% na_if("") %>% as.numeric()) %>%
+    group_by(fs_uid) %>%
+    mutate(n_fkt = n(),
+      match_name_dist = (fkt_fs_stringdist == min(fkt_fs_stringdist) &
+        (fkt_fs_stringdist <= 0.12 | name_contain) & dist == min(dist, na.rm = TRUE)) | n_fkt == 1,
+      n_match = sum(match_name_dist)) %>% ungroup()
+}
+s6_clinic_location_fkt_candidates_sf <- s6_clinic_location_fkt_candidates_fn(s5_sectorization_2022_clean_sf)
+s6_clinic_location_fkt_matched_df <- full_join(
+  s6_clinic_location_gps_joined_df,
+  s6_clinic_location_fkt_candidates_sf %>%
+    filter(n_match == 1 & match_name_dist) %>%
+    select(fs_uid, fkt_uid, fkt_name, fkt_instat_clean, fkt_geometry = geometry,
+           fkt_fs_stringdist, fkt_fs_geodist = dist) %>% as.data.frame(),
+  by = "fs_uid")
+```
+
+:::
+
+::: {.manual-procedure title="Calculate Spatial Evidence And Select The Preferred Source"}
+
+The selected target retains all five point columns, raw coordinates, FKT and
+healthshed geometries, intersection evidence, and `which_use`. Its active
+geometry is `sect_ll`; that column is a candidate, not the selected point.
+Page 25 must extract the point identified by `which_use` or compute the stated
+centroid. A location selected from GPS still represents the source's FKT center.
+
+| Priority | Evidence | Label |
+| --- | --- | --- |
+| 1–4 | WHO, sectorization, UNICEF, MDDSS intersects the matched FKT | `who`, `sect`, `unicef`, `mdss` |
+| 5 | GPS intersects the healthshed | `gps` |
+| 6–10 | WHO, sectorization, UNICEF, MDDSS, GPS intersects the healthshed | `who2`, `sect2`, `unicef2`, `mdss2`, `gps2` |
+| 11–13 | Nonempty FKT, nonempty healthshed, neither | `fkt_centroid`, `shed_centroid`, `none` |
+
+The second GPS predicate is redundant in the legacy first-match order;
+`gps2` is retained in code and need not occur. This page selects source labels
+without implementing page 25's coordinate extraction. The legacy metadata
+script omits UNICEF extraction. Page 25 records the reviewed decision to
+preserve those missing coordinates for legacy parity. Do not change selection
+here to hide that gap.
+
+```{r}
+s6_clinic_location_points_sf <- {
+  s5_spatial_runtime_list
+  s6_clinic_location_points_fn(s6_clinic_location_fkt_matched_df)
+}
+s6_clinic_location_containment_sf <- {
+  x <- left_join(s6_clinic_location_points_sf,
+    as.data.frame(select(s5_healthshed_clinic_final_sf, fs_uid, shed_geometry = geometry)),
+    by = "fs_uid")
+  for (source in c("sect", "mdss", "who", "unicef", "gps")) {
+    column <- paste0(source, "_ll")
+    x[[column]] <- sf::st_set_crs(x[[column]], 4326)
+    x[[paste0(column, "_fktContains")]] <- s6_clinic_location_intersects_fn(x[[column]], x$fkt_geometry)
+    x[[paste0(column, "_shedContains")]] <- s6_clinic_location_intersects_fn(x[[column]], x$shed_geometry)
+  }
+  x
+}
+s6_clinic_locations_selected_sf <- s6_clinic_location_select_fn(s6_clinic_location_containment_sf)
+```
+
+:::
+
+::: {.manual-procedure title="Retain Parsing, Multiplicity, And Intersection Audits"}
+
+Audit tables count candidate **rows**, not unique clinics. Denominators for
+intersection fractions exclude missing points, matching the legacy diagnostic.
+Multiple candidates are evidence to inspect, not a condition repaired by
+`distinct(fs_uid, .keep_all = TRUE)`. Audits stay in ordinary targets; the full
+spatial evidence remains the page-25 handoff. The parsing audit describes
+values that reach point conversion; inspect the raw source tables and
+`fs_ll_raw` for text coerced during earlier source preparation.
+
+```{r}
+s6_clinic_location_parse_audit_df <- {
+  x <- sf::st_drop_geometry(s6_clinic_locations_selected_sf)
+  bind_rows(lapply(c("sect", "mdss", "who", "unicef", "gps"), function(source) {
+    raw_x <- x[[paste0(source, "_x")]]
+    raw_y <- x[[paste0(source, "_y")]]
+    num_x <- suppressWarnings(as.numeric(raw_x))
+    num_y <- suppressWarnings(as.numeric(raw_y))
+    tibble::tibble(fs_uid = x$fs_uid, source = source,
+      raw_x = as.character(raw_x), raw_y = as.character(raw_y), x = num_x, y = num_y,
+      missing_pair = is.na(num_x) | is.na(num_y),
+      invalid_x = !is.na(raw_x) & trimws(as.character(raw_x)) != "" & is.na(num_x),
+      invalid_y = !is.na(raw_y) & trimws(as.character(raw_y)) != "" & is.na(num_y))
+  }))
+}
+s6_clinic_location_multiplicity_audit_df <- {
+  stages <- list(sectorization = s6_clinic_location_sectorization_df,
+    mdss = s6_clinic_location_mdss_joined_df, who = s6_clinic_location_who_joined_df,
+    unicef = s6_clinic_location_unicef_joined_df, gps = s6_clinic_location_gps_joined_df,
+    selected = s6_clinic_locations_selected_sf)
+  bind_rows(lapply(names(stages), function(stage) {
+    x <- s5_healthshed_drop_geometry_fn(stages[[stage]])
+    count(x, fs_uid, name = "candidate_rows") %>% mutate(stage = stage)
+  }))
+}
+s6_clinic_location_intersection_audit_df <- {
+  x <- s6_clinic_locations_selected_sf
+  bind_rows(lapply(c("sect", "mdss", "who", "unicef", "gps"), function(source) {
+    bind_rows(lapply(c("fkt", "shed"), function(polygon) {
+      values <- x[[paste0(source, "_ll_", polygon, "Contains")]]
+      tibble::tibble(source = source, polygon = polygon, rows = length(values),
+        n = sum(!is.na(values)), success = sum(values, na.rm = TRUE),
+        fraction = sum(values, na.rm = TRUE) / sum(!is.na(values)))
+    }))
+  }))
+}
+```
+
+:::
+
+::: {.manual-check title="Inspect Location Evidence Against The Most Recent Archived Data"}
+
+Run static graph validation and synthetic fixtures without building scientific
+targets. The fixture suite tests parsing, corrections, ties, row-aligned spatial
+predicates, and the source-selection order.
+
+```sh
+scripts/mdg-healthshed-clinic-data exec Rscript tests/check-clinic-location-rules.R
+scripts/mdg-healthshed-clinic-data exec Rscript tests/check-data-storage-convention.R
+python3 tests/check-manual-structure.py
+```
+
+After running S6 on the compute node, use the following **interactive,
+read-only EDA prompts**. These are plain R examples, not tangled target
+declarations or render-time computation. They read the built target store and
+the selected most recent archived data; no output is written and no target is built.
+The [baseline selection](mapping/legacy-pipeline-map.qmd#most-recent-archived-data-comparison-baseline)
+uses the October 2024 ZIP clinic-location output, the latest iteration found
+for this stage. Keep research
+records and maps in the authorized analysis session, outside public HTML.
+
+**Current scope (2026-11-08).** Shape checks are sufficient for this development
+step; the researcher reports that the initial checks on pages 18–21 appear
+to pass. Start with dimensions, column layout, and source-selection counts
+below. The subsequent EDA remains available for investigating discrepancies;
+passing shape checks does not establish coordinate equality.
+
+**Are the most recent archived data and current pipeline clinic populations comparable?** First compare clinic
+sets and multiplicity. Do not pair ambiguous rows by arbitrary row order.
+
+```r
+library(dplyr)
+library(tidyr)
+library(sf)
+new <- targets::tar_read(s6_clinic_locations_selected_sf)
+archived_baseline <- dget(here::here("src", "archived-comparison-baseline.R"))
+archive <- here::here(archived_baseline$archive_zip)
+member <- archived_baseline$clinic_locations_member
+old <- targets::tar_read(s3_dictionary_archive_read_fn)(archive, member, readRDS)
+plain <- function(x) as.data.frame(x)[!vapply(as.data.frame(x), inherits, logical(1), what = "sfc")]
+old_rows <- plain(old)
+new_rows <- plain(new)
+```
+
+**Rows, nonspatial columns, and UID multiplicity side by side.** All `sfc`
+columns are excluded by `plain()`; this is an attribute-table schema check.
+`extra_uid_rows` counts rows beyond one per distinct UID, including missing
+UID as a group. Review missing IDs and multiplicity separately.
+
+```r
+# Shape check: locations-dimensions
+location_shape <- function(x) tibble::tibble(
+  rows = nrow(x), columns = length(names(x)),
+  clinics = dplyr::n_distinct(x$fs_uid, na.rm = TRUE),
+  missing_uids = sum(is.na(x$fs_uid) | x$fs_uid == ""),
+  extra_uid_rows = nrow(x) - dplyr::n_distinct(x$fs_uid)
+)
+dplyr::bind_rows(
+  `most recent archived data` = location_shape(old_rows),
+  `current pipeline` = location_shape(new_rows), .id = "source"
+) |>
+  tidyr::pivot_longer(-source, names_to = "metric", values_to = "count") |>
+  tidyr::pivot_wider(names_from = source, values_from = count) |>
+  dplyr::mutate(difference = `current pipeline` - `most recent archived data`) |>
+  print(n = Inf)
+```
+
+```r
+# Shape check: locations-schema
+dplyr::bind_rows(
+  `most recent archived data` = tibble::tibble(position = seq_along(names(old_rows)), column = names(old_rows)),
+  `current pipeline` = tibble::tibble(position = seq_along(names(new_rows)), column = names(new_rows)),
+  .id = "source"
+) |>
+  tidyr::pivot_wider(names_from = source, values_from = column) |>
+  dplyr::arrange(position) |>
+  print(n = Inf)
+```
+
+**Source-selection counts.** Absent categories contribute zero rows;
+`difference` is current minus archived. These are candidate-row counts,
+not counts of uniquely located clinics.
+
+```r
+# Shape check: locations-sources
+dplyr::bind_rows(
+  `most recent archived data` = dplyr::count(old_rows, which_use, name = "rows"),
+  `current pipeline` = dplyr::count(new_rows, which_use, name = "rows"),
+  .id = "source"
+) |>
+  tidyr::pivot_wider(names_from = source, values_from = rows, values_fill = 0L) |>
+  dplyr::mutate(difference = `current pipeline` - `most recent archived data`) |>
+  dplyr::arrange(which_use) |>
+  print(n = Inf)
+```
+
+Continue to clinic-set and saved multiplicity evidence when needed:
+
+```r
+anti_join(distinct(old_rows, fs_uid), distinct(new_rows, fs_uid), by = "fs_uid")
+anti_join(distinct(new_rows, fs_uid), distinct(old_rows, fs_uid), by = "fs_uid")
+targets::tar_read(s6_clinic_location_multiplicity_audit_df) %>% filter(candidate_rows > 1 | is.na(fs_uid))
+```
+
+**Which selection decisions changed, and is the change upstream of S6?**
+Restrict the first paired comparison to UIDs with exactly one row in each
+output, including equal missing labels. Compare the candidate coordinates and
+intersection evidence before attributing a difference to source precedence.
+S5 geometry differences and native-library changes may also explain it.
+
+```r
+unique_old <- old_rows %>% filter(n() == 1 & !is.na(fs_uid), .by = fs_uid)
+unique_new <- new_rows %>% filter(n() == 1 & !is.na(fs_uid), .by = fs_uid)
+paired <- inner_join(unique_old, unique_new, by = "fs_uid", suffix = c("_old", "_new"))
+paired %>% count(which_use_old, which_use_new, sort = TRUE)
+changed <- paired %>% filter(!(coalesce(which_use_old == which_use_new, FALSE) |
+  (is.na(which_use_old) & is.na(which_use_new))))
+changed %>% select(fs_uid, starts_with("which_use"), matches("_(x|y)_(old|new)$"))
+# For an individual changed UID, inspect the evidence and source records:
+# new[new$fs_uid == changed$fs_uid[[1]], ]
+# targets::tar_read(s6_clinic_location_fkt_candidates_sf) %>% filter(fs_uid == changed$fs_uid[[1]])
+```
+
+**Are source points identical, merely rounded, or genuinely different?**
+Use WGS84 point distances in meters on the uniquely paired UIDs. Keep missing
+pairs separate and inspect large differences by UID. This compares source
+candidates, not final coordinates or centroid accuracy.
+
+```r
+candidate_distance <- bind_rows(lapply(c("sect", "mdss", "who", "unicef", "gps"), function(source) {
+  a <- old[[paste0(source, "_ll")]][match(paired$fs_uid, old$fs_uid)]
+  b <- new[[paste0(source, "_ll")]][match(paired$fs_uid, new$fs_uid)]
+  tibble(fs_uid = paired$fs_uid, source = source,
+    old_empty = st_is_empty(a), new_empty = st_is_empty(b),
+    meters = as.numeric(st_distance(a, b, by_element = TRUE)))
+}))
+candidate_distance %>% summarise(rows = n(), missing = sum(is.na(meters)),
+  maximum_m = if (all(is.na(meters))) NA_real_ else max(meters, na.rm = TRUE), .by = source)
+candidate_distance %>% filter(!is.na(meters)) %>% arrange(desc(meters)) %>% head(20)
+```
+
+**What is the denominator behind each apparent success rate?** Compare
+row-level intersection summaries, then inspect malformed coordinates,
+unmatched historical codes, and FKT ambiguities. A high fraction is not proof
+of individual coordinate accuracy. The old output omits `shed_geometry`, so
+geometry-level diagnosis also needs the frozen old healthsheds and S5 audit.
+
+```r
+targets::tar_read(s6_clinic_location_intersection_audit_df)
+old_intersections <- bind_rows(lapply(grep("Contains$", names(old_rows), value = TRUE), function(column) {
+  values <- old_rows[[column]]
+  tibble(column = column, n = sum(!is.na(values)), success = sum(values, na.rm = TRUE),
+    fraction = sum(values, na.rm = TRUE) / sum(!is.na(values)))
+}))
+old_intersections
+targets::tar_read(s6_clinic_location_parse_audit_df) %>% filter(invalid_x | invalid_y | missing_pair)
+targets::tar_read(s6_clinic_location_mdss_identity_candidates_df) %>% filter(is.na(clinic_ID))
+targets::tar_read(s6_clinic_location_gps_identity_candidates_df) %>% filter(is.na(clinic_ID))
+targets::tar_read(s6_clinic_location_fkt_candidates_sf) %>% filter(is.na(n_match) | n_match > 1)
+```
+
+**Which missing values precede name matching or point conversion?** A missing
+clinic name is unknown name-match evidence. Missing pieces and numeric
+coercion warnings in sectorization coordinates are separate diagnostics;
+inspect their original WKT before proposing a parsing correction.
+
+```r
+targets::tar_read(s5_sectorization_2022_clean_sf) %>% st_drop_geometry() %>%
+  filter(is.na(fs_name)) %>% count(match_type, sort = TRUE)
+targets::tar_read(s6_clinic_location_sectorization_df) %>%
+  filter(is.na(sect_x) | is.na(sect_y)) %>% count(fs_ll_raw, sort = TRUE)
+```
+
+Full-data parity remains to be evaluated on the compute node. Page 25 records
+the UNICEF extraction policy as explicit legacy missing-coordinate parity. Historical counts are observations, not fixed assertions.
+
+:::
+
+[legacy-6]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/6_locate_clinics.R

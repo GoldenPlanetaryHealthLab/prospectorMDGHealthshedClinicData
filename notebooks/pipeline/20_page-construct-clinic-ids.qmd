@@ -431,7 +431,7 @@ before joining, then use the modal UID or clinic ID only for verified
 groups with more than one identity.
 
 ```{r}
-s2_clinic_verified_snips_df <- read_delim(s2_gesis_snips_verified_csv, delim=";", show_col_types = FALSE) |>
+s2_clinic_verified_snips_df <- read_delim(s2_gesis_snips_verified_csv, delim=",", show_col_types = FALSE) |>
   filter(!is.na(GESIS_short)) |>
   mutate(GESIS_short = as.character(GESIS_short)) |>
   transmute(
@@ -530,46 +530,75 @@ by this single Parquet artifact.
 
 :::
 
-::: {.manual-check title="Verify Inventory, IDs, And Parquet Persistence"}
+::: {.manual-check title="Compare Most Recent Archived Data And Target Clinic Identities"}
 
-Confirm that the completed crosswalk has the expected columns and inspect
-missing IDs and type coverage. These queries read completed targets; they do
-not create or modify pipeline data. Run them in an authorized data session.
+**Review note (2026-11-08).** The researcher reports that the initial
+shape checks on pages 18–21 appear to pass. This records the initial clinic-identity shape review.
+This is a researcher-reported observation from the interactive review,
+not an independently rerun acceptance test. It does not establish
+key-level equality, measurement-value parity, or unchanged diagnosis
+definitions/IDs. Retain any remaining discrepancies for review.
+
+Run these chunks in order from the repository root after the targets build.
+These are exploratory summaries; interpretation is left to the reader.
+[Most recent archived data baseline](mapping/legacy-pipeline-map.qmd#most-recent-archived-data-comparison-baseline)
+records the selected iterations, evidence, and provenance limits. The shared
+selection is versioned in `src/archived-comparison-baseline.R`.
+
+Use the May 1, 2025 script-2 intermediate RDS: the most recent archived data
+found for this stage. The different RDS under `data/clean/` is dated October
+2024. Only the selected member is extracted to the session temporary directory.
+
+Load the pair for this page. Braces keep these session assignments out of
+`tar_tangle()`; the objects remain available for interactive exploration.
 
 ```{r}
-tar_read(s2_clinic_ids_df) |>
-  summarise(
-    rows = n(),
-    clinics = n_distinct(clinic_ID, na.rm = TRUE),
-    missing_ids = sum(is.na(clinic_ID)),
-    checked_rows = sum(ID_checked, na.rm = TRUE)
+{
+  archived_baseline <- dget(here::here("src", "archived-comparison-baseline.R"))
+  legacy_zip <- here::here(archived_baseline$archive_zip)
+  legacy_path <- utils::unzip(
+    legacy_zip, files = archived_baseline$clinic_ids_member,
+    exdir = tempdir()
   )
+  old_ids <- readRDS(legacy_path)
+  new_ids <- targets::tar_read(s2_clinic_ids_df)
+}
 ```
 
-The 31 missing-ID removals noted in the legacy workflow are historical
-expectations for review, rather than a newly established assertion.
+**Rows and columns.**
 
-Verify ordering, cross-file repeats, and Parquet storage with synthetic data:
-
-```sh
-scripts/mdg-healthshed-clinic-data exec Rscript tests/check-clinic-month-parquet-transforms.R
-scripts/mdg-healthshed-clinic-data exec Rscript tests/check-data-storage-convention.R
+```{r}
+tibble::tibble(
+  source = c("most recent archived data", "current pipeline"),
+  rows = c(nrow(old_ids), nrow(new_ids)),
+  columns = c(ncol(old_ids), ncol(new_ids))
+)
 ```
 
-Run the encoding regression check from the repository root:
+**Column names and order.**
 
-```sh
-scripts/mdg-healthshed-clinic-data exec uvr run tests/check-clinic-month-encoding.R
+```{r}
+dplyr::bind_rows(
+  `most recent archived data` = tibble::tibble(position = seq_len(ncol(old_ids)), column = names(old_ids)),
+  `current pipeline` = tibble::tibble(position = seq_len(ncol(new_ids)), column = names(new_ids)),
+  .id = "source"
+)
 ```
 
-The fixture places French characters after the CSV sniffing sample and checks
-Windows-1252 decoding, quoted fields, missing values, deduplication, and original
-row order against `read.csv(fileEncoding = "CP1252")`. To also compare the complete
-January 2010 and January 2015 members against that independent reader:
+**Clinic-ID coverage by year.**
 
-```sh
-scripts/mdg-healthshed-clinic-data exec uvr run tests/check-clinic-month-encoding.R -- \
-  data/inputs/01_gold_mine/gdn_datafreeze_may2025/madagascar_clinic_data_cleaning.zip
+```{r}
+dplyr::bind_rows(
+  `most recent archived data` = old_ids |> dplyr::summarise(
+    rows = dplyr::n(), clinics = dplyr::n_distinct(clinic_ID, na.rm = TRUE),
+    missing_ids = sum(is.na(clinic_ID)), .by = cAnnee
+  ),
+  `current pipeline` = new_ids |> dplyr::summarise(
+    rows = dplyr::n(), clinics = dplyr::n_distinct(clinic_ID, na.rm = TRUE),
+    missing_ids = sum(is.na(clinic_ID)), .by = cAnnee
+  ),
+  .id = "source"
+)
 ```
 
 :::

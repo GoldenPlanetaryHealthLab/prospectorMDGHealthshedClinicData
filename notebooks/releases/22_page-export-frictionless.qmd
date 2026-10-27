@@ -1,0 +1,202 @@
+---
+title: "Export the Frictionless Data Package"
+subtitle: "Inventory verified resources while preserving canonical Parquet"
+execute:
+  eval: false
+engine: markdown
+---
+
+Extend the versioned candidate from pages 19–21 with `datapackage.json` in
+`data/outputs/releases/v<MAJOR>.<MINOR>.<BUGFIX>/` (initially `v0.1.0`).
+The stable name, semantic version, release notes,
+resource inventory, native schemas, checksums, and spatial interpretation travel
+with the data. Rendering declares targets and never packages research data.
+
+::: {.manual-prereq title="Require Independently Verified Parquet Products"}
+
+Consume the explicit `srelease_resources_list`, immutable contract, verified
+resource manifest, and schema inventory from pages 19–21. Do not glob the
+intermediate directory: unrelated or stale files must not enter the release.
+The shape audit must pass before the contract can be created. Access remains
+internal and status candidate; creating a package does not publish it.
+
+:::
+
+::: {.manual-procedure title="Record the Direct Parquet Compatibility Experiment"}
+
+On 2026-11-10, a synthetic Parquet table containing an integer identifier,
+WKT point, and CRS WKT was supplied unchanged to
+`frictionless::add_resource()` in Frictionless 2.0.1. It failed with
+`embedded nul in string: 'PAR1...'`. This establishes a reader limitation:
+[`add_resource()`](https://docs.ropensci.org/frictionless/reference/add_resource.html)
+expects a data frame or delimited-text paths. Passing a data frame instead
+would cause the writer to serialize CSV.
+
+The fallback uses the standard's generic
+[Data Resource](https://specs.frictionlessdata.io/data-resource/) inside a
+Data Package v1. The R library's supported `create_package(descriptor)` and
+`read_package()` interfaces handle the descriptor; JSON serialization writes
+only metadata. We do not call its CSV-oriented `write_package()`: that writer
+also flattens local resource paths, losing the distinct `by_diagnosis/` and
+`audits/seams/` directories. Every Parquet file stays at its existing relative
+path with identical bytes. The compatibility experiment is reproducible in
+`tests/check-frictionless-release.R`.
+
+:::
+
+::: {.manual-procedure title="Inventory Resources and Preserve Native Schemas"}
+
+`parquetSchema` records exact DuckDB column types, including list/struct types;
+it deliberately avoids claiming that a CSV Table Schema validates Parquet.
+Generic Frictionless tools can discover resources and metadata, but readers
+need Parquet support to load their contents. SHA-256 values are recorded as a
+custom `sha256` property, with the algorithm stated explicitly.
+
+The existing healthshed serialization is ordinary Parquet with WKT, not
+GeoParquet. Its `spatial` metadata identifies the geometry, CRS, key, empty
+flag, and reference-year columns. CRS WKT and reference years remain in the
+table. Reconstruct with `sf::st_as_sfc(x$geometry_wkt, crs=x$crs_wkt[[1]])`.
+Reporting and spatial metadata join on `clinic_ID`; healthsheds use `fs_uid`.
+The geometry remains the historical 2022 reference.
+
+```{r}
+srelease_inventory_fn <- function(resources,files,contract,manifest,schemas,config) {
+  srelease_parameters_fn(config)
+  if(length(files)!=length(resources)) stop("Incomplete packaged resource inventory.")
+  root <- dirname(contract)
+  records <- c(resources,list(
+    list(name="_contract.parquet",source=contract),
+    list(name="manifest.parquet",source=manifest),
+    list(name="resource_schemas.parquet",source=schemas)))
+  names <- vapply(records,`[[`,"","name")
+  ids <- gsub("/","--",tools::file_path_sans_ext(names),fixed=TRUE)
+  if(anyDuplicated(names) || anyDuplicated(ids) || any(!grepl("^[a-z0-9._-]+$",ids))) stop("Resource names collide or are invalid.")
+  checks <- duckplyr::read_parquet_duckdb(manifest,prudence="stingy") |> dplyr::collect()
+  if(nrow(checks)!=length(resources) || anyDuplicated(checks$resource) ||
+     !setequal(checks$resource,names[seq_along(resources)]) ||
+     !isTRUE(all(checks$schema_equal & checks$rows_equal))) stop("Independent verification is incomplete.")
+  lapply(seq_along(records),function(i) {
+    record <- records[[i]]
+    if(grepl("^/|(^|/)\\.\\.(/|$)|\\\\",record$name)) stop("Unsafe resource path.")
+    path <- file.path(root,record$name)
+    if(!file.exists(path) || !identical(srelease_sha256_fn(path),srelease_sha256_fn(record$source))) stop("Resource differs from its curated source.")
+    if(i<=length(resources)) {
+      expected <- checks$sha256[match(record$name,checks$resource)]
+      if(!identical(srelease_sha256_fn(path),expected) ||
+         !normalizePath(path) %in% normalizePath(files)) stop("Resource differs from verified manifest.")
+    }
+    sql <- paste("SELECT * FROM",s4a_diagnosis_read_fn(path))
+    schema <- s4a_diagnosis_query_fn(paste("DESCRIBE",sql)) |> dplyr::collect()
+    rows <- s4a_diagnosis_query_fn(paste0("SELECT count(*) AS n FROM (",sql,")")) |> dplyr::collect()
+    resource <- list(profile="data-resource",name=ids[[i]],path=record$name,
+      title=gsub("_"," ",tools::file_path_sans_ext(record$name),fixed=TRUE),
+      format="parquet",mediatype="application/vnd.apache.parquet",
+      bytes=unname(file.info(path)$size),sha256=srelease_sha256_fn(path),
+      rowCount=as.numeric(rows$n),
+      role=if(i>length(resources)) "release-metadata" else if(startsWith(record$name,"audits/")) "audit" else "data-or-provenance",
+      parquetSchema=lapply(seq_len(nrow(schema)),function(j)
+        list(name=schema$column_name[[j]],type=schema$column_type[[j]])))
+    if(identical(record$name,"healthsheds2022.parquet")) {
+      required <- c("fs_uid","geometry_wkt","crs_wkt","is_empty","reference_year")
+      if(!all(required %in% schema$column_name)) stop("Missing spatial interpretation fields.")
+      resource$spatial <- list(encoding="WKT",geometryColumn="geometry_wkt",
+        crsColumn="crs_wkt",primaryKey="fs_uid",emptyColumn="is_empty",
+        referenceYearColumn="reference_year",referenceYear=2022L,
+        geoparquet=FALSE)
+    }
+    resource
+  })
+}
+srelease_descriptor_fn <- function(inventory,config) {
+  srelease_parameters_fn(config)
+  frictionless::create_package(list(profile="data-package",name=config$name,
+    title=config$title,version=config$version,
+    description="Curated Madagascar clinic diagnoses, reporting and spatial metadata, historical healthsheds, and provenance/audits in canonical Parquet.",
+    access=config$access,status=config$status,
+    releaseNotes=config$notes,change=config$change,previousVersion=config$previous_version,
+    versionPolicy="MAJOR: breaking changes for external collaborators; MINOR: non-breaking changes; PATCH: bug fixes.",
+    validation=list(descriptor="Frictionless R create/read package checks; not full JSON Schema validation",
+      data="SHA-256, DuckDB native schema and complete row-multiset verification in pages 19-21",
+      checksumAlgorithm="sha256",parquetReader="DuckDB",spatialReader="sf (WKT + CRS WKT)"),
+    resources=inventory))
+}
+```
+
+:::
+
+::: {.manual-procedure title="Atomically Write and Reopen the Descriptor"}
+
+The only added file is `datapackage.json`. Equal-content retries succeed;
+changed metadata or data under an existing version fail. Sources and package
+copies are checked again even when the descriptor already exists. No timestamp
+is generated on retry. Resource contents remain covered by the independent
+page-21 verifier and SHA-256 checks; Frictionless's package checks alone do not
+validate Parquet cells or scientific meaning.
+
+```{r}
+srelease_datapackage_fn <- function(inventory,config,root) {
+  package <- srelease_descriptor_fn(inventory,config)
+  directory <- srelease_directory_fn(root,config)
+  if(!dir.exists(directory)) stop("Verified candidate directory does not exist.")
+  for(resource in inventory) {
+    path <- file.path(directory,resource$path)
+    if(!identical(srelease_sha256_fn(path),resource$sha256)) stop("Packaged resource changed before descriptor export.")
+  }
+  encoded <- jsonlite::toJSON(package,auto_unbox=TRUE,pretty=TRUE,null="null",na="null",digits=NA)
+  destination <- file.path(directory,"datapackage.json")
+  if(file.exists(destination)) {
+    if(!identical(paste(readLines(destination,warn=FALSE),collapse="\n"),as.character(encoded))) stop("Immutable descriptor differs; choose a new release version.")
+    return(destination)
+  }
+  temporary <- tempfile(".datapackage-",tmpdir=directory,fileext=".json")
+  on.exit(unlink(temporary),add=TRUE)
+  writeLines(encoded,temporary,useBytes=TRUE)
+  restored <- frictionless::read_package(temporary)
+  expected <- jsonlite::fromJSON(encoded,simplifyVector=FALSE)
+  observed <- jsonlite::fromJSON(temporary,simplifyVector=FALSE)
+  if(!identical(expected,observed) ||
+     !identical(frictionless::resource_names(restored),vapply(inventory,`[[`,"","name"))) stop("Descriptor round trip failed.")
+  if(!file.rename(temporary,destination)) stop("Could not install the descriptor atomically.")
+  destination
+}
+srelease_inventory_list <- srelease_inventory_fn(srelease_resources_list,srelease_package_parquet,
+  srelease_contract_parquet,srelease_manifest_parquet,srelease_schema_parquet,srelease_parameters_list)
+```
+
+```{r}
+#| format: file
+srelease_datapackage_json <- srelease_datapackage_fn(srelease_inventory_list,
+  srelease_parameters_list,here::here("data","outputs","releases"))
+```
+
+The final target depends on the independent verification manifest and native
+schema inventory. To export a release, review the page-19 parameters and run
+the following inside a compute-node allocation:
+
+```sh
+scripts/mdg-healthshed-clinic-data exec uvr run scripts/run-pipeline.R
+```
+
+Distribute the entire version directory: relative resource paths make it
+relocatable. Consumers can inspect `datapackage.json` using
+`frictionless::read_package()` and load a selected resource using
+`duckplyr::read_parquet_duckdb(file.path(release_directory, resource$path))`.
+`frictionless::read_resource()` is not the Parquet reader.
+
+:::
+
+::: {.manual-check title="Verify Packaging Without Building Scientific Targets"}
+
+```sh
+scripts/mdg-healthshed-clinic-data exec Rscript tests/check-frictionless-release.R
+scripts/mdg-healthshed-clinic-data exec Rscript tests/check-new-wave-pipeline.R
+scripts/mdg-healthshed-clinic-data exec Rscript tests/check-pipeline-declarations.R
+python3 tests/check-manual-structure.py
+```
+
+Synthetic fixtures cover the direct Parquet failure, semantic increments,
+resource inventory, nested paths, descriptor reopening, byte preservation,
+native nested types, WKT/CRS reconstruction, equal-content retries, and
+refusal after changed data or metadata. They create no research release.
+
+:::

@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>21&nbsp; Verify a Release – Madagascar Healthshed Clinic Data Curation Manual</title>
+<title>30&nbsp; Verify an Internal Candidate – Madagascar Healthshed Clinic Data Curation Manual</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -23,6 +23,41 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
 </style>
 
 
@@ -33,6 +68,7 @@ ul.task-list li input[type="checkbox"] {
 <script src="../site_libs/quarto-search/fuse.min.js"></script>
 <script src="../site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="../">
+<link href="../releases/22_page-export-frictionless.html" rel="next">
 <link href="../releases/20_page-execute-pipeline.html" rel="prev">
 <script src="../site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
@@ -86,7 +122,7 @@ ul.task-list li input[type="checkbox"] {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../pipeline/16_page-stage-inputs.html">Pipeline</a></li><li class="breadcrumb-item"><a href="../releases/21_page-verify-release.html"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Verify a Release</span></a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../pipeline/16_page-stage-inputs.html">Pipeline</a></li><li class="breadcrumb-item"><a href="../releases/21_page-verify-release.html"><span class="chapter-number">30</span>&nbsp; <span class="chapter-title">Verify an Internal Candidate</span></a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
@@ -134,26 +170,32 @@ ul.task-list li input[type="checkbox"] {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="../00_data-guide.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">A Reader’s Guide to the Cleaned Database</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="../pipeline/mapping/legacy-pipeline-map.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Map the Legacy Clinic Pipeline to Notebooks</span></span></a>
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Map the Legacy Clinic Pipeline to Notebooks</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../01_misc-render-isolated.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Render In Isolation</span></span></a>
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Render In Isolation</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../02_misc-project-contract.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Project Contract</span></span></a>
+ <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Project Contract</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../03_misc-data-governance.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Data Governance</span></span></a>
+ <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Data Governance</span></span></a>
   </div>
 </li>
       </ul>
@@ -170,37 +212,37 @@ ul.task-list li input[type="checkbox"] {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../infrastructure/10_page-direnv.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Local Operator Environment</span></span></a>
+ <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Local Operator Environment</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../infrastructure/11_page-spack.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Bootstrap the Spack Builder</span></span></a>
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Bootstrap the Spack Builder</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../infrastructure/12_page-jinja.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Declare the Native Runtime</span></span></a>
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Declare the Native Runtime</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../infrastructure/13_page-jinja-build.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Customize and Build the Runtime</span></span></a>
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Customize and Build the Runtime</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../infrastructure/14_page-uvr.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Lock and Synchronize R Packages</span></span></a>
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Lock and Synchronize R Packages</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../infrastructure/15_page-runner.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Run the Project Environment</span></span></a>
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Run the Project Environment</span></span></a>
   </div>
 </li>
       </ul>
@@ -217,55 +259,109 @@ ul.task-list li input[type="checkbox"] {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../pipeline/16_page-stage-inputs.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Stage Inputs</span></span></a>
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Stage Inputs</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../pipeline/17_page-inspect-source-data.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Inspect Source Data</span></span></a>
+ <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Inspect Source Data</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../pipeline/18_page-prep-w3.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Curate the Healthshed Clinic Data</span></span></a>
+ <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Curate the Healthshed Clinic Data</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../pipeline/19_page-clean-mapping-dhis2-gesis.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Clean the DHIS2–GESIS Mapping</span></span></a>
+ <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">Clean the DHIS2–GESIS Mapping</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../pipeline/20_page-construct-clinic-ids.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">Construct Clinic IDs</span></span></a>
+ <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Construct Clinic IDs</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../pipeline/21_page-construct-diagnosis-dictionary.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Construct the Diagnosis Dictionary</span></span></a>
+ <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Construct the Diagnosis Dictionary</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/22_page-clean-clinic-diagnosis.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Clean and Combine Clinic Diagnoses</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/23_page-construct-healthsheds.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Reconcile Sectorization and Construct Healthsheds</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/24_page-locate-clinics.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Compare and Select Clinic Locations</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/25_page-combine-clinic-metadata.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Combine Reporting and Spatial Clinic Metadata</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/26_page-prep-2025-2026.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Survey and Read the 2025–2026 Deliveries</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/27_page-clean-2025-2026.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">Clean and Harmonize the 2025–2026 Waves</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/28_page-geospatial-aggregate-2025-2026.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">Locate Clinics and Assemble the Final Database</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/30_page-validate-migration.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">Validate the Migrated Clinic Pipeline</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../releases/19_page-package-release.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Package a Versioned Release</span></span></a>
+ <span class="menu-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">Inventory and Package a Versioned Release</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../releases/20_page-execute-pipeline.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Execute the Pipeline</span></span></a>
+ <span class="menu-text"><span class="chapter-number">29</span>&nbsp; <span class="chapter-title">Execute the Pipeline</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../releases/21_page-verify-release.html" class="sidebar-item-text sidebar-link active">
- <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Verify a Release</span></span></a>
+ <span class="menu-text"><span class="chapter-number">30</span>&nbsp; <span class="chapter-title">Verify an Internal Candidate</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../releases/22_page-export-frictionless.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">31</span>&nbsp; <span class="chapter-title">Export the Frictionless Data Package</span></span></a>
   </div>
 </li>
       </ul>
@@ -281,10 +377,10 @@ ul.task-list li input[type="checkbox"] {
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../pipeline/16_page-stage-inputs.html">Pipeline</a></li><li class="breadcrumb-item"><a href="../releases/21_page-verify-release.html"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Verify a Release</span></a></li></ol></nav>
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../pipeline/16_page-stage-inputs.html">Pipeline</a></li><li class="breadcrumb-item"><a href="../releases/21_page-verify-release.html"><span class="chapter-number">30</span>&nbsp; <span class="chapter-title">Verify an Internal Candidate</span></a></li></ol></nav>
 <div class="quarto-title">
-<h1 class="title"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Verify a Release</span></h1>
-<p class="subtitle lead">Retain evidence independently of pipeline success</p>
+<h1 class="title"><span class="chapter-number">30</span>&nbsp; <span class="chapter-title">Verify an Internal Candidate</span></h1>
+<p class="subtitle lead">Check the packaged files independently of successful target execution</p>
 </div>
 
 
@@ -301,66 +397,85 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
-<p>There is no release to verify during scaffolding. This page defines the evidence boundary that the future release implementation must satisfy.</p>
-<div class="manual-prereq callout callout-style-default callout-important no-icon callout-titled" title="Confirm Release Completion" data-manual-kind="prereq">
+<p>Verification reopens each candidate resource, compares its schema and complete row multiset with its curated source, and records checksums and row counts. It verifies serialization, not scientific equivalence with an archived release.</p>
+<div class="manual-prereq callout callout-style-default callout-important no-icon callout-titled" title="Require The Immutable Resource Contract" data-manual-kind="prereq">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
 <i class="callout-icon no-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-<span class="screen-reader-only">Important</span><i class="fa-solid fa-list-check" aria-label="list-check"></i> Prerequisite: Confirm Release Completion
+<span class="screen-reader-only">Important</span><i class="fa-solid fa-list-check" aria-label="list-check"></i> Prerequisite: Require The Immutable Resource Contract
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>The versioned release target must have completed, and the approving reviewer must identify the exact release directory and expected resources.</p>
+<p>Package copies must refer to the exact source hashes in the versioned contract. A changed source or modified package must fail verification. The default access remains internal and the release status remains candidate.</p>
 </div>
 </div>
-<div class="manual-procedure callout callout-style-default callout-tip no-icon callout-titled" title="Validate The Published Artifact" data-manual-kind="procedure">
+<div class="manual-procedure callout callout-style-default callout-tip no-icon callout-titled" title="Verify Every Resource And Record Its Schema" data-manual-kind="procedure">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
 <i class="callout-icon no-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-<span class="screen-reader-only">Tip</span><i class="fa-solid fa-person-walking" aria-label="person-walking"></i> Procedure: Validate The Published Artifact
+<span class="screen-reader-only">Tip</span><i class="fa-solid fa-person-walking" aria-label="person-walking"></i> Procedure: Verify Every Resource And Record Its Schema
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>Future verification must:</p>
-<ul>
-<li>load the published artifact through its declared interchange format;</li>
-<li>validate every resource against its schema;</li>
-<li>confirm identifiers and prohibited fields are absent;</li>
-<li>compare published resources with their curated targets;</li>
-<li>record package versions, source provenance, checksums, and review approval;</li>
-<li>run the pipeline again and confirm that no target rebuilds.</li>
-</ul>
-<p>Verification code belongs here only after the release contract is approved.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb1-1"><a href="#cb1-1"></a>srelease_verify_fn &lt;- function(resource,package,contract,config) {</span>
+<span id="cb1-2"><a href="#cb1-2"></a>  manifest &lt;- duckplyr::read_parquet_duckdb(contract,prudence="stingy") |&gt; dplyr::collect()</span>
+<span id="cb1-3"><a href="#cb1-3"></a>  row &lt;- manifest[manifest$resource==resource$name,]</span>
+<span id="cb1-4"><a href="#cb1-4"></a>  stopifnot(nrow(row)==1L,identical(srelease_sha256_fn(package),row$source_sha256),</span>
+<span id="cb1-5"><a href="#cb1-5"></a>    identical(srelease_sha256_fn(resource$source),row$source_sha256))</span>
+<span id="cb1-6"><a href="#cb1-6"></a>  a &lt;- paste("SELECT * FROM",s4a_diagnosis_read_fn(resource$source))</span>
+<span id="cb1-7"><a href="#cb1-7"></a>  b &lt;- paste("SELECT * FROM",s4a_diagnosis_read_fn(package))</span>
+<span id="cb1-8"><a href="#cb1-8"></a>  schema_a &lt;- s4a_diagnosis_query_fn(paste("DESCRIBE",a)) |&gt; dplyr::collect()</span>
+<span id="cb1-9"><a href="#cb1-9"></a>  schema_b &lt;- s4a_diagnosis_query_fn(paste("DESCRIBE",b)) |&gt; dplyr::collect()</span>
+<span id="cb1-10"><a href="#cb1-10"></a>  differences &lt;- schecks_key_difference_fn(a,b)</span>
+<span id="cb1-11"><a href="#cb1-11"></a>  if(!identical(schema_a$column_name,schema_b$column_name) || !identical(schema_a$column_type,schema_b$column_type) || any(differences!=0)) stop("Packaged resource does not round-trip to its curated source.")</span>
+<span id="cb1-12"><a href="#cb1-12"></a>  if(any(schema_b$column_name %in% config$prohibited_columns)) stop("Prohibited column in packaged resource.")</span>
+<span id="cb1-13"><a href="#cb1-13"></a>  rows &lt;- s4a_diagnosis_query_fn(paste0("SELECT count(*) AS n FROM (",b,")")) |&gt; dplyr::collect()</span>
+<span id="cb1-14"><a href="#cb1-14"></a>  tibble::tibble(resource=resource$name,rows=rows$n,columns=nrow(schema_b),sha256=row$source_sha256,</span>
+<span id="cb1-15"><a href="#cb1-15"></a>    schema_equal=TRUE,rows_equal=TRUE,access=config$access,status=config$status)</span>
+<span id="cb1-16"><a href="#cb1-16"></a>}</span>
+<span id="cb1-17"><a href="#cb1-17"></a>srelease_schema_fn &lt;- function(paths,root,path) {</span>
+<span id="cb1-18"><a href="#cb1-18"></a>  table &lt;- dplyr::bind_rows(lapply(paths,function(input) {</span>
+<span id="cb1-19"><a href="#cb1-19"></a>    schema &lt;- s4a_diagnosis_query_fn(paste("DESCRIBE SELECT * FROM",s4a_diagnosis_read_fn(input))) |&gt; dplyr::collect()</span>
+<span id="cb1-20"><a href="#cb1-20"></a>    tibble::tibble(resource=substring(input,nchar(root)+2L),position=seq_len(nrow(schema)),column=schema$column_name,type=schema$column_type)</span>
+<span id="cb1-21"><a href="#cb1-21"></a>  }))</span>
+<span id="cb1-22"><a href="#cb1-22"></a>  srelease_write_once_fn(table,path)</span>
+<span id="cb1-23"><a href="#cb1-23"></a>}</span>
+<span id="cb1-24"><a href="#cb1-24"></a>srelease_manifest_fn &lt;- function(checks,resources,config,path) {</span>
+<span id="cb1-25"><a href="#cb1-25"></a>  stopifnot(nrow(checks)==length(resources),!anyDuplicated(checks$resource),all(checks$schema_equal &amp; checks$rows_equal))</span>
+<span id="cb1-26"><a href="#cb1-26"></a>  stopifnot(all(checks$access==config$access),all(checks$status==config$status))</span>
+<span id="cb1-27"><a href="#cb1-27"></a>  if(file.exists(path)) {</span>
+<span id="cb1-28"><a href="#cb1-28"></a>    old &lt;- duckplyr::read_parquet_duckdb(path,prudence="stingy") |&gt; dplyr::collect() |&gt; dplyr::arrange(resource)</span>
+<span id="cb1-29"><a href="#cb1-29"></a>    if(!isTRUE(all.equal(as.data.frame(old),as.data.frame(dplyr::arrange(checks,resource)),check.attributes=FALSE))) stop("Immutable verification manifest differs.")</span>
+<span id="cb1-30"><a href="#cb1-30"></a>    return(path)</span>
+<span id="cb1-31"><a href="#cb1-31"></a>  }</span>
+<span id="cb1-32"><a href="#cb1-32"></a>  s5_healthshed_write_table_fn(dplyr::arrange(checks,resource),path)</span>
+<span id="cb1-33"><a href="#cb1-33"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb2-1"><a href="#cb2-1"></a>#| format: file</span>
+<span id="cb2-2"><a href="#cb2-2"></a>srelease_schema_parquet &lt;- srelease_schema_fn(srelease_package_parquet,</span>
+<span id="cb2-3"><a href="#cb2-3"></a>  srelease_directory_fn(here::here("data","outputs","releases"),srelease_parameters_list),</span>
+<span id="cb2-4"><a href="#cb2-4"></a>  file.path(srelease_directory_fn(here::here("data","outputs","releases"),srelease_parameters_list),"resource_schemas.parquet"))</span>
+<span id="cb2-5"><a href="#cb2-5"></a>srelease_manifest_parquet &lt;- srelease_manifest_fn(srelease_resource_checks_df,srelease_resources_list,</span>
+<span id="cb2-6"><a href="#cb2-6"></a>  srelease_parameters_list,file.path(srelease_directory_fn(here::here("data","outputs","releases"),srelease_parameters_list),"manifest.parquet"))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The per-resource verification branches are declared on the execution page. A subsequent unchanged-input target build is an operational check for the researcher after execution is authorized; implementation and fixture tests make no claim that such a build has occurred.</p>
 </div>
 </div>
-<div class="manual-procedure callout callout-style-default callout-tip no-icon callout-titled" title="Retain Reproducible Evidence" data-manual-kind="procedure">
+<div class="manual-check callout callout-style-default callout-warning no-icon callout-titled" title="Retain Independent Candidate Evidence" data-manual-kind="check">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
 <i class="callout-icon no-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-<span class="screen-reader-only">Tip</span><i class="fa-solid fa-person-walking" aria-label="person-walking"></i> Procedure: Retain Reproducible Evidence
+<span class="screen-reader-only">Warning</span><i class="fa-solid fa-clipboard-check" aria-label="clipboard-check"></i> Check: Retain Independent Candidate Evidence
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>Retain verification evidence in ordinary targets or tracked Parquet file targets and associate it with the release record. Never include protected rows or values in the rendered Manual, scheduler logs, or version control.</p>
-</div>
-</div>
-<div class="manual-check callout callout-style-default callout-warning no-icon callout-titled" title="Confirm The Release Verification Record" data-manual-kind="check">
-<div class="callout-header d-flex align-content-center">
-<div class="callout-icon-container">
-<i class="callout-icon no-icon"></i>
-</div>
-<div class="callout-title-container flex-fill">
-<span class="screen-reader-only">Warning</span><i class="fa-solid fa-clipboard-check" aria-label="clipboard-check"></i> Check: Confirm The Release Verification Record
-</div>
-</div>
-<div class="callout-body-container callout-body">
-<p>When the release targets exist, confirm that the retained record identifies the exact release version and artifact checksums, contains passing schema and disclosure checks, and reports equality with the curated products. The second pipeline run must leave every release target current. Until those results exist, this scaffold does not establish a verified release.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode numberSource sh number-lines code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1"></a><span class="ex">scripts/mdg-healthshed-clinic-data</span> exec Rscript tests/check-new-wave-pipeline.R</span>
+<span id="cb3-2"><a href="#cb3-2"></a><span class="ex">python3</span> tests/check-manual-structure.py</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Inspect the version’s <code>_contract.parquet</code>, <code>manifest.parquet</code>, and <code>resource_schemas.parquet</code>, together with packaged provenance and governed audits. Corrupted or changed files must fail the independent verifier. Source-level scientific decisions remain in their owning inputs and pages; verification never repairs measurements or rewrites the historical reference.</p>
 </div>
 </div>
 
@@ -770,10 +885,13 @@ ul.task-list li input[type="checkbox"] {
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
       <a href="../releases/20_page-execute-pipeline.html" class="pagination-link" aria-label="Execute the Pipeline">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Execute the Pipeline</span></span>
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">29</span>&nbsp; <span class="chapter-title">Execute the Pipeline</span></span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
+      <a href="../releases/22_page-export-frictionless.html" class="pagination-link" aria-label="Export the Frictionless Data Package">
+        <span class="nav-page-text"><span class="chapter-number">31</span>&nbsp; <span class="chapter-title">Export the Frictionless Data Package</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
   </div>
 </nav>
 </div> <!-- /content -->

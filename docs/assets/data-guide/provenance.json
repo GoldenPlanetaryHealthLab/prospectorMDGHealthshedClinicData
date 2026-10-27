@@ -1,0 +1,48 @@
+{
+  "snapshot_utc": "2026-11-11 04:31:01 UTC",
+  "baseline": "most recent archived data within the hand-delivered May 2025 ZIP",
+  "archive_sha256": "cdc9e5534b947551cdaee3fe0ef38f0e46b26c7a7bba539d9c5ff518023061cb",
+  "archive_member": "madagascar_clinic_data_cleaning/data/clean/by_diagnosis_2024/file2.feather",
+  "archive_member_sha256": "79966c57887a086122e931424606440c4e46cf8d023a7d4827f8268638e649da",
+  "current_sha256": "fe313c0ed2b6d25e09460a2da853574b41980f9a6415824e64815cfc7edb11f0",
+  "current_period": ["2010-01-01", "2026-07-01"],
+  "keyed_comparison": [
+    {
+      "shared_keys": 550845,
+      "archive_only": 39,
+      "current_only": 90,
+      "source_differences": 0,
+      "equal_cells": 550845,
+      "different_cells": 0,
+      "var": "V114",
+      "diagnosis": "Simple malaria, ages 1-4"
+    },
+    {
+      "shared_keys": 550845,
+      "archive_only": 39,
+      "current_only": 90,
+      "source_differences": 0,
+      "equal_cells": 550845,
+      "different_cells": 0,
+      "var": "V121",
+      "diagnosis": "Diarrhea, ages 1-4"
+    },
+    {
+      "shared_keys": 550845,
+      "archive_only": 39,
+      "current_only": 90,
+      "source_differences": 0,
+      "equal_cells": 550845,
+      "different_cells": 0,
+      "var": "V135",
+      "diagnosis": "Pneumonia, ages 1-4"
+    }
+  ],
+  "variables": ["V114", "V121", "V135"],
+  "R": "4.5.1",
+  "pyarrow": "22.0.0",
+  "code_sha256": {
+    "scripts/build-data-guide.R": "25c3d031f59ea7ca094bb788b82833f1ac16b30497c4d019991d77349126bb30",
+    "scripts/read-guide-archive.py": "72c63725f3daaa7badbcc821ed77c6122b85697432a64863c96091b05d3dad27"
+  }
+}
