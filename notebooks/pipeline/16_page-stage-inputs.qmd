@@ -1,0 +1,124 @@
+---
+title: "Stage Inputs"
+subtitle: "Establish provenance before opening source files"
+execute:
+  eval: false
+engine: markdown
+---
+
+The hand-delivered `gdn_datafreeze_may2025/madagascar_clinic_data_cleaning.zip`
+is the sole source of truth for the existing-wave migration. Its scientific
+inputs and comparison outputs come exclusively from this ZIP. The separate
+new-wave deliveries enter through [page 26](26_page-prep-2025-2026.qmd)'s
+Stagecoach inventory and file branches. Both deliveries and maximum
+reduction were authorized on 2026-11-08; this page still reads only the ZIP.
+
+::: {.manual-prereq title="Confirm Staging Authority"}
+
+On 2026-11-06 the researcher selected the ZIP supplied by hand as the fixed
+input freeze and migration baseline. The previously staged Google Drive tree
+is a periodically refreshed rclone mirror and can drift. It is excluded from
+the pipeline, even when its files are newer. Existing Drive staging links may
+remain on disk, but no existing-wave inventory scans or scientific readers
+use them. The explicitly scoped new-wave branch remains separate from this inventory.
+
+The Stagecoach manifest declares the hand-delivered ZIP for this migration
+and two separate, narrowly scoped new-wave survey items for page 26. This
+page's inventory still consumes only the ZIP. A later old-wave source freeze
+requires an explicit, recorded change of archive and comparison baseline;
+a sync or a newer filename does not change this contract.
+
+:::
+
+::: {.manual-procedure title="Track The Authoritative Archive"}
+
+The root `_targets.R` tangles these file targets into the initial graph.
+The archive's contents are tracked directly; the manifest records staging
+provenance. Rendering does not read scientific inputs or extract members.
+
+```{r}
+#| format: file
+s0_pipeline_stagecoach_yml <- here::here("stagecoach_manifest.yml")
+s0_pipeline_raw_zip <- {
+  stopifnot(file.exists(s0_pipeline_stagecoach_yml))
+  archive <- here::here(
+    "data/inputs/01_gold_mine/gdn_datafreeze_may2025/madagascar_clinic_data_cleaning.zip"
+  )
+  if (!file.exists(archive)) stop("The hand-delivered May 2025 ZIP is not staged: ", archive)
+  archive
+}
+```
+
+:::
+
+::: {.manual-procedure title="Select And Extract Reviewed Archive Inputs"}
+
+Keep the existing path-based W3 and mapping readers, but supply them only with
+unmodified source members extracted from the tracked ZIP. Select all W3 CSVs
+and the exact reviewed mapping/identity sources. Other stages continue to
+read their exact members directly from this same archive. The extracted
+copies retain the original filenames and formats under
+`data/intermediates/archive_sources/`; they are source copies, not new curated
+products. They are tracked files and may be recreated from the ZIP.
+
+Return only the members selected in this invocation, never a scan of the
+extraction directory. Old extractions and Drive files cannot enter the graph.
+
+```{r}
+s0_pipeline_archive_members_fn <- function(archive) {
+  members <- utils::unzip(archive, list = TRUE)$Name
+  root <- "madagascar_clinic_data_cleaning/data/raw/"
+  w3 <- members[startsWith(members, paste0(root, "from Symphonia/RMA_W3_FULL/")) &
+                  endsWith(members, ".csv")]
+  reviewed <- paste0(root, c(
+    "from Symphonia/mapping GESIS DHIS questions - mapping DHIS2 GESIS 2010 2022.csv",
+    "symphonia_verified/CSB1 CSB2 PUBLIC PRIVATE.xlsx",
+    "symphonia_verified/gesis_missing_uid_in_mapping.xlsx",
+    "symphonia_verified/VERIFIER fs_uid_year_with_multiple_gesis.csv",
+    "symphonia_verified/VERIFIER clinic_codes_in_gesis_but_not_in_mapping.csv",
+    "symphonia_verified/GESIS_snips_public_multipleLongGESIS VERIFIED.csv"
+  ))
+  if (!length(w3) || any(!reviewed %in% members)) {
+    stop("The ZIP is missing required W3 or reviewed mapping/identity inputs.")
+  }
+  selected <- sort(c(w3, reviewed), method = "radix")
+  stopifnot(!anyDuplicated(selected), all(vapply(selected, function(x) sum(members == x), 0L) == 1L),
+            !any(grepl("^/|(^|/)\\.\\.(/|$)", selected)))
+  selected
+}
+
+s0_pipeline_archive_inputs_fn <- function(archive, output_dir) {
+  members <- s0_pipeline_archive_members_fn(archive)
+  dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+  paths <- utils::unzip(archive, files = members, exdir = output_dir, overwrite = TRUE)
+  stopifnot(length(paths) == length(members), all(file.exists(paths)))
+  # Include the tracked ZIP for the existing exact-archive selectors in later stages.
+  c(archive, paths)
+}
+```
+
+```{r}
+#| format: file
+s0_pipeline_inputs_raw_chr <- s0_pipeline_archive_inputs_fn(
+  s0_pipeline_raw_zip,
+  here::here("data/intermediates/archive_sources")
+)
+```
+
+:::
+
+::: {.manual-check title="Verify The Staging Boundary"}
+
+```sh
+test -d data/inputs
+test ! -L data/inputs
+scripts/mdg-healthshed-clinic-data exec Rscript tests/check-archive-source-boundary.R
+```
+
+Do not print filenames or file contents into Manual render logs. Existing
+targets built from Drive inputs must be rebuilt through the compute-node
+launcher before they are interpreted as products of this freeze. The baseline
+checker records the archive SHA-256; changing bytes at the same path must be
+reviewed as a source-freeze change.
+
+:::

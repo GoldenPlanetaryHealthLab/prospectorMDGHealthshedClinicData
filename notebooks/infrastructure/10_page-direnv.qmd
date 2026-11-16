@@ -1,0 +1,51 @@
+---
+title: "Local Operator Environment"
+execute:
+  eval: false
+engine: markdown
+---
+
+`direnv` is an optional operator convenience, not part of the scientific
+environment. The container image fixes the R ABI and system libraries; the
+project-local `uvr` library fixes R packages.
+
+::: {.manual-prereq title="Enable The Local Convenience Layer"}
+
+Install `direnv` and enable its shell hook before activating the emitted
+project configuration.
+
+:::
+
+::: {.manual-procedure .emit-generic file="{{ emit.project_root }}/.envrc" title="Emit The Local direnv Contract"}
+
+```bash
+# Generated from notebooks/infrastructure/10_page-direnv.qmd.
+export PROJECT_DIR="$(CDPATH= cd -- "$(dirname -- "$BASH_SOURCE")" && pwd)"
+PATH_add "$PROJECT_DIR/scripts"
+```
+
+:::
+
+The file deliberately does not set library or compiler paths. Those belong
+inside the container.
+
+::: {.manual-procedure title="Activate The Project Configuration"}
+
+From the repository root, approve the emitted configuration and allow the
+shell hook to load it before running the checks.
+
+```sh
+direnv allow
+```
+
+:::
+
+::: {.manual-check title="Verify The Activated Environment"}
+
+```sh
+test "$PROJECT_DIR" = "$PWD"
+type render-isolated
+type mdg-healthshed-clinic-data
+```
+
+:::

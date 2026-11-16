@@ -12,6 +12,22 @@ $primary: #0f5c4d;
   border-radius: 0.5rem;
 }
 
-.callout.manual-run {
-  border-left-color: #c05621;
+.callout[data-manual-kind] {
+  border-left-width: 0.4rem;
+}
+
+.callout[data-manual-kind="prereq"] {
+  border-left-color: #dc2626;
+}
+
+.callout[data-manual-kind="procedure"] {
+  border-left-color: #16a34a;
+}
+
+.callout[data-manual-kind="check"] {
+  border-left-color: #ea580c;
+}
+
+.callout[data-manual-kind="explain"] {
+  border-left-color: #2563eb;
 }

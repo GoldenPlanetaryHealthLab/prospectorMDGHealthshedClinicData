@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.38">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>24&nbsp; Survey and Read the 2025–2026 Deliveries – Madagascar Healthshed Clinic Data Curation Manual</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<link href="../pipeline/27_page-clean-2025-2026.html" rel="next">
+<link href="../pipeline/25_page-combine-clinic-metadata.html" rel="prev">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-15634bcf2e68342d4ad2dfa704d543f6.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-ce6a359591faed5e1251f5606bf1542e.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/quarto-contrib/fontawesome6-6.7.2/all.min.css" rel="stylesheet">
+<link href="../site_libs/quarto-contrib/fontawesome6-6.7.2/latex-fontsize.css" rel="stylesheet">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+
+</head>
+
+<body class="nav-sidebar floating quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../pipeline/16_page-stage-inputs.html">Pipeline</a></li><li class="breadcrumb-item"><a href="../pipeline/26_page-prep-2025-2026.html"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Survey and Read the 2025–2026 Deliveries</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="../">Madagascar Healthshed Clinic Data Curation Manual</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Madagascar Healthshed Clinic Data Curation Manual</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text">Project Setup</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../00_cover.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Data Curation Manual</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../00_data-guide.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">A Reader’s Guide to the Cleaned Database</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/mapping/legacy-pipeline-map.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Map the Legacy Clinic Pipeline to Notebooks</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../01_misc-render-isolated.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Render In Isolation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../02_misc-project-contract.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Project Contract</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../03_misc-data-governance.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Data Governance</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
+ <span class="menu-text">Infrastructure</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../infrastructure/10_page-direnv.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Local Operator Environment</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../infrastructure/11_page-spack.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Bootstrap the Spack Builder</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../infrastructure/12_page-jinja.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Declare the Native Runtime</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../infrastructure/13_page-jinja-build.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Customize and Build the Runtime</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../infrastructure/14_page-uvr.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Lock and Synchronize R Packages</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../infrastructure/15_page-runner.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Run the Project Environment</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
+ <span class="menu-text">Pipeline</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/16_page-stage-inputs.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Stage Inputs</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/17_page-inspect-source-data.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Inspect Source Data</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/18_page-prep-w3.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Curate the Healthshed Clinic Data</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/19_page-clean-mapping-dhis2-gesis.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">Clean the DHIS2–GESIS Mapping</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/20_page-construct-clinic-ids.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Construct Clinic IDs</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/21_page-construct-diagnosis-dictionary.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Construct the Diagnosis Dictionary</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/22_page-clean-clinic-diagnosis.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Clean and Combine Clinic Diagnoses</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/23_page-construct-healthsheds.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Reconcile Sectorization and Construct Healthsheds</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/24_page-locate-clinics.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Compare and Select Clinic Locations</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/25_page-combine-clinic-metadata.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Combine Reporting and Spatial Clinic Metadata</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/26_page-prep-2025-2026.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Survey and Read the 2025–2026 Deliveries</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/27_page-clean-2025-2026.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">Clean and Harmonize the 2025–2026 Waves</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/28_page-geospatial-aggregate-2025-2026.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">Locate Clinics and Assemble the Final Database</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/30_page-validate-migration.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">Validate the Migrated Clinic Pipeline</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../releases/19_page-package-release.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">Inventory and Package a Versioned Release</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../releases/20_page-execute-pipeline.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">29</span>&nbsp; <span class="chapter-title">Execute the Pipeline</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../releases/21_page-verify-release.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">30</span>&nbsp; <span class="chapter-title">Verify an Internal Candidate</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../releases/22_page-export-frictionless.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">31</span>&nbsp; <span class="chapter-title">Export the Frictionless Data Package</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
+        
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../pipeline/16_page-stage-inputs.html">Pipeline</a></li><li class="breadcrumb-item"><a href="../pipeline/26_page-prep-2025-2026.html"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Survey and Read the 2025–2026 Deliveries</span></a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Survey and Read the 2025–2026 Deliveries</span></h1>
+<p class="subtitle lead">Inventory source files and inspect raw DuckDB relations before cleaning</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<p>This is the first of three new-wave notebooks:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Page</th>
+<th>Responsibility</th>
+<th>Tracked handoff</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>26 — this page</strong></td>
+<td>Survey delivery files, headers, periods, keys, and raw tokens; read each CSV through DuckDB.</td>
+<td>One raw Parquet per approved source file, preserving text and provenance.</td>
+</tr>
+<tr class="even">
+<td><a href="../pipeline/27_page-clean-2025-2026.html">27 — Clean new waves</a></td>
+<td>Review measurement mappings, numeric conversions, overlap rules, and clinic-month grain.</td>
+<td>Harmonized measurements plus mapping, parsing, and duplicate audits.</td>
+</tr>
+<tr class="odd">
+<td><a href="../pipeline/28_page-geospatial-aggregate-2025-2026.html">28 — Locate and aggregate</a></td>
+<td>Reconcile clinic identities, attach reviewed spatial evidence, and fit the final database contracts.</td>
+<td>Diagnosis partitions, reporting/spatial metadata, geometry, and release audits.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Status: implemented in R and registered in the graph.</strong> On 2026-11-08 the researcher authorized Kai’s source/reduction choices: include both deliveries and take maxima across overlapping measurements. Graph execution is separate from rendering and has not been authorized as part of this implementation. The examples remain user-run checks; protected results stay outside HTML.</p>
+<div class="manual-prereq callout callout-style-default callout-important no-icon callout-titled" title="Separate New Deliveries From The Frozen Migration Baseline" data-manual-kind="prereq">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Important</span><i class="fa-solid fa-list-check" aria-label="list-check"></i> Prerequisite: Separate New Deliveries From The Frozen Migration Baseline
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The new data is <strong>not in the May 2025 ZIP</strong>. Its sources are declared as <code>harvard_2025_2026</code> and the separately staged <code>july_2025_candidate</code> item in <code>stagecoach_manifest.yml</code>. Stage those declared items before running the survey. Resolve project files with <code>here::here()</code> and source locations from the manifest; do not reconstruct the former broad Drive staging path. The ZIP remains the source of truth for the old-wave migration and its comparison outputs. New-wave discovery is a separate, explicitly scoped use of the staged delivery tree; do not reintroduce that tree into page 16’s old-wave inventory.</p>
+<p>Stagecoach owns the source locations. The graph inventories the staged CSVs and tracks each file’s contents with <code>format = "file"</code>. The inventory is refreshed on each build to detect added and removed deliveries. Ingestion records the bytes it read through source hashes; that snapshot is derived provenance, not a second input registry. Do not modify source files.</p>
+<p>Kai’s Python work under <code>sandbox/validation/06_new_w3/</code> is exploratory evidence, not an executable dependency. In particular, <code>crosswalk_new_to_old.py</code> also includes the sibling <code>Raw/RMA 2025 - july</code> delivery. Its inclusion and maximum reduction were authorized on 2026-11-08. Keep its identity and coverage visible in the audits. Folder names are delivery labels, not verified reporting periods.</p>
+</div>
+</div>
+<div class="manual-procedure callout callout-style-default callout-tip no-icon callout-titled" title="Declare The Source Inventory Helpers" data-manual-kind="procedure">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span><i class="fa-solid fa-person-walking" aria-label="person-walking"></i> Procedure: Declare The Source Inventory Helpers
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Load these definitions by running their chunks, or from the repository root:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1"></a>helpers <span class="ot">&lt;-</span> knitr<span class="sc">::</span><span class="fu">purl</span>(</span>
+<span id="cb1-2"><a href="#cb1-2"></a>  here<span class="sc">::</span><span class="fu">here</span>(<span class="st">"notebooks"</span>, <span class="st">"pipeline"</span>, <span class="st">"26_page-prep-2025-2026.qmd"</span>),</span>
+<span id="cb1-3"><a href="#cb1-3"></a>  <span class="at">output =</span> <span class="fu">tempfile</span>(<span class="at">fileext =</span> <span class="st">".R"</span>), <span class="at">documentation =</span> <span class="dv">0</span>L, <span class="at">quiet =</span> <span class="cn">TRUE</span></span>
+<span id="cb1-4"><a href="#cb1-4"></a>)</span>
+<span id="cb1-5"><a href="#cb1-5"></a><span class="cf">for</span> (expr <span class="cf">in</span> <span class="fu">parse</span>(helpers)) {</span>
+<span id="cb1-6"><a href="#cb1-6"></a>  <span class="cf">if</span> (<span class="fu">is.call</span>(expr) <span class="sc">&amp;&amp;</span> <span class="fu">identical</span>(expr[[<span class="dv">1</span>L]], <span class="fu">as.name</span>(<span class="st">"&lt;-"</span>)) <span class="sc">&amp;&amp;</span></span>
+<span id="cb1-7"><a href="#cb1-7"></a>      <span class="fu">is.call</span>(expr[[<span class="dv">3</span>L]]) <span class="sc">&amp;&amp;</span> <span class="fu">identical</span>(expr[[<span class="dv">3</span>L]][[<span class="dv">1</span>L]], <span class="fu">as.name</span>(<span class="st">"function"</span>))) <span class="fu">eval</span>(expr)</span>
+<span id="cb1-8"><a href="#cb1-8"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The loader above evaluates function definitions only. Target declarations are reserved for the graph. User-run examples use plain R fences. The source resolver follows Stagecoach’s <code>input directory/source/item name/source basename</code> layout. It rebases the manifest’s project-local input directory through <code>here::here()</code> so host absolute paths do not leak into the container. The two source patterns are explicit directory paths, not discovery globs.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb2-1"><a href="#cb2-1"></a>s8_new_wave_roots_fn &lt;- function(manifest_path = here::here("stagecoach_manifest.yml")) {</span>
+<span id="cb2-2"><a href="#cb2-2"></a>  manifest &lt;- yaml::read_yaml(manifest_path, eval.expr = FALSE)</span>
+<span id="cb2-3"><a href="#cb2-3"></a>  source &lt;- manifest$sources[["01_gold_mine"]]</span>
+<span id="cb2-4"><a href="#cb2-4"></a>  if (!isTRUE(source$enabled)) stop("Stagecoach's 01_gold_mine source is disabled.")</span>
+<span id="cb2-5"><a href="#cb2-5"></a>  project &lt;- sub("/+$", "", manifest$project$project_working_dir)</span>
+<span id="cb2-6"><a href="#cb2-6"></a>  input &lt;- manifest$project$input_data_dir</span>
+<span id="cb2-7"><a href="#cb2-7"></a>  if (length(project) != 1L || length(input) != 1L || !startsWith(input, paste0(project, "/"))) {</span>
+<span id="cb2-8"><a href="#cb2-8"></a>    stop("The Stagecoach input directory must be inside its declared project directory.")</span>
+<span id="cb2-9"><a href="#cb2-9"></a>  }</span>
+<span id="cb2-10"><a href="#cb2-10"></a>  input_relative &lt;- substring(input, nchar(project) + 2L)</span>
+<span id="cb2-11"><a href="#cb2-11"></a>  ids &lt;- c("harvard_2025_2026", "july_2025_candidate")</span>
+<span id="cb2-12"><a href="#cb2-12"></a>  items &lt;- lapply(ids, function(id) {</span>
+<span id="cb2-13"><a href="#cb2-13"></a>    hits &lt;- Filter(function(x) identical(x$name, id), source$items)</span>
+<span id="cb2-14"><a href="#cb2-14"></a>    if (length(hits) != 1L) stop("Expected one Stagecoach item named ", id)</span>
+<span id="cb2-15"><a href="#cb2-15"></a>    pattern &lt;- hits[[1L]]$path_regex</span>
+<span id="cb2-16"><a href="#cb2-16"></a>    if (length(pattern) != 1L || !nzchar(pattern) ||</span>
+<span id="cb2-17"><a href="#cb2-17"></a>        any(vapply(c("*", "?", "["), function(x) grepl(x, pattern, fixed = TRUE), TRUE))) {</span>
+<span id="cb2-18"><a href="#cb2-18"></a>      stop("New-wave Stagecoach items must name explicit source directories: ", id)</span>
+<span id="cb2-19"><a href="#cb2-19"></a>    }</span>
+<span id="cb2-20"><a href="#cb2-20"></a>    hits[[1L]]</span>
+<span id="cb2-21"><a href="#cb2-21"></a>  })</span>
+<span id="cb2-22"><a href="#cb2-22"></a>  tibble::tibble(</span>
+<span id="cb2-23"><a href="#cb2-23"></a>    source_id = ids,</span>
+<span id="cb2-24"><a href="#cb2-24"></a>    root = vapply(items, function(item) {</span>
+<span id="cb2-25"><a href="#cb2-25"></a>      here::here(input_relative, "01_gold_mine", item$name, basename(item$path_regex))</span>
+<span id="cb2-26"><a href="#cb2-26"></a>    }, ""),</span>
+<span id="cb2-27"><a href="#cb2-27"></a>    scope = c("approved Harvard delivery", "approved separate July delivery")</span>
+<span id="cb2-28"><a href="#cb2-28"></a>  )</span>
+<span id="cb2-29"><a href="#cb2-29"></a>}</span>
+<span id="cb2-30"><a href="#cb2-30"></a></span>
+<span id="cb2-31"><a href="#cb2-31"></a>s8_new_wave_inventory_fn &lt;- function(roots, hash = FALSE) {</span>
+<span id="cb2-32"><a href="#cb2-32"></a>  stopifnot(nrow(roots) &gt; 0L, !anyDuplicated(roots$source_id))</span>
+<span id="cb2-33"><a href="#cb2-33"></a>  dplyr::bind_rows(lapply(seq_len(nrow(roots)), function(i) {</span>
+<span id="cb2-34"><a href="#cb2-34"></a>    root &lt;- roots$root[[i]]</span>
+<span id="cb2-35"><a href="#cb2-35"></a>    if (!dir.exists(root)) stop("Delivery root is unavailable: ", root)</span>
+<span id="cb2-36"><a href="#cb2-36"></a>    relative &lt;- sort(list.files(root, recursive = TRUE, full.names = FALSE,</span>
+<span id="cb2-37"><a href="#cb2-37"></a>                                include.dirs = FALSE), method = "radix")</span>
+<span id="cb2-38"><a href="#cb2-38"></a>    paths &lt;- file.path(root, relative)</span>
+<span id="cb2-39"><a href="#cb2-39"></a>    info &lt;- file.info(paths)</span>
+<span id="cb2-40"><a href="#cb2-40"></a>    parts &lt;- strsplit(relative, "/", fixed = TRUE)</span>
+<span id="cb2-41"><a href="#cb2-41"></a>    tibble::tibble(</span>
+<span id="cb2-42"><a href="#cb2-42"></a>      source_id = roots$source_id[[i]], relative_path = relative, path = paths,</span>
+<span id="cb2-43"><a href="#cb2-43"></a>      delivery = vapply(parts, function(x) if (length(x) &gt;= 3L) x[[2L]] else roots$source_id[[i]], ""),</span>
+<span id="cb2-44"><a href="#cb2-44"></a>      extension = tolower(tools::file_ext(paths)), bytes = info$size,</span>
+<span id="cb2-45"><a href="#cb2-45"></a>      modified = info$mtime,</span>
+<span id="cb2-46"><a href="#cb2-46"></a>      content_md5 = if (hash) unname(tools::md5sum(paths)) else rep(NA_character_, length(paths))</span>
+<span id="cb2-47"><a href="#cb2-47"></a>    )</span>
+<span id="cb2-48"><a href="#cb2-48"></a>  }))</span>
+<span id="cb2-49"><a href="#cb2-49"></a>}</span>
+<span id="cb2-50"><a href="#cb2-50"></a></span>
+<span id="cb2-51"><a href="#cb2-51"></a>s8_new_wave_metadata_fn &lt;- function() {</span>
+<span id="cb2-52"><a href="#cb2-52"></a>  c(paste0("orgunitlevel", 1:5), "organisationunitid", "organisationunitname",</span>
+<span id="cb2-53"><a href="#cb2-53"></a>    "organisationunitcode", "organisationunitdescription", "periodid",</span>
+<span id="cb2-54"><a href="#cb2-54"></a>    "periodname", "periodcode", "perioddescription")</span>
+<span id="cb2-55"><a href="#cb2-55"></a>}</span>
+<span id="cb2-56"><a href="#cb2-56"></a></span>
+<span id="cb2-57"><a href="#cb2-57"></a>s8_new_wave_header_fn &lt;- function(path) {</span>
+<span id="cb2-58"><a href="#cb2-58"></a>  columns &lt;- names(readr::read_csv(</span>
+<span id="cb2-59"><a href="#cb2-59"></a>    path, n_max = 0L, col_types = readr::cols(.default = readr::col_character()),</span>
+<span id="cb2-60"><a href="#cb2-60"></a>    name_repair = "minimal", show_col_types = FALSE, progress = FALSE</span>
+<span id="cb2-61"><a href="#cb2-61"></a>  ))</span>
+<span id="cb2-62"><a href="#cb2-62"></a>  if (anyNA(columns) || any(!nzchar(columns)) || anyDuplicated(columns)) {</span>
+<span id="cb2-63"><a href="#cb2-63"></a>    stop("Review empty or repeated source headers before reading: ", path)</span>
+<span id="cb2-64"><a href="#cb2-64"></a>  }</span>
+<span id="cb2-65"><a href="#cb2-65"></a>  columns</span>
+<span id="cb2-66"><a href="#cb2-66"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</div>
+<div class="manual-procedure callout callout-style-default callout-tip no-icon callout-titled" title="Read Raw Text Through DuckDB" data-manual-kind="procedure">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span><i class="fa-solid fa-person-walking" aria-label="person-walking"></i> Procedure: Read Raw Text Through DuckDB
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Keep all source fields as <code>VARCHAR</code> initially. Preserve identifier spelling, leading zeros, and measurement tokens for the conversion audit on page 27. Empty fields are null; literal <code>NA</code> remains text at this raw boundary. This is an intentional difference from the already-curated numeric reader on page 18. No coercion, renaming, grouping, row filtering, or automatic error skipping occurs here. Header checks fail before DuckDB can silently repair duplicates.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb3-1"><a href="#cb3-1"></a>s8_new_wave_literal_fn &lt;- function(x) {</span>
+<span id="cb3-2"><a href="#cb3-2"></a>  paste0("'", gsub("'", "''", x, fixed = TRUE), "'")</span>
+<span id="cb3-3"><a href="#cb3-3"></a>}</span>
+<span id="cb3-4"><a href="#cb3-4"></a>s8_new_wave_identifier_fn &lt;- function(x) {</span>
+<span id="cb3-5"><a href="#cb3-5"></a>  paste0('"', gsub('"', '""', x, fixed = TRUE), '"')</span>
+<span id="cb3-6"><a href="#cb3-6"></a>}</span>
+<span id="cb3-7"><a href="#cb3-7"></a>s8_new_wave_csv_sql_fn &lt;- function(path) {</span>
+<span id="cb3-8"><a href="#cb3-8"></a>  stopifnot(length(path) == 1L, file.exists(path))</span>
+<span id="cb3-9"><a href="#cb3-9"></a>  paste0("read_csv(", s8_new_wave_literal_fn(path),</span>
+<span id="cb3-10"><a href="#cb3-10"></a>         ", header=true, delim=',', quote='\"', escape='\"', ",</span>
+<span id="cb3-11"><a href="#cb3-11"></a>         "all_varchar=true, nullstr='', strict_mode=true, ignore_errors=false)")</span>
+<span id="cb3-12"><a href="#cb3-12"></a>}</span>
+<span id="cb3-13"><a href="#cb3-13"></a>s8_new_wave_read_fn &lt;- function(path) {</span>
+<span id="cb3-14"><a href="#cb3-14"></a>  original &lt;- s8_new_wave_header_fn(path)</span>
+<span id="cb3-15"><a href="#cb3-15"></a>  relation &lt;- duckplyr::read_sql_duckdb(</span>
+<span id="cb3-16"><a href="#cb3-16"></a>    paste0("SELECT * FROM ", s8_new_wave_csv_sql_fn(path)), prudence = "stingy"</span>
+<span id="cb3-17"><a href="#cb3-17"></a>  )</span>
+<span id="cb3-18"><a href="#cb3-18"></a>  if (!identical(names(relation), original)) stop("DuckDB changed the source header: ", path)</span>
+<span id="cb3-19"><a href="#cb3-19"></a>  relation</span>
+<span id="cb3-20"><a href="#cb3-20"></a>}</span>
+<span id="cb3-21"><a href="#cb3-21"></a></span>
+<span id="cb3-22"><a href="#cb3-22"></a>s8_new_wave_shape_fn &lt;- function(path) {</span>
+<span id="cb3-23"><a href="#cb3-23"></a>  relation &lt;- s8_new_wave_read_fn(path)</span>
+<span id="cb3-24"><a href="#cb3-24"></a>  required &lt;- c("organisationunitid", "periodcode", "periodname")</span>
+<span id="cb3-25"><a href="#cb3-25"></a>  missing &lt;- setdiff(required, names(relation))</span>
+<span id="cb3-26"><a href="#cb3-26"></a>  if (length(missing)) stop("Missing survey keys in ", path, ": ", paste(missing, collapse = ", "))</span>
+<span id="cb3-27"><a href="#cb3-27"></a>  source &lt;- s8_new_wave_csv_sql_fn(path)</span>
+<span id="cb3-28"><a href="#cb3-28"></a>  query &lt;- paste0(</span>
+<span id="cb3-29"><a href="#cb3-29"></a>    "SELECT count(*) AS rows, count(DISTINCT organisationunitid) FILTER ",</span>
+<span id="cb3-30"><a href="#cb3-30"></a>    "(WHERE organisationunitid IS NOT NULL AND trim(organisationunitid) NOT IN ('','NA')) AS clinics, ",</span>
+<span id="cb3-31"><a href="#cb3-31"></a>    "count(*) FILTER (WHERE organisationunitid IS NULL OR trim(organisationunitid) IN ('','NA')) AS missing_uid, ",</span>
+<span id="cb3-32"><a href="#cb3-32"></a>    "count(*) FILTER (WHERE periodcode IS NULL OR trim(periodcode) IN ('','NA')) AS missing_period, ",</span>
+<span id="cb3-33"><a href="#cb3-33"></a>    "count(*) FILTER (WHERE periodcode IS NOT NULL AND trim(periodcode) NOT IN ('','NA') ",</span>
+<span id="cb3-34"><a href="#cb3-34"></a>    "AND NOT regexp_full_match(periodcode, '[0-9]{4}(0[1-9]|1[0-2])')) AS invalid_period, ",</span>
+<span id="cb3-35"><a href="#cb3-35"></a>    "(SELECT count(*) FROM (SELECT organisationunitid,periodcode FROM ", source,</span>
+<span id="cb3-36"><a href="#cb3-36"></a>    " GROUP BY organisationunitid,periodcode)) AS clinic_month_keys FROM ", source</span>
+<span id="cb3-37"><a href="#cb3-37"></a>  )</span>
+<span id="cb3-38"><a href="#cb3-38"></a>  duckplyr::read_sql_duckdb(query, prudence = "stingy") |&gt;</span>
+<span id="cb3-39"><a href="#cb3-39"></a>    dplyr::collect() |&gt;</span>
+<span id="cb3-40"><a href="#cb3-40"></a>    dplyr::mutate(columns = length(names(relation)),</span>
+<span id="cb3-41"><a href="#cb3-41"></a>                  measurement_columns = length(setdiff(names(relation), s8_new_wave_metadata_fn())))</span>
+<span id="cb3-42"><a href="#cb3-42"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</div>
+<div class="manual-procedure callout callout-style-default callout-tip no-icon callout-titled" title="Write The Raw Parquet Boundary" data-manual-kind="procedure">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span><i class="fa-solid fa-person-walking" aria-label="person-walking"></i> Procedure: Write The Raw Parquet Boundary
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The writer is called by one file-target branch. It records a content hash and checks it again after the read, preserving every source column and adding provenance fields. Targets tracks each input CSV directly. The source-row field is a read-time record ordinal, not a physical CSV line number or a stable clinic identifier. These raw Parquet products retain the observed source snapshot. They do not replace the staged source CSVs or the old-wave baseline.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb4-1"><a href="#cb4-1"></a>s8_new_wave_write_raw_fn &lt;- function(path, output_path, source_id, relative_path, expected_md5 = NULL) {</span>
+<span id="cb4-2"><a href="#cb4-2"></a>  if (is.null(expected_md5)) expected_md5 &lt;- unname(tools::md5sum(path))</span>
+<span id="cb4-3"><a href="#cb4-3"></a>  stopifnot(length(expected_md5) == 1L, !is.na(expected_md5), nzchar(expected_md5),</span>
+<span id="cb4-4"><a href="#cb4-4"></a>            length(source_id) == 1L, length(relative_path) == 1L,</span>
+<span id="cb4-5"><a href="#cb4-5"></a>            identical(unname(tools::md5sum(path)), expected_md5))</span>
+<span id="cb4-6"><a href="#cb4-6"></a>  relation &lt;- s8_new_wave_read_fn(path)</span>
+<span id="cb4-7"><a href="#cb4-7"></a>  reserved &lt;- c("_source_file", "_source_row", "_source_id", "_source_md5")</span>
+<span id="cb4-8"><a href="#cb4-8"></a>  if (any(reserved %in% names(relation))) stop("Source uses reserved provenance column names.")</span>
+<span id="cb4-9"><a href="#cb4-9"></a>  sql &lt;- paste0("SELECT *, ", s8_new_wave_literal_fn(relative_path), " AS _source_file, ",</span>
+<span id="cb4-10"><a href="#cb4-10"></a>                "row_number() OVER () AS _source_row, ", s8_new_wave_literal_fn(source_id),</span>
+<span id="cb4-11"><a href="#cb4-11"></a>                " AS _source_id, ", s8_new_wave_literal_fn(expected_md5), " AS _source_md5 FROM ",</span>
+<span id="cb4-12"><a href="#cb4-12"></a>                s8_new_wave_csv_sql_fn(path))</span>
+<span id="cb4-13"><a href="#cb4-13"></a>  dir.create(dirname(output_path), recursive = TRUE, showWarnings = FALSE)</span>
+<span id="cb4-14"><a href="#cb4-14"></a>  duckplyr::compute_parquet(</span>
+<span id="cb4-15"><a href="#cb4-15"></a>    duckplyr::read_sql_duckdb(sql, prudence = "stingy"), output_path</span>
+<span id="cb4-16"><a href="#cb4-16"></a>  )</span>
+<span id="cb4-17"><a href="#cb4-17"></a>  if (!identical(unname(tools::md5sum(path)), expected_md5)) stop("Source changed during ingestion.")</span>
+<span id="cb4-18"><a href="#cb4-18"></a>  output_path</span>
+<span id="cb4-19"><a href="#cb4-19"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The execution page branches over the Stagecoach-derived file inventory, then tracks each CSV and its raw Parquet separately.</p>
+</div>
+</div>
+<div class="manual-procedure callout callout-style-default callout-tip no-icon callout-titled" title="Declare Tracked R Parameters" data-manual-kind="procedure">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span><i class="fa-solid fa-person-walking" aria-label="person-walking"></i> Procedure: Declare Tracked R Parameters
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>These ordinary R assignments become targets through <code>tar_tangle()</code>. Changing a value invalidates its dependent targets. Source paths remain in Stagecoach; there is no separate pipeline configuration file or preparation command.</p>
+<p>The code implements maximum reduction and first nonmissing metadata in stable source order, following Kai. <code>fname = 6</code> continues the DHIS2 source code. The historical healthshed geometry remains a labelled 2022 reference.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb5-1"><a href="#cb5-1"></a>s8_new_wave_parameters_list &lt;- list(</span>
+<span id="cb5-2"><a href="#cb5-2"></a>  start_period = 202501L,</span>
+<span id="cb5-3"><a href="#cb5-3"></a>  end_period = 202612L,</span>
+<span id="cb5-4"><a href="#cb5-4"></a>  fname = 6L,</span>
+<span id="cb5-5"><a href="#cb5-5"></a>  missing_tokens = c("", "NA"),</span>
+<span id="cb5-6"><a href="#cb5-6"></a>  historical_healthshed_year = 2022L</span>
+<span id="cb5-7"><a href="#cb5-7"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</div>
+<div class="manual-procedure callout callout-style-default callout-tip no-icon callout-titled" title="Inventory Stagecoach Sources And Describe Each File" data-manual-kind="procedure">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span><i class="fa-solid fa-person-walking" aria-label="person-walking"></i> Procedure: Inventory Stagecoach Sources And Describe Each File
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The execution page refreshes the list of staged CSV paths before each build. Individual file targets detect content changes. The source snapshot below records the hashes captured by ingestion as derived provenance; it is never read back as configuration or as an input-discovery prerequisite.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb6-1"><a href="#cb6-1"></a>s8_new_wave_sources_fn &lt;- function(roots) {</span>
+<span id="cb6-2"><a href="#cb6-2"></a>  x &lt;- s8_new_wave_inventory_fn(roots, hash = FALSE)</span>
+<span id="cb6-3"><a href="#cb6-3"></a>  x &lt;- x[x$extension == "csv", c("source_id", "relative_path", "path")]</span>
+<span id="cb6-4"><a href="#cb6-4"></a>  if (!nrow(x)) stop("No new-wave CSVs are staged through Stagecoach.")</span>
+<span id="cb6-5"><a href="#cb6-5"></a>  if (anyDuplicated(x[c("source_id", "relative_path")])) stop("Repeated staged CSV paths.")</span>
+<span id="cb6-6"><a href="#cb6-6"></a>  x$source_file &lt;- paste(x$source_id, x$relative_path, sep = "/")</span>
+<span id="cb6-7"><a href="#cb6-7"></a>  x</span>
+<span id="cb6-8"><a href="#cb6-8"></a>}</span>
+<span id="cb6-9"><a href="#cb6-9"></a>s8_new_wave_snapshot_fn &lt;- function(paths, inventory) {</span>
+<span id="cb6-10"><a href="#cb6-10"></a>  hashes &lt;- dplyr::bind_rows(lapply(paths, function(path) {</span>
+<span id="cb6-11"><a href="#cb6-11"></a>    duckplyr::read_parquet_duckdb(path, prudence = "stingy") |&gt;</span>
+<span id="cb6-12"><a href="#cb6-12"></a>      dplyr::distinct(`_source_id`, `_source_file`, `_source_md5`) |&gt;</span>
+<span id="cb6-13"><a href="#cb6-13"></a>      dplyr::collect() |&gt;</span>
+<span id="cb6-14"><a href="#cb6-14"></a>      dplyr::rename(source_id = `_source_id`, source_file = `_source_file`, content_md5 = `_source_md5`)</span>
+<span id="cb6-15"><a href="#cb6-15"></a>  }))</span>
+<span id="cb6-16"><a href="#cb6-16"></a>  stopifnot(nrow(hashes) == nrow(inventory), !anyDuplicated(hashes[c("source_id", "source_file")]))</span>
+<span id="cb6-17"><a href="#cb6-17"></a>  snapshot &lt;- dplyr::left_join(dplyr::select(inventory, source_id, relative_path, source_file), hashes,</span>
+<span id="cb6-18"><a href="#cb6-18"></a>    by = c("source_id", "source_file"), relationship = "one-to-one")</span>
+<span id="cb6-19"><a href="#cb6-19"></a>  stopifnot(!anyNA(snapshot$content_md5))</span>
+<span id="cb6-20"><a href="#cb6-20"></a>  snapshot</span>
+<span id="cb6-21"><a href="#cb6-21"></a>}</span>
+<span id="cb6-22"><a href="#cb6-22"></a>s8_new_wave_table_key_fn &lt;- function(path) {</span>
+<span id="cb6-23"><a href="#cb6-23"></a>  parts &lt;- strsplit(tolower(path), "/", fixed = TRUE)[[1L]]</span>
+<span id="cb6-24"><a href="#cb6-24"></a>  table &lt;- which(grepl("^tableau ", parts))</span>
+<span id="cb6-25"><a href="#cb6-25"></a>  key &lt;- paste(parts[seq.int(if (length(table)) tail(table, 1L) else length(parts), length(parts))], collapse = "/")</span>
+<span id="cb6-26"><a href="#cb6-26"></a>  key &lt;- gsub("janv\\s*-\\s*juin|juillet\\s*-\\s*dec|\\b[0-9]{6}\\b|\\b20[0-9]{2}\\b", " ", key, perl = TRUE)</span>
+<span id="cb6-27"><a href="#cb6-27"></a>  trimws(gsub(" +", " ", gsub(" .csv", ".csv", key, fixed = TRUE)))</span>
+<span id="cb6-28"><a href="#cb6-28"></a>}</span>
+<span id="cb6-29"><a href="#cb6-29"></a>s8_new_wave_schema_fn &lt;- function(paths) {</span>
+<span id="cb6-30"><a href="#cb6-30"></a>  dplyr::bind_rows(lapply(paths, function(path) {</span>
+<span id="cb6-31"><a href="#cb6-31"></a>    relation &lt;- duckplyr::read_parquet_duckdb(path, prudence = "stingy")</span>
+<span id="cb6-32"><a href="#cb6-32"></a>    info &lt;- relation |&gt; dplyr::distinct(`_source_id`, `_source_file`) |&gt; dplyr::collect()</span>
+<span id="cb6-33"><a href="#cb6-33"></a>    stopifnot(nrow(info) == 1L)</span>
+<span id="cb6-34"><a href="#cb6-34"></a>    periods &lt;- relation |&gt; dplyr::distinct(periodcode) |&gt; dplyr::collect()</span>
+<span id="cb6-35"><a href="#cb6-35"></a>    cols &lt;- setdiff(names(relation), c("_source_id", "_source_file", "_source_row", "_source_md5"))</span>
+<span id="cb6-36"><a href="#cb6-36"></a>    tibble::tibble(source_id = info$`_source_id`, source_file = info$`_source_file`,</span>
+<span id="cb6-37"><a href="#cb6-37"></a>      table_key = s8_new_wave_table_key_fn(info$`_source_file`), position = seq_along(cols),</span>
+<span id="cb6-38"><a href="#cb6-38"></a>      source_name = cols, is_metadata = cols %in% s8_new_wave_metadata_fn(),</span>
+<span id="cb6-39"><a href="#cb6-39"></a>      periods = rep(list(sort(unique(periods$periodcode))), length(cols)))</span>
+<span id="cb6-40"><a href="#cb6-40"></a>  }))</span>
+<span id="cb6-41"><a href="#cb6-41"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb7-1"><a href="#cb7-1"></a>s8_new_wave_schema_df &lt;- s8_new_wave_schema_fn(s8_new_wave_raw_parquet)</span>
+<span id="cb7-2"><a href="#cb7-2"></a>s8_new_wave_source_snapshot_df &lt;- s8_new_wave_snapshot_fn(s8_new_wave_raw_parquet, s8_new_wave_source_inventory_df)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</div>
+<div class="manual-check callout callout-style-default callout-warning no-icon callout-titled" title="Survey One File Before Expanding To Every Delivery" data-manual-kind="check">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Warning</span><i class="fa-solid fa-clipboard-check" aria-label="clipboard-check"></i> Check: Survey One File Before Expanding To Every Delivery
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Run these examples in order from the repository root after loading the helpers. They read sources and collect small diagnostics; they do not call <code>tar_make()</code> or persist measurement products. Start with one file; the explicit all-file loops below are for the researcher to run after that first check succeeds.</p>
+<p><strong>1. Inventory the Stagecoach deliveries.</strong> Input discovery and hashing are part of the R graph; there is no additional preparation script. Stage the manifest-declared items on the host from the repository root first. This creates the scoped staging links; it does not execute targets or execute the approved two-delivery production graph.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode numberSource sh number-lines code-with-copy"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1"></a><span class="ex">stagecoach</span> stage <span class="at">--manifest</span> stagecoach_manifest.yml</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1"></a>roots <span class="ot">&lt;-</span> <span class="fu">s8_new_wave_roots_fn</span>()</span>
+<span id="cb9-2"><a href="#cb9-2"></a><span class="fu">transform</span>(roots, <span class="at">available =</span> <span class="fu">dir.exists</span>(root))</span>
+<span id="cb9-3"><a href="#cb9-3"></a><span class="co"># If an item is not yet staged, use the host Stagecoach command below first.</span></span>
+<span id="cb9-4"><a href="#cb9-4"></a>main_inventory <span class="ot">&lt;-</span> <span class="fu">s8_new_wave_inventory_fn</span>(roots[roots<span class="sc">$</span>source_id <span class="sc">==</span> <span class="st">"harvard_2025_2026"</span>, ])</span>
+<span id="cb9-5"><a href="#cb9-5"></a>main_inventory <span class="sc">|&gt;</span> dplyr<span class="sc">::</span><span class="fu">count</span>(delivery, extension, <span class="at">name =</span> <span class="st">"files"</span>)</span>
+<span id="cb9-6"><a href="#cb9-6"></a>main_inventory <span class="sc">|&gt;</span> dplyr<span class="sc">::</span><span class="fu">summarise</span>(<span class="at">files =</span> dplyr<span class="sc">::</span><span class="fu">n</span>(), <span class="at">bytes =</span> <span class="fu">sum</span>(bytes), <span class="at">.by =</span> extension)</span>
+<span id="cb9-7"><a href="#cb9-7"></a><span class="co"># Inspect TXT/readme/support files in the authorized session as well as CSVs.</span></span>
+<span id="cb9-8"><a href="#cb9-8"></a>main_inventory <span class="sc">|&gt;</span> dplyr<span class="sc">::</span><span class="fu">filter</span>(extension <span class="sc">!=</span> <span class="st">"csv"</span>)</span>
+<span id="cb9-9"><a href="#cb9-9"></a></span>
+<span id="cb9-10"><a href="#cb9-10"></a><span class="co"># Inspect July separately even though it is included in the approved scope.</span></span>
+<span id="cb9-11"><a href="#cb9-11"></a>july_inventory <span class="ot">&lt;-</span> <span class="fu">s8_new_wave_inventory_fn</span>(roots[roots<span class="sc">$</span>source_id <span class="sc">==</span> <span class="st">"july_2025_candidate"</span>, ])</span>
+<span id="cb9-12"><a href="#cb9-12"></a>july_inventory <span class="sc">|&gt;</span> dplyr<span class="sc">::</span><span class="fu">count</span>(delivery, extension, <span class="at">name =</span> <span class="st">"files"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>2. Inspect one header, shape, reporting periods, and a bounded metadata sample.</strong> The sample may contain clinic identifiers; keep it out of rendered artifacts.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1"></a>csv_inventory <span class="ot">&lt;-</span> main_inventory <span class="sc">|&gt;</span> dplyr<span class="sc">::</span><span class="fu">filter</span>(extension <span class="sc">==</span> <span class="st">"csv"</span>)</span>
+<span id="cb10-2"><a href="#cb10-2"></a><span class="fu">stopifnot</span>(<span class="fu">nrow</span>(csv_inventory) <span class="sc">&gt;</span> <span class="dv">0</span>L)</span>
+<span id="cb10-3"><a href="#cb10-3"></a>example_path <span class="ot">&lt;-</span> csv_inventory<span class="sc">$</span>path[[<span class="dv">1</span>L]]</span>
+<span id="cb10-4"><a href="#cb10-4"></a>raw <span class="ot">&lt;-</span> <span class="fu">s8_new_wave_read_fn</span>(example_path)</span>
+<span id="cb10-5"><a href="#cb10-5"></a><span class="fu">s8_new_wave_shape_fn</span>(example_path)</span>
+<span id="cb10-6"><a href="#cb10-6"></a>tibble<span class="sc">::</span><span class="fu">tibble</span>(<span class="at">position =</span> <span class="fu">seq_along</span>(<span class="fu">names</span>(raw)), <span class="at">source_name =</span> <span class="fu">names</span>(raw),</span>
+<span id="cb10-7"><a href="#cb10-7"></a>               <span class="at">role =</span> <span class="fu">ifelse</span>(<span class="fu">names</span>(raw) <span class="sc">%in%</span> <span class="fu">s8_new_wave_metadata_fn</span>(), <span class="st">"metadata"</span>, <span class="st">"measurement candidate"</span>))</span>
+<span id="cb10-8"><a href="#cb10-8"></a>raw <span class="sc">|&gt;</span> dplyr<span class="sc">::</span><span class="fu">count</span>(periodcode, periodname, <span class="at">name =</span> <span class="st">"rows"</span>) <span class="sc">|&gt;</span> dplyr<span class="sc">::</span><span class="fu">collect</span>()</span>
+<span id="cb10-9"><a href="#cb10-9"></a>raw <span class="sc">|&gt;</span> dplyr<span class="sc">::</span><span class="fu">select</span>(dplyr<span class="sc">::</span><span class="fu">any_of</span>(<span class="fu">s8_new_wave_metadata_fn</span>())) <span class="sc">|&gt;</span> <span class="fu">head</span>(<span class="dv">5</span>) <span class="sc">|&gt;</span> dplyr<span class="sc">::</span><span class="fu">collect</span>()</span>
+<span id="cb10-10"><a href="#cb10-10"></a>raw <span class="sc">|&gt;</span> dplyr<span class="sc">::</span><span class="fu">count</span>(organisationunitid, periodcode, <span class="at">name =</span> <span class="st">"rows"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb10-11"><a href="#cb10-11"></a>  dplyr<span class="sc">::</span><span class="fu">filter</span>(rows <span class="sc">&gt;</span> <span class="dv">1</span>L) <span class="sc">|&gt;</span> <span class="fu">head</span>(<span class="dv">20</span>) <span class="sc">|&gt;</span> dplyr<span class="sc">::</span><span class="fu">collect</span>()</span>
+<span id="cb10-12"><a href="#cb10-12"></a><span class="co"># Preserve raw measurement tokens for preliminary content inspection.</span></span>
+<span id="cb10-13"><a href="#cb10-13"></a>measurements <span class="ot">&lt;-</span> <span class="fu">setdiff</span>(<span class="fu">names</span>(raw), <span class="fu">s8_new_wave_metadata_fn</span>())</span>
+<span id="cb10-14"><a href="#cb10-14"></a><span class="cf">if</span> (<span class="fu">length</span>(measurements)) {</span>
+<span id="cb10-15"><a href="#cb10-15"></a>  raw <span class="sc">|&gt;</span> dplyr<span class="sc">::</span><span class="fu">count</span>(.data[[measurements[[<span class="dv">1</span>L]]]], <span class="at">sort =</span> <span class="cn">TRUE</span>, <span class="at">name =</span> <span class="st">"rows"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb10-16"><a href="#cb10-16"></a>    <span class="fu">head</span>(<span class="dv">10</span>) <span class="sc">|&gt;</span> dplyr<span class="sc">::</span><span class="fu">collect</span>()</span>
+<span id="cb10-17"><a href="#cb10-17"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>3. Build file-shape and header inventories across the selected scope.</strong> These loops scan the selected CSVs. A differing schema may reflect a changed questionnaire, not a damaged file. Do not union schemas or collapse duplicates before interpreting the differences.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1"></a>shapes <span class="ot">&lt;-</span> purrr<span class="sc">::</span><span class="fu">map_dfr</span>(<span class="fu">seq_len</span>(<span class="fu">nrow</span>(csv_inventory)), <span class="cf">function</span>(i) {</span>
+<span id="cb11-2"><a href="#cb11-2"></a>  dplyr<span class="sc">::</span><span class="fu">bind_cols</span>(csv_inventory[i, <span class="fu">c</span>(<span class="st">"source_id"</span>, <span class="st">"relative_path"</span>, <span class="st">"delivery"</span>)],</span>
+<span id="cb11-3"><a href="#cb11-3"></a>                   <span class="fu">s8_new_wave_shape_fn</span>(csv_inventory<span class="sc">$</span>path[[i]]))</span>
+<span id="cb11-4"><a href="#cb11-4"></a>})</span>
+<span id="cb11-5"><a href="#cb11-5"></a>shapes <span class="sc">|&gt;</span> dplyr<span class="sc">::</span><span class="fu">summarise</span>(<span class="at">files =</span> dplyr<span class="sc">::</span><span class="fu">n</span>(), <span class="at">raw_rows =</span> <span class="fu">sum</span>(rows),</span>
+<span id="cb11-6"><a href="#cb11-6"></a>                          <span class="at">min_columns =</span> <span class="fu">min</span>(columns), <span class="at">max_columns =</span> <span class="fu">max</span>(columns), <span class="at">.by =</span> delivery)</span>
+<span id="cb11-7"><a href="#cb11-7"></a>headers <span class="ot">&lt;-</span> purrr<span class="sc">::</span><span class="fu">map_dfr</span>(<span class="fu">seq_len</span>(<span class="fu">nrow</span>(csv_inventory)), <span class="cf">function</span>(i) {</span>
+<span id="cb11-8"><a href="#cb11-8"></a>  columns <span class="ot">&lt;-</span> <span class="fu">s8_new_wave_header_fn</span>(csv_inventory<span class="sc">$</span>path[[i]])</span>
+<span id="cb11-9"><a href="#cb11-9"></a>  tibble<span class="sc">::</span><span class="fu">tibble</span>(<span class="at">source_id =</span> csv_inventory<span class="sc">$</span>source_id[[i]],</span>
+<span id="cb11-10"><a href="#cb11-10"></a>                 <span class="at">relative_path =</span> csv_inventory<span class="sc">$</span>relative_path[[i]], <span class="at">delivery =</span> csv_inventory<span class="sc">$</span>delivery[[i]],</span>
+<span id="cb11-11"><a href="#cb11-11"></a>                 <span class="at">position =</span> <span class="fu">seq_along</span>(columns), <span class="at">source_name =</span> columns,</span>
+<span id="cb11-12"><a href="#cb11-12"></a>                 <span class="at">is_metadata =</span> columns <span class="sc">%in%</span> <span class="fu">s8_new_wave_metadata_fn</span>())</span>
+<span id="cb11-13"><a href="#cb11-13"></a>})</span>
+<span id="cb11-14"><a href="#cb11-14"></a>headers <span class="sc">|&gt;</span> dplyr<span class="sc">::</span><span class="fu">filter</span>(<span class="sc">!</span>is_metadata) <span class="sc">|&gt;</span></span>
+<span id="cb11-15"><a href="#cb11-15"></a>  dplyr<span class="sc">::</span><span class="fu">summarise</span>(<span class="at">files =</span> dplyr<span class="sc">::</span><span class="fu">n_distinct</span>(relative_path), <span class="at">.by =</span> <span class="fu">c</span>(delivery, source_name))</span>
+<span id="cb11-16"><a href="#cb11-16"></a><span class="co"># Check actual period coverage per file, not just delivery-folder labels.</span></span>
+<span id="cb11-17"><a href="#cb11-17"></a>periods <span class="ot">&lt;-</span> purrr<span class="sc">::</span><span class="fu">map_dfr</span>(<span class="fu">seq_len</span>(<span class="fu">nrow</span>(csv_inventory)), <span class="cf">function</span>(i) {</span>
+<span id="cb11-18"><a href="#cb11-18"></a>  <span class="fu">s8_new_wave_read_fn</span>(csv_inventory<span class="sc">$</span>path[[i]]) <span class="sc">|&gt;</span> dplyr<span class="sc">::</span><span class="fu">count</span>(periodcode, <span class="at">name =</span> <span class="st">"rows"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb11-19"><a href="#cb11-19"></a>    dplyr<span class="sc">::</span><span class="fu">collect</span>() <span class="sc">|&gt;</span> dplyr<span class="sc">::</span><span class="fu">mutate</span>(<span class="at">delivery =</span> csv_inventory<span class="sc">$</span>delivery[[i]],</span>
+<span id="cb11-20"><a href="#cb11-20"></a>                                    <span class="at">relative_path =</span> csv_inventory<span class="sc">$</span>relative_path[[i]])</span>
+<span id="cb11-21"><a href="#cb11-21"></a>})</span>
+<span id="cb11-22"><a href="#cb11-22"></a>periods <span class="sc">|&gt;</span> dplyr<span class="sc">::</span><span class="fu">count</span>(delivery, periodcode, <span class="at">name =</span> <span class="st">"source_files"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>4. Inspect the approved source/reduction policy on page 27.</strong> Which deliveries are distinct versus revisions? Where does July fill a gap or duplicate another delivery? Which periods and clinic levels are actually present? Are IDs/periods missing or malformed? Which headers appear or disappear between deliveries? Are repeated clinic-month keys within a file expected? Do the encoding, null tokens, and reporting grain agree with the R parameters?</p>
+<p>The R pipeline includes both Stagecoach deliveries and maximum reduction. Retain any exceptions as governed review inputs, rather than copying fixed assertions from a collaborator’s historical counts. Page 27 adds token-conversion and mapping audits; page 28 checks identity and spatial compatibility.</p>
+</div>
+</div>
+
+
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="../pipeline/25_page-combine-clinic-metadata.html" class="pagination-link" aria-label="Combine Reporting and Spatial Clinic Metadata">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Combine Reporting and Spatial Clinic Metadata</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="../pipeline/27_page-clean-2025-2026.html" class="pagination-link" aria-label="Clean and Harmonize the 2025–2026 Waves">
+        <span class="nav-page-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">Clean and Harmonize the 2025–2026 Waves</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

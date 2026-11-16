@@ -1,0 +1,283 @@
+---
+title: "Clean and Harmonize the 2025–2026 Waves"
+subtitle: "Port Kai's crosswalk and maximum reduction to audited R targets"
+execute:
+  eval: false
+engine: markdown
+---
+
+This page ports `crosswalk_new_to_old.py`, `final_crosswalk.py`, and
+`build_w3_2025_26.py`. Both deliveries and maximum reduction were authorized
+by the researcher. Python is reference evidence, never a runtime dependency.
+
+::: {.manual-prereq title="Require Pinned Inputs And The Existing Dictionary"}
+
+Require page 26's Stagecoach inventory, raw Parquet branches, and schemas.
+Reference names and `X` positions come from page 21's ZIP-derived schema.
+M1–M5 follow Kai; ambiguous matches, overlapping source-name conflicts, and
+fuzzy suggestions are not applied. Review tables preserve exact source/file/name/period decisions with reviewer
+and reason. They are ordinary tracked R objects declared below. If reviewed
+files are supplied later, Stagecoach should stage them and this notebook
+should read them through file targets.
+
+:::
+
+::: {.manual-procedure title="Port Name Matching And Period Conflicts"}
+
+M1 is exact, M2 the three script-0 renames, M3 unique normalized text,
+M4 a common table wrapper, and M5 a same-table code remainder. Wrappers
+require at least half of a table's names and at most four words, following
+Kai's corrected rule. Demographic-only remainders cannot match. Fuzzy
+similarity supplies review suggestions only. File context is retained.
+
+```{r}
+s9_new_wave_normalize_fn <- function(x) {
+  x <- stringi::stri_replace_all_regex(stringi::stri_trans_nfkd(x), "\\p{M}", "")
+  x <- trimws(gsub("\\s+", " ", tolower(gsub("[–—−]", "-", x)), perl = TRUE))
+  gsub("\\s*,\\s*", ", ", gsub("\\s*-\\s*", "-", x, perl = TRUE), perl = TRUE)
+}
+s9_new_wave_aliases_fn <- function() setNames(
+  c("T13: AME 0-6 mois", "T13: AME 1ère heure", "MIDs pour groupe à risque (migrants/réfugiés/personnes déplacées)"),
+  c("T13: AME premiere heure 0-6 mois", "T13: AME premiere heure 1ère heure",
+    "CHU CHRR T26 MIDs pour groupe à risque (migrants/réfugiés/personnes déplacées)"))
+s9_new_wave_wrappers_fn <- function(x) {
+  x <- unique(x)
+  if(!length(x)) return(character())
+  prefixes <- unlist(lapply(strsplit(s9_new_wave_normalize_fn(x), " ", fixed = TRUE), function(words) {
+    if (length(words) < 2L) return(character())
+    vapply(seq_len(min(4L, length(words)-1L)), function(n) paste(head(words,n), collapse=" "), "")
+  }), use.names=FALSE)
+  if(!length(prefixes)) return(character())
+  counts <- table(prefixes)
+  hits <- names(counts)[counts >= length(x)*0.5]
+  hits[order(-nchar(hits), hits)]
+}
+s9_new_wave_remainders_fn <- function(name, wrappers) {
+  if(!length(wrappers)) return(character())
+  name <- s9_new_wave_normalize_fn(name)
+  hits <- wrappers[startsWith(name, paste0(wrappers," "))]
+  if(!length(hits)) return(character())
+  rem <- substring(name,nchar(hits)+2L)
+  demo <- "^([0-9<>=+.,()/-]*|[0-9].*|masculin|feminin|homme|femme|ans?|mois|j|jours|m|et|plus)$"
+  rem[vapply(strsplit(rem," ",fixed=TRUE),function(words) any(!grepl(demo,words)),TRUE)]
+}
+s9_new_wave_old_headers_fn <- function(paths) {
+  paths <- paths[grepl("/RMA 2024/",paths,fixed=TRUE)]
+  dplyr::bind_rows(lapply(paths,function(path) tibble::tibble(
+    table_key=s8_new_wave_table_key_fn(path),
+    source_name=setdiff(s8_new_wave_header_fn(path),s8_new_wave_metadata_fn())))) |> dplyr::distinct()
+}
+s9_new_wave_candidates_fn <- function(headers, reference, old_headers) {
+  reference <- setdiff(reference,c(s8_new_wave_metadata_fn(),"V1","code_fs","TYPE","FS"))
+  items <- headers |> dplyr::filter(!is_metadata) |> dplyr::distinct(table_key,source_name)
+  aliases <- s9_new_wave_aliases_fn(); normalized <- s9_new_wave_normalize_fn(reference)
+  canonical <- function(x) ifelse(x %in% names(aliases),unname(aliases[x]),x)
+  code <- "^t([0-9]+)(\\s+[ivx]+(-[0-9]+)?)?\\s*:\\s*-?\\s*"
+  dplyr::bind_rows(lapply(seq_len(nrow(items)),function(i) {
+    name <- items$source_name[[i]]; key <- items$table_key[[i]]; norm <- s9_new_wave_normalize_fn(name)
+    hits <- character(); method <- "unmatched"
+    if (name %in% reference) { hits <- name; method <- "M1 exact" }
+    if (!length(hits)) {
+      hits <- intersect(unname(aliases[s9_new_wave_normalize_fn(names(aliases)) == norm]),reference)
+      if (length(hits)) method <- "M2 script0"
+    }
+    if (!length(hits)) { hits <- reference[normalized == norm]; if (length(hits)) method <- "M3 normalised" }
+    if (!length(hits)) {
+      olds <- unique(old_headers$source_name[old_headers$table_key == key])
+      news <- unique(items$source_name[items$table_key == key])
+      rem <- s9_new_wave_remainders_fn(name,s9_new_wave_wrappers_fn(news))
+      if (length(rem)) hits <- unique(canonical(olds[vapply(olds,function(old)
+        any(c(s9_new_wave_normalize_fn(old),s9_new_wave_remainders_fn(old,s9_new_wave_wrappers_fn(olds))) %in% rem),TRUE)]))
+      hits <- intersect(hits,reference); if (length(hits)) method <- "M4 wrapper"
+    }
+    if (!length(hits)) {
+      table <- regmatches(key,regexec("tableau ([0-9]+)",key))[[1L]]
+      if (length(table) == 2L) {
+        codes <- regmatches(normalized,regexec(code,normalized))
+        same_table <- vapply(codes,function(x) length(x)>1L && x[[2L]] == table[[2L]],TRUE)
+        rem <- c(s9_new_wave_remainders_fn(name,s9_new_wave_wrappers_fn(items$source_name[items$table_key == key])),
+                 if (grepl(code,norm)) sub(code,"",norm))
+        hits <- reference[same_table & sub(code,"",normalized) %in% rem]
+        if (length(hits)) method <- "M5 table code"
+      }
+    }
+    hits <- unique(hits); if (length(hits)>1L) method <- "ambiguous"
+    suggestions <- if (!length(hits) && length(reference)) {
+      score <- stringdist::stringsim(norm,normalized,method="jw")
+      paste(head(reference[order(-score,reference)],3L),collapse=" || ")
+    } else paste(hits,collapse=" || ")
+    tibble::tibble(table_key=key,source_name=name,target_name=if(length(hits)==1L) hits else NA_character_,
+      method=method,n_options=length(hits),candidates=suggestions)
+  }))
+}
+s9_new_wave_mapping_fn <- function(headers,candidates,review,reference,config) {
+  stopifnot(all(c("source_id","relative_path","source_name","target_name","valid_from","valid_to","decision","reviewer","reason") %in% names(review)))
+  x <- headers |> dplyr::filter(!is_metadata) |> tidyr::unnest_longer(periods,values_to="periodcode") |>
+    dplyr::mutate(periodcode=suppressWarnings(as.integer(periodcode))) |>
+    dplyr::filter(!is.na(periodcode),periodcode>=config$start_period,periodcode<=config$end_period) |>
+    dplyr::left_join(candidates,by=c("table_key","source_name"),relationship="many-to-one")
+  x$reviewer <- NA_character_; x$review_reason <- NA_character_
+  if (nrow(review)) {
+    stopifnot(all(review$decision %in% c("accept","reject")),
+      all(!is.na(review$reviewer) & nzchar(review$reviewer)),all(!is.na(review$reason) & nzchar(review$reason)),
+      all(!is.na(review$valid_from) & !is.na(review$valid_to)),
+      all(grepl("^[0-9]{4}(0[1-9]|1[0-2])$",c(review$valid_from,review$valid_to))),
+      all(as.integer(review$valid_from)<=as.integer(review$valid_to)))
+    for (i in seq_len(nrow(x))) {
+      relative <- substring(x$source_file[[i]],nchar(x$source_id[[i]])+2L)
+      hits <- which(review$source_name==x$source_name[[i]] & review$source_id %in% c("*",x$source_id[[i]]) &
+        review$relative_path %in% c("*",relative) & as.integer(review$valid_from)<=x$periodcode[[i]] &
+        as.integer(review$valid_to)>=x$periodcode[[i]])
+      if (!length(hits)) next
+      specificity <- (review$source_id[hits]!="*")+(review$relative_path[hits]!="*")
+      hits <- hits[specificity==max(specificity)]
+      if (length(hits)!=1L) stop("Overlapping mapping review decisions.")
+      j <- hits[[1L]]
+      if (review$decision[[j]]=="accept" && !review$target_name[[j]] %in% reference) stop("Reviewed target outside recorded schema.")
+      x$target_name[[i]] <- if(review$decision[[j]]=="accept") review$target_name[[j]] else NA_character_
+      x$method[[i]] <- paste("R reviewed",review$decision[[j]])
+      x$reviewer[[i]] <- review$reviewer[[j]]; x$review_reason[[i]] <- review$reason[[j]]
+    }
+  }
+  x |> dplyr::group_by(periodcode,target_name) |>
+    dplyr::mutate(conflict=!is.na(target_name) & dplyr::n_distinct(source_name)>1L) |>
+    dplyr::ungroup() |> dplyr::mutate(applied=!is.na(target_name) & !conflict)
+}
+```
+
+:::
+
+::: {.manual-procedure title="Parse Tokens And Reduce Measurements In DuckDB"}
+
+Each CSV is unpivoted with null cells retained. Numeric coercion follows Kai,
+with invalid/nonfinite tokens counted per source column. Missing/invalid UID
+or YYYYMM keys fail. Valid out-of-scope periods are counted as exclusions.
+Duplicate measurements take maxima; all-missing maxima remain missing.
+Metadata uses first nonmissing values in source/file/record order, with
+conflicting metadata fields counted rather than hidden.
+
+```{r}
+s9_new_wave_unpivot_sql_fn <- function(path) {
+  source <- s4a_diagnosis_read_fn(path)
+  columns <- s4a_diagnosis_columns_fn(paste("SELECT * FROM",source))
+  stopifnot(all(c("organisationunitid","periodcode","periodname") %in% columns))
+  measured <- setdiff(columns,c(s8_new_wave_metadata_fn(),"_source_id","_source_file","_source_row","_source_md5"))
+  if (!length(measured)) stop("Source CSV has no measurement columns.")
+  paste0("SELECT * FROM (SELECT * FROM ",source,") UNPIVOT INCLUDE NULLS (raw_value FOR source_name IN (",
+    paste(s8_new_wave_identifier_fn(measured),collapse=","),"))")
+}
+s9_new_wave_parse_fn <- function(raw,mapping,config,path) {
+  source <- s4a_diagnosis_read_fn(raw)
+  keys <- s4a_diagnosis_query_fn(paste0("SELECT count(*) FILTER (WHERE organisationunitid IS NULL OR ",
+    "trim(organisationunitid) IN ('','NA') OR periodcode IS NULL OR NOT regexp_full_match(periodcode, ",
+    "'[0-9]{4}(0[1-9]|1[0-2])')) AS invalid_keys, count(*) FILTER (WHERE try_cast(periodcode AS INTEGER) ",
+    "NOT BETWEEN ",config$start_period," AND ",config$end_period,") AS outside_period_rows FROM ",source)) |> dplyr::collect()
+  if (keys$invalid_keys>0) stop("Source has missing/invalid UID or YYYYMM keys; inspect raw input.")
+  file <- s4a_diagnosis_query_fn(paste("SELECT DISTINCT _source_file FROM",source)) |> dplyr::collect()
+  stopifnot(nrow(file)==1L)
+  m <- mapping[mapping$source_file==file$`_source_file`,c("source_name","periodcode","target_name","method","applied")]
+  map_path <- tempfile(fileext=".parquet"); on.exit(unlink(map_path),add=TRUE)
+  duckplyr::compute_parquet(duckplyr::as_duckdb_tibble(unique(as.data.frame(m))),map_path)
+  token <- "trim(raw_value)"
+  missing <- paste0(token," IS NULL OR ",token," IN (",paste(s8_new_wave_literal_fn(config$missing_tokens),collapse=","),")")
+  parsed <- paste0("WITH cells AS (",s9_new_wave_unpivot_sql_fn(raw),") SELECT *, CASE WHEN ",missing,
+    " THEN NULL WHEN isfinite(try_cast(",token," AS DOUBLE)) THEN try_cast(",token,
+    " AS DOUBLE) ELSE NULL END AS value, NOT (",missing,") AND (try_cast(",token,
+    " AS DOUBLE) IS NULL OR NOT isfinite(try_cast(",token," AS DOUBLE))) AS invalid_numeric FROM cells")
+  audit <- sub("[.]parquet$","_numeric_audit.parquet",path); key_audit <- sub("[.]parquet$","_key_audit.parquet",path)
+  s4a_diagnosis_write_fn(paste0("SELECT _source_file,source_name,count(*) AS rows,count(*) FILTER (WHERE value IS NULL) AS missing_values,",
+    "count(*) FILTER (WHERE invalid_numeric) AS invalid_numeric,count(*) FILTER (WHERE value=0) AS zeros,",
+    "count(*) FILTER (WHERE value<0) AS negatives FROM (",parsed,") GROUP BY ALL"),audit)
+  duckplyr::compute_parquet(duckplyr::as_duckdb_tibble(dplyr::bind_cols(file,keys)),key_audit)
+  s4a_diagnosis_write_fn(paste0("SELECT c.organisationunitid,try_cast(c.periodcode AS INTEGER) AS periodcode,",
+    "m.target_name,c.source_name,c.value,c.invalid_numeric,c._source_file,c._source_row FROM (",parsed,") c JOIN ",
+    s4a_diagnosis_read_fn(map_path)," m ON c.source_name=m.source_name AND try_cast(c.periodcode AS INTEGER)=m.periodcode WHERE m.applied"),path)
+  c(typed=path,numeric_audit=audit,key_audit=key_audit)
+}
+s9_new_wave_reduce_fn <- function(paths,path) s4a_diagnosis_write_fn(paste0(
+  "SELECT organisationunitid,periodcode,target_name,max(value) AS value,count(*) AS input_cells,",
+  "count(DISTINCT _source_file) AS source_files,count(DISTINCT value) AS distinct_values,",
+  "count(*) FILTER (WHERE invalid_numeric) AS invalid_numeric FROM ",s4a_diagnosis_read_fn(paths),
+  " GROUP BY organisationunitid,periodcode,target_name"),path)
+s9_new_wave_reports_fn <- function(raw,reduced,schema,config,path) {
+  source <- s4a_diagnosis_read_fn(raw)
+  columns <- s4a_diagnosis_columns_fn(paste("SELECT * FROM",source))
+  present <- intersect(setdiff(s8_new_wave_metadata_fn(),c("organisationunitid","periodcode")),columns)
+  normalized <- function(col) paste0("CASE WHEN trim(",s8_new_wave_identifier_fn(col),") IN (",
+    paste(s8_new_wave_literal_fn(config$missing_tokens),collapse=","),") THEN NULL ELSE ",s8_new_wave_identifier_fn(col)," END")
+  projection <- vapply(present,function(col) paste0("first(",normalized(col),
+    " ORDER BY _source_file,_source_row) FILTER (WHERE ",normalized(col)," IS NOT NULL) AS ",s8_new_wave_identifier_fn(col)),"")
+  conflicts <- vapply(present,function(col) paste0("(count(DISTINCT ",normalized(col),")>1)::INTEGER"),"")
+  codes <- if("organisationunitcode" %in% columns) paste0("count(DISTINCT ",normalized("organisationunitcode"),
+    ") AS source_code_count,list(DISTINCT ",normalized("organisationunitcode")," ORDER BY ",normalized("organisationunitcode"),
+    ") FILTER (WHERE ",normalized("organisationunitcode")," IS NOT NULL) AS source_code_candidates") else
+    "0::INTEGER AS source_code_count,NULL::VARCHAR[] AS source_code_candidates"
+  excluded <- schema$w3_description[schema$w3_colname %in% c("X1708","X1709")]
+  eligibility <- paste0("SELECT organisationunitid,periodcode,bool_or(coalesce(value>0,false) AND target_name NOT IN (",
+    paste(s8_new_wave_literal_fn(c(excluded,"__not_a_measurement__")),collapse=","),")) AS eligible FROM ",
+    s4a_diagnosis_read_fn(reduced)," GROUP BY organisationunitid,periodcode")
+  s4a_diagnosis_write_fn(paste0("WITH meta AS (SELECT organisationunitid,try_cast(periodcode AS INTEGER) AS periodcode,",
+    paste(projection,collapse=","),",",paste(conflicts,collapse="+")," AS metadata_conflicts,",codes,",count(DISTINCT _source_file) AS source_files FROM ",
+    source," WHERE try_cast(periodcode AS INTEGER) BETWEEN ",config$start_period," AND ",config$end_period,
+    " GROUP BY organisationunitid,periodcode), eligible AS (",eligibility,") SELECT m.*,coalesce(e.eligible,false) AS reported ",
+    "FROM meta m LEFT JOIN eligible e USING (organisationunitid,periodcode)"),path)
+}
+```
+
+:::
+
+::: {.manual-procedure title="Declare Audited Handoffs"}
+
+```{r}
+s9_new_wave_mapping_review_df <- tibble::tibble(
+  source_id = character(), relative_path = character(), source_name = character(),
+  target_name = character(), valid_from = character(), valid_to = character(),
+  decision = character(), reviewer = character(), reason = character()
+)
+```
+
+```{r}
+s9_new_wave_old_headers_df <- s9_new_wave_old_headers_fn(s0_clinic_RMA_W3_raw_paths_chr)
+s9_new_wave_mapping_candidates_df <- s9_new_wave_candidates_fn(s8_new_wave_schema_df,
+  s3_w3_column_dictionary_df$w3_description,s9_new_wave_old_headers_df)
+s9_new_wave_mapping_audit_df <- s9_new_wave_mapping_fn(s8_new_wave_schema_df,s9_new_wave_mapping_candidates_df,
+  s9_new_wave_mapping_review_df,s3_w3_column_dictionary_df$w3_description,s8_new_wave_parameters_list)
+s9_new_wave_typed_paths_chr <- s9_new_wave_typed_parquet[!grepl("_audit[.]parquet$",s9_new_wave_typed_parquet)]
+s9_new_wave_numeric_audit_paths_chr <- s9_new_wave_typed_parquet[grepl("_numeric_audit[.]parquet$",s9_new_wave_typed_parquet)]
+s9_new_wave_key_audit_paths_chr <- s9_new_wave_typed_parquet[grepl("_key_audit[.]parquet$",s9_new_wave_typed_parquet)]
+```
+
+```{r}
+#| format: file
+s9_new_wave_mapping_audit_parquet <- s5_healthshed_write_table_fn(s9_new_wave_mapping_audit_df,
+  here::here("data/intermediates/new_wave/mapping_audit.parquet"))
+s9_new_wave_numeric_audit_parquet <- s4a_diagnosis_write_fn(paste("SELECT * FROM",
+  s4a_diagnosis_read_fn(s9_new_wave_numeric_audit_paths_chr)),here::here("data/intermediates/new_wave/numeric_audit.parquet"))
+s9_new_wave_key_audit_parquet <- s4a_diagnosis_write_fn(paste("SELECT * FROM",
+  s4a_diagnosis_read_fn(s9_new_wave_key_audit_paths_chr)),here::here("data/intermediates/new_wave/key_audit.parquet"))
+s9_new_wave_clinic_month_parquet <- s9_new_wave_reduce_fn(s9_new_wave_typed_paths_chr,
+  here::here("data/intermediates/new_wave/clinic_month_measurements.parquet"))
+s9_new_wave_reports_parquet <- s9_new_wave_reports_fn(s8_new_wave_raw_parquet,s9_new_wave_clinic_month_parquet,
+  s3_w3_column_dictionary_df,s8_new_wave_parameters_list,here::here("data/intermediates/new_wave/reports.parquet"))
+s9_new_wave_measurement_availability_parquet <- s4a_diagnosis_write_fn(paste0(
+  "SELECT periodcode,target_name,count(*) AS clinic_months,count(value) AS measured,count(*) FILTER (WHERE value IS NULL) AS missing_values,",
+  "sum(invalid_numeric) AS invalid_numeric,count(*) FILTER (WHERE value=0) AS zeros FROM ",
+  s4a_diagnosis_read_fn(s9_new_wave_clinic_month_parquet)," GROUP BY periodcode,target_name"),
+  here::here("data/intermediates/new_wave/measurement_availability.parquet"))
+```
+
+:::
+
+::: {.manual-check title="Check Matching And Reductions Without Building Targets"}
+
+```sh
+scripts/mdg-healthshed-clinic-data exec Rscript tests/check-new-wave-pipeline.R
+python3 tests/check-manual-structure.py
+```
+
+Fixtures cover ambiguous normalizations, reviewed overrides, overlapping
+names, duplicate maxima, invalid numeric tokens, missing values, zeros,
+and stable metadata selection. After a separately authorized build, inspect
+the mapping, numeric, key-exclusion, availability, and metadata-conflict audits.
+
+:::

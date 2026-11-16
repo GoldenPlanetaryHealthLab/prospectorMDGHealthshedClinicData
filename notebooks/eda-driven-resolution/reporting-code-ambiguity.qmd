@@ -1,0 +1,423 @@
+---
+title: "Investigate Repeated Clinic-Month Reporting Rows"
+subtitle: "Guided EDA of historical clinic codes before deciding a resolution"
+date: 2026-11-04
+toc: true
+execute:
+  eval: false
+  cache: false
+engine: markdown
+---
+
+## The question to resolve
+
+The initial review found 33 clinic-months appearing twice in reporting
+metadata: 66 rows instead of 33. Each pair shares a clinic ID, year, month,
+and source dataset, but carries two historical database codes. Diagnosis
+partitions were uniquely keyed. This notebook helps you investigate **why
+both codes were attached to the same clinic-month and how that fact should
+be represented**. Recompute the counts below; 33 describes the inspected
+2026-11-04 state, not a condition imposed on later data.
+
+Work through one case before generalizing to the rest. A repeated reporting
+row can reflect legitimate historical aliases, an already reviewed code
+correction, or an incorrect clinic association. These explanations require
+different responses. This notebook does not choose a winning code, change
+clinic IDs, or alter diagnosis counts.
+
+The broader [compatibility review](../pipeline/mapping/cleaned-database-compatibility-review.qmd#researcher-guidance-and-decisions)
+records this decision as **D3**. Its recommendation is to choose a primary
+code only when supported by evidence; otherwise retain one reporting row
+with explicit ambiguity and keep the candidate codes in a companion table.
+Use the investigation to evaluate that recommendation.
+
+## 1. Open the completed targets
+
+Run chunks interactively, in order, in the project's configured R runtime
+with the repository as the project root. The container runner opens that
+environment with `scripts/mdg-healthshed-clinic-data`. This page is not wired
+into `_targets.R` or the book's chapter list. Rendering does not execute its
+chunks; no `tar_make()` is needed. If a required target is unavailable, stop
+and identify the missing upstream product before continuing.
+
+Read file paths through `targets`, then read the tracked Parquet files.
+Small audit and review tables can be read directly as ordinary targets.
+This preserves the connection to the pipeline's saved state. Restrict
+row-level results and review notes to the governed workspace, following the
+[data-governance guidance](../03_misc-data-governance.qmd); do not render them
+into the published Manual or commit them as notebook output.
+
+```{r}
+#| label: setup
+library(targets)
+library(dplyr)
+library(tidyr)
+library(duckplyr)
+
+target_store <- here::here("_targets")
+stopifnot(file.exists(file.path(target_store, "meta", "meta")))
+
+reporting_path <- tar_read(s7_clinic_reporting_metadata_parquet, store = target_store)
+identity_path <- tar_read(s2_clinic_ids_parquet, store = target_store)
+reporting <- read_parquet_duckdb(reporting_path, prudence = "stingy") |> collect()
+identity_relation <- read_parquet_duckdb(identity_path, prudence = "stingy")
+saved_key_audit <- tar_read(s7_clinic_reporting_key_audit_df, store = target_store)
+
+key_columns <- c("clinic_ID", "year", "month")
+show_values <- function(x) {
+  paste(sort(unique(ifelse(is.na(x), "<missing>", as.character(x)))), collapse = " | ")
+}
+
+# Retain target hashes and build times with your eventual review evidence.
+target_snapshot <- tar_meta(store = target_store, fields = c(name, data, time)) |>
+  filter(name %in% c("s7_clinic_reporting_metadata_parquet", "s2_clinic_ids_parquet",
+                    "s7_clinic_reporting_key_audit_df"))
+target_snapshot
+```
+
+**Pause and note:** Which saved target state are you reviewing? Have the
+upstream artifacts changed since the compatibility review?
+
+## 2. Establish exactly what repeats
+
+First distinguish repeated keys from identical rows. A key identifies a
+clinic-month. Two records can share that key while disagreeing about its
+historical code. Removing identical rows does not settle that disagreement.
+
+```{r}
+#| label: find-cases
+repeated_keys <- reporting |>
+  count(across(all_of(key_columns)), name = "rows") |>
+  filter(rows > 1L)
+
+# Summarize candidate codes only for repeated keys, not every calendar row.
+cases <- reporting |>
+  semi_join(repeated_keys, by = key_columns) |>
+  summarise(
+    rows = n(), codes = n_distinct(clinic_database_code),
+    sources = n_distinct(fname),
+    candidate_codes = show_values(clinic_database_code),
+    origins = show_values(database_code_origin),
+    .by = all_of(key_columns)
+  ) |>
+  filter(rows > 1L) |>
+  arrange(clinic_ID, year, month) |>
+  mutate(case_id = sprintf("C%03d", row_number()), .before = 1)
+
+case_counts <- tibble(
+  repeated_keys = nrow(cases), affected_rows = sum(cases$rows),
+  extra_rows = sum(cases$rows - 1L),
+  identical_extra_rows = nrow(reporting) - nrow(distinct(reporting))
+)
+case_counts
+cases |> count(rows, codes, sources, origins)
+cases |> count(year, name = "affected_clinic_months")
+cases |> count(clinic_ID, name = "affected_months") |> arrange(desc(affected_months))
+cases
+
+# An audit can also contain invalid keys; inspect those separately from repeats.
+audit_only <- anti_join(saved_key_audit, cases, by = key_columns)
+audit_only
+```
+
+**Interpret before proceeding:** Are these still 33 keys with two distinct
+codes and one source each? Are they concentrated in a few clinics or years?
+If the shape differs, describe the difference before using the original
+33-case explanation. Case labels such as `C001` are navigation aids for this
+session; the durable review key is the clinic ID, year, and month.
+
+## 3. Recover the original and corrected codes for all cases
+
+The identity crosswalk preserves both `cCodeStru` (the historical source code
+used in the reporting join) and `correct_cCodeStru` (the code after reviewed
+corrections). Two different original codes might already resolve to one
+corrected code. Alternatively, two different corrected codes might have
+acquired the same clinic ID later. Find out which patterns occur here.
+
+```{r}
+#| label: compare-code-candidates
+case_keys <- cases |> select(all_of(key_columns))
+affected_identities <- identity_relation |>
+  rename(year = cAnnee, month = cPeriode) |>
+  semi_join(case_keys, by = key_columns) |>
+  collect()
+
+identity_patterns <- affected_identities |>
+  summarise(
+    identity_rows = n(), original_codes = n_distinct(cCodeStru),
+    corrected_codes = n_distinct(correct_cCodeStru),
+    names = n_distinct(cNom), commune_codes = n_distinct(cCodeNiv),
+    types = n_distinct(type_map),
+    original_values = show_values(cCodeStru),
+    corrected_values = show_values(correct_cCodeStru),
+    .by = c(all_of(key_columns), fname)
+  )
+identity_patterns
+identity_patterns |> count(original_codes, corrected_codes, names, commune_codes)
+```
+
+Here `n_distinct()` includes missing as a distinct value, and `<missing>` is
+shown explicitly in the text summaries. A count of one is not necessarily
+one known code. Agreement in names is supporting evidence, not proof of
+clinic identity; similarly, name differences alone do not prove two clinics.
+
+**Your interpretation:** Which cases collapse to a single known corrected
+code? Which retain distinct corrected codes? What evidence would distinguish
+aliases from an incorrect match in each group?
+
+## 4. Choose one case and reproduce the join
+
+Change `case_number` after looking at `cases`. The first case is simply a
+starting point, not an example chosen as representative. Inspect the source
+rows before forming a hypothesis about the whole set.
+
+```{r}
+#| label: choose-case
+case_number <- 1L # Choose a row of `cases` to investigate.
+stopifnot(nrow(cases) > 0L, case_number >= 1L, case_number <= nrow(cases))
+chosen_case <- cases |> slice(case_number)
+chosen_key <- chosen_case |> select(all_of(key_columns))
+chosen_id <- chosen_case$clinic_ID[[1L]]
+chosen_year <- chosen_case$year[[1L]]
+chosen_month <- chosen_case$month[[1L]]
+
+report_rows <- reporting |> semi_join(chosen_key, by = key_columns)
+identity_rows <- affected_identities |>
+  semi_join(chosen_key, by = key_columns) |>
+  semi_join(distinct(report_rows, fname), by = "fname")
+chosen_case
+report_rows
+identity_rows |>
+  select(clinic_ID, year, month, fname, cCodeStru, correct_cCodeStru,
+         cNom, cCodeNiv, type_map, ID_checked)
+
+# Start from one calendar row per retained source, then attach its candidate codes.
+calendar_rows <- report_rows |> distinct(clinic_ID, year, month, fname)
+join_candidates <- identity_rows |>
+  transmute(clinic_ID, year, month, fname,
+            clinic_database_code = as.character(cCodeStru))
+reproduced_join <- calendar_rows |>
+  left_join(join_candidates, by = c(key_columns, "fname"), relationship = "one-to-many")
+tibble(calendar_rows = nrow(calendar_rows), rows_after_code_join = nrow(reproduced_join))
+reproduced_join
+```
+
+**State a causal hypothesis:** Does the calendar start with one report and
+expand only when the historical codes are attached? Which differing identity
+fields, if any, suggest that both source rows are legitimate?
+
+`ID_checked` describes the existing identity review heuristic. It does not
+establish that one particular candidate code is the correct monthly code.
+
+## 5. Look at the same clinic before and after this month
+
+Inspect a short time window for continuity in original codes, corrected
+codes, names, and commune codes. A clean change over time would support a
+different explanation from two codes recurring together in the same months.
+The most frequent code is not automatically authoritative.
+
+```{r}
+#| label: inspect-timeline
+window_months <- 6L # Widen if the initial window hides a transition.
+chosen_month_index <- chosen_year * 12 + chosen_month
+clinic_history <- identity_relation |>
+  filter(clinic_ID == chosen_id) |>
+  rename(year = cAnnee, month = cPeriode) |>
+  collect() |>
+  mutate(month_index = year * 12 + month) |>
+  filter(abs(month_index - chosen_month_index) <= window_months) |>
+  arrange(year, month, fname, cCodeStru, cNom)
+clinic_history
+clinic_history |>
+  summarise(
+    original_codes = show_values(cCodeStru), corrected_codes = show_values(correct_cCodeStru),
+    names = show_values(cNom), commune_codes = show_values(cCodeNiv),
+    .by = c(year, month, fname)
+  ) |>
+  arrange(year, month, fname)
+```
+
+**Your interpretation:** Is there evidence of a code transition, simultaneous
+aliases, a facility upgrade, or unrelated facilities being combined? What
+does the timeline fail to establish? Do not infer a monthly facility history
+from the current cross-sectional spatial metadata.
+
+## 6. Consult the year-specific mapping and reviewed notes
+
+Mappings distinguish old and new 2015 systems. Derive `map_year` using the
+same rule as page 20, including retained source `fname`; joining just on the
+calendar year would lose that distinction. Original and corrected code
+columns have different roles and should remain visible.
+
+```{r}
+#| label: inspect-reviewed-evidence
+mapping_keys <- identity_rows |>
+  mutate(map_year = case_when(
+    year == 2015 & month <= 3 ~ "OLD GESIS 2015",
+    year == 2015 & fname == 1 ~ "OLD GESIS 2015",
+    year == 2015 & month > 3 ~ "NEW GESIS 2015",
+    TRUE ~ as.character(year)
+  )) |>
+  distinct(map_year, correct_cCodeStru)
+
+identity_mapping <- tar_read(s2_gesis_xwalk_identity_df, store = target_store) |>
+  semi_join(mapping_keys, by = c("map_year", "correct_cCodeStru"))
+identity_mapping
+
+candidate_codes <- unique(c(identity_rows$cCodeStru, identity_rows$correct_cCodeStru))
+code_corrections <- tar_read(s2_gesis_code_corrections_df, store = target_store) |>
+  filter(old_code %in% candidate_codes | correct_code %in% candidate_codes)
+code_corrections
+
+multiple_code_reviews <- tar_read(s1_gesis_multiple_codes_reviewed_df, store = target_store) |>
+  filter(cAnnee %in% mapping_keys$map_year) |>
+  filter(code_fs %in% candidate_codes | fs_uid == chosen_id | UID == chosen_id)
+multiple_code_reviews
+```
+
+Read `note`, `change`, the reviewed UID, and clinic-name fields together.
+Page 19 explicitly allows some reviewed multiple-code associations to remain
+as the same clinic. That makes legitimate aliases a hypothesis worth testing,
+not an explanation already established for these 33 cases. An empty review
+result means this query found no matching note, not that a code is wrong.
+
+**Evidence to record:** Which exact reviewed records support your
+interpretation? Do their year, code, and clinic identity match this case?
+Where the notes conflict with the current assignment, identify the conflict
+without editing either source.
+
+## 7. Trace where the clinic identities became equal
+
+If the case still needs explanation, compare saved identity stages. Match
+on the original six source-identity fields so that a change in `clinic_ID`
+does not hide a row from the investigation. The stages below distinguish the
+assignment before shortened-code reconciliation, after that reconciliation,
+and after commune/name reconciliation.
+
+```{r}
+#| label: trace-identity-stages
+source_keys <- c("cNom", "cAnnee", "cPeriode", "cCodeNiv", "cCodeStru", "fname")
+case_source_keys <- identity_rows |>
+  rename(cAnnee = year, cPeriode = month) |>
+  distinct(across(all_of(source_keys)))
+
+stage_targets <- c(
+  before_snip = "s2_clinic_ids_corrected_df",
+  after_snip = "s2_clinic_ids_snip_reconciled_df",
+  after_commune_name = "s2_clinic_ids_reconciled_df"
+)
+stage_trace <- bind_rows(lapply(names(stage_targets), function(stage) {
+  tar_read_raw(stage_targets[[stage]], store = target_store) |>
+    semi_join(case_source_keys, by = source_keys) |>
+    mutate(stage = stage, .before = 1) |>
+    select(stage, all_of(source_keys),
+           any_of(c("correct_cCodeStru", "map_year", "fs_uid", "clinic_ID", "clean_name",
+                    "GESIS_snip", "verified_snip", "commune_name")))
+}))
+stage_trace
+
+# Recover source-file and identity-row provenance without reading tall measurements.
+inventory_path <- tar_read(s2_clinic_months_inventory_parquet, store = target_store)
+source_inventory <- read_parquet_duckdb(inventory_path, prudence = "stingy") |>
+  filter(cAnnee == chosen_year, cPeriode == chosen_month) |>
+  collect() |>
+  mutate(cCodeNiv = as.character(cCodeNiv), cCodeStru = as.character(cCodeStru)) |>
+  semi_join(case_source_keys, by = source_keys)
+source_inventory
+```
+
+**Your interpretation:** Were the IDs already equal before these two
+reconciliation steps? If a step made them equal, which recorded evidence
+supports that step? If they were already equal, inspect the mapping and UID
+fill logic in [page 20](../pipeline/20_page-construct-clinic-ids.qmd) rather
+than attributing the result to a later reconciliation.
+
+The inventory records the monthly member and the first tall-data row for an
+identity. It has already undergone ingestion normalization; it is not a
+byte-for-byte view of the raw codes. Use that provenance if source-file
+inspection is still needed. Different names or codes alone are insufficient
+grounds to reverse an identity decision.
+
+## 8. Separate code ambiguity from repeated diagnosis observations
+
+Read only the key columns of one retained diagnosis partition. The broader
+review established equal key sets across all 40 partitions; this local check
+confirms what the selected case looks like in one current partition. It does
+not test historical value equality or prove that the clinic attribution is
+scientifically correct.
+
+```{r}
+#| label: check-diagnosis-grain
+diagnosis_paths <- unname(tar_read(s4a_diagnosis_output_parquet, store = target_store))
+retained_paths <- diagnosis_paths[!grepl("_wrong_fname[.]parquet$", diagnosis_paths)]
+stopifnot(length(retained_paths) > 0L)
+diagnosis_path <- sort(retained_paths)[[1L]]
+diagnosis_case_keys <- read_parquet_duckdb(diagnosis_path, prudence = "stingy") |>
+  select(clinic_ID, cAnnee, cPeriode, fname) |>
+  rename(year = cAnnee, month = cPeriode) |>
+  semi_join(chosen_key, by = key_columns) |>
+  collect()
+diagnosis_case_keys
+
+inflated_join <- diagnosis_case_keys |>
+  left_join(report_rows, by = c(key_columns, "fname"),
+            suffix = c("_diagnosis", "_reporting"), relationship = "many-to-many")
+tibble(diagnosis_rows = nrow(diagnosis_case_keys),
+       rows_after_joining_unresolved_metadata = nrow(inflated_join))
+```
+
+The permissive relationship above is deliberate: it demonstrates expansion
+in a temporary example. It is not a suggested production join. If your
+evidence questions clinic identity itself, fixing only the metadata label
+would be insufficient; diagnosis attribution must then be reviewed in
+[page 22](../pipeline/22_page-clean-clinic-diagnosis.qmd).
+
+## 9. Record a decision only after inspecting the evidence
+
+Use the following categories as a vocabulary for your interpretation, not
+automatic classification rules. Different cases may require different answers.
+
+| Interpretation | Evidence needed | Proposed response to evaluate |
+| --- | --- | --- |
+| Two source codes were already corrected to the same clinic/code | Matching reviewed corrections, mapping year, and clinic identity | Preserve original codes in provenance; decide whether the scalar reporting field represents an original code or a canonical corrected code. Changing that meaning requires explicit documentation. |
+| Two codes legitimately refer to the same clinic in the same month | Reviewed alias evidence consistent with names, geography, and timing | Keep one reporting row and both candidates in a companion table; use a primary code only if a reviewed rule identifies one. |
+| A clinic identity was incorrectly combined with another | Evidence identifying different facilities and the transformation that combined them | Correct the owning identity rule and reassess downstream diagnosis attribution before repackaging metadata. |
+| The evidence remains inconclusive | Explicit record of what was inspected and what remains unknown | Keep the case unresolved; consider a missing scalar code plus ambiguity status while retaining both candidates. Do not choose the first or most frequent code as a substitute for evidence. |
+
+Create an initially unfilled worksheet. A selected code is optional because
+some valid resolutions do not identify one authoritative original code.
+The code below does not write a file or modify any pipeline product. Run it
+once when ready to review; rerunning it recreates the unfilled worksheet.
+
+```{r}
+#| label: prepare-review-worksheet
+review_worksheet <- cases |>
+  select(case_id, all_of(key_columns), candidate_codes) |>
+  mutate(
+    status = "pending", interpretation = NA_character_, selected_code = NA_character_,
+    proposed_action = NA_character_, evidence = NA_character_,
+    unresolved_question = NA_character_, reviewer = NA_character_,
+    review_date = as.Date(NA_character_)
+  )
+review_worksheet
+```
+
+Record the worksheet as governed review evidence through an agreed tracked
+artifact when the review is ready. Do not put case-specific identifiers or
+notes into committed notebook prose. General conclusions can be recorded below:
+
+- **Observed patterns:** _To be completed by the researcher._
+- **Evidence supporting the interpretation:** _To be completed._
+- **Counterevidence or remaining uncertainty:** _To be completed._
+- **Recommended resolution and scope:** _To be completed._
+- **What would demonstrate the resolution worked?** _To be completed._
+
+Before handing a decision back for implementation, confirm that every
+current repeated key is either reviewed or explicitly unresolved, that
+the meaning of `clinic_database_code` is specified, and that the candidate
+codes and reasoning remain recoverable. If identity assignments change,
+include downstream diagnosis attribution in verification. If only metadata
+representation changes, verify one row per clinic-month, agreement with
+retained report keys, and unchanged diagnosis values. Carry the agreed policy
+back to D3 in the compatibility review; this EDA alone does not approve or
+apply a correction.

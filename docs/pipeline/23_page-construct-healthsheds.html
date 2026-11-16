@@ -1,0 +1,1907 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.38">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>21&nbsp; Reconcile Sectorization and Construct Healthsheds – Madagascar Healthshed Clinic Data Curation Manual</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<link href="../pipeline/24_page-locate-clinics.html" rel="next">
+<link href="../pipeline/22_page-clean-clinic-diagnosis.html" rel="prev">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-15634bcf2e68342d4ad2dfa704d543f6.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-ce6a359591faed5e1251f5606bf1542e.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/quarto-contrib/fontawesome6-6.7.2/all.min.css" rel="stylesheet">
+<link href="../site_libs/quarto-contrib/fontawesome6-6.7.2/latex-fontsize.css" rel="stylesheet">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+
+</head>
+
+<body class="nav-sidebar floating quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../pipeline/16_page-stage-inputs.html">Pipeline</a></li><li class="breadcrumb-item"><a href="../pipeline/23_page-construct-healthsheds.html"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Reconcile Sectorization and Construct Healthsheds</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="../">Madagascar Healthshed Clinic Data Curation Manual</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Madagascar Healthshed Clinic Data Curation Manual</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text">Project Setup</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../00_cover.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Data Curation Manual</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../00_data-guide.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">A Reader’s Guide to the Cleaned Database</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/mapping/legacy-pipeline-map.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Map the Legacy Clinic Pipeline to Notebooks</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../01_misc-render-isolated.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Render In Isolation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../02_misc-project-contract.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Project Contract</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../03_misc-data-governance.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Data Governance</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
+ <span class="menu-text">Infrastructure</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../infrastructure/10_page-direnv.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Local Operator Environment</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../infrastructure/11_page-spack.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Bootstrap the Spack Builder</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../infrastructure/12_page-jinja.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Declare the Native Runtime</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../infrastructure/13_page-jinja-build.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Customize and Build the Runtime</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../infrastructure/14_page-uvr.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Lock and Synchronize R Packages</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../infrastructure/15_page-runner.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Run the Project Environment</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
+ <span class="menu-text">Pipeline</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/16_page-stage-inputs.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Stage Inputs</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/17_page-inspect-source-data.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Inspect Source Data</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/18_page-prep-w3.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Curate the Healthshed Clinic Data</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/19_page-clean-mapping-dhis2-gesis.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">Clean the DHIS2–GESIS Mapping</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/20_page-construct-clinic-ids.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Construct Clinic IDs</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/21_page-construct-diagnosis-dictionary.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Construct the Diagnosis Dictionary</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/22_page-clean-clinic-diagnosis.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Clean and Combine Clinic Diagnoses</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/23_page-construct-healthsheds.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Reconcile Sectorization and Construct Healthsheds</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/24_page-locate-clinics.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Compare and Select Clinic Locations</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/25_page-combine-clinic-metadata.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Combine Reporting and Spatial Clinic Metadata</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/26_page-prep-2025-2026.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Survey and Read the 2025–2026 Deliveries</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/27_page-clean-2025-2026.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">Clean and Harmonize the 2025–2026 Waves</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/28_page-geospatial-aggregate-2025-2026.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">Locate Clinics and Assemble the Final Database</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../pipeline/30_page-validate-migration.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">Validate the Migrated Clinic Pipeline</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../releases/19_page-package-release.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">Inventory and Package a Versioned Release</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../releases/20_page-execute-pipeline.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">29</span>&nbsp; <span class="chapter-title">Execute the Pipeline</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../releases/21_page-verify-release.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">30</span>&nbsp; <span class="chapter-title">Verify an Internal Candidate</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../releases/22_page-export-frictionless.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">31</span>&nbsp; <span class="chapter-title">Export the Frictionless Data Package</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
+        
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../pipeline/16_page-stage-inputs.html">Pipeline</a></li><li class="breadcrumb-item"><a href="../pipeline/23_page-construct-healthsheds.html"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Reconcile Sectorization and Construct Healthsheds</span></a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Reconcile Sectorization and Construct Healthsheds</span></h1>
+<p class="subtitle lead">Implement legacy stage 5 as ordered spatial targets</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<p>This page implements pinned legacy stage 5 at <code>31e0769683e133e136b09ac0c6608c5a12657a9a</code>. Each reviewed correction round is a separate target. Shared FKT assignments, population accounting, missing-value behavior, join multiplicity, and residual non-contiguity retain legacy rules. Spatial handoffs are ordinary <code>sf</code> targets; nonspatial exports use Parquet. The execution page tangles these declarations without executing scientific code during rendering.</p>
+<div class="manual-prereq callout callout-style-default callout-important no-icon callout-titled" title="Require The Reviewed Inputs And Spatial Runtime" data-manual-kind="prereq">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Important</span><i class="fa-solid fa-list-check" aria-label="list-check"></i> Prerequisite: Require The Reviewed Inputs And Spatial Runtime
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Require the tracked <code>s2_clinic_months_raw_zip</code> and <code>s1_gesis_xwalk_clean_df</code>, the rebuilt <a href="../infrastructure/13_page-jinja-build.html">native runtime</a>, and the <a href="../infrastructure/14_page-uvr.html">package acceptance checks</a>. All stage-5 inputs below are exact <code>data/raw/</code> members of that tracked archive; the similarly named <code>from Symphonia/</code> sectorization copy is not substituted. The complete shapefile bundle is extracted privately and read before cleanup. No raw source or reviewed decision is edited.</p>
+</div>
+</div>
+<div class="manual-procedure callout callout-style-default callout-tip no-icon callout-titled" title="Declare Archive, Geometry, And Matching Helpers" data-manual-kind="procedure">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span><i class="fa-solid fa-person-walking" aria-label="person-walking"></i> Procedure: Declare Archive, Geometry, And Matching Helpers
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Helpers are tracked function targets, not an unresolved <code>source()</code> call. The grouped fuzzy join preserves original row identifiers, shared-group boundaries, cosine distance, callback selection, and ties. The topology helper uses the legacy DE-9IM positions 1, 2, 4, and 5; point contact alone does not connect polygons. Relation matrices are decoded directly in R, avoiding a data-frame mutation for every clinic. Population summation likewise uses base-R pair deduplication: attaching duckplyr replaces <code>unique.data.frame()</code>, which would otherwise execute a DuckDB query for each clinic group. As in the legacy script, <code>st_relate()</code> uses planar DE-9IM on the source longitude/latitude coordinates; its repeated informational notice is suppressed, while errors and warnings propagate. Empty healthsheds are constructed with the input CRS.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb1-1"><a href="#cb1-1"></a>s5_healthshed_drop_geometry_fn &lt;- function(x) {</span>
+<span id="cb1-2"><a href="#cb1-2"></a>  x &lt;- as.data.frame(x)</span>
+<span id="cb1-3"><a href="#cb1-3"></a>  x[!vapply(x, inherits, logical(1), what = "sfc")]</span>
+<span id="cb1-4"><a href="#cb1-4"></a>}</span>
+<span id="cb1-5"><a href="#cb1-5"></a>s5_healthshed_runtime_fn &lt;- function() {</span>
+<span id="cb1-6"><a href="#cb1-6"></a>  packages &lt;- c("sf", "s2", "units", "igraph", "fuzzyjoin", "stringdist", "dplyr")</span>
+<span id="cb1-7"><a href="#cb1-7"></a>  list(R = as.character(getRversion()),</span>
+<span id="cb1-8"><a href="#cb1-8"></a>       packages = setNames(vapply(packages, function(x) as.character(utils::packageVersion(x)), character(1)), packages),</span>
+<span id="cb1-9"><a href="#cb1-9"></a>       engines = sf::sf_extSoftVersion(), s2 = sf::sf_use_s2(),</span>
+<span id="cb1-10"><a href="#cb1-10"></a>       native_lock_md5 = if (file.exists("/opt/spack-environment/spack.lock"))</span>
+<span id="cb1-11"><a href="#cb1-11"></a>         unname(tools::md5sum("/opt/spack-environment/spack.lock")) else NA_character_)</span>
+<span id="cb1-12"><a href="#cb1-12"></a>}</span>
+<span id="cb1-13"><a href="#cb1-13"></a>s5_healthshed_read_fn &lt;- function(archive, members, name, kind = "csv", colClasses = NULL, ...) {</span>
+<span id="cb1-14"><a href="#cb1-14"></a>  s3_dictionary_archive_read_fn(archive, members[[name]], function(path) {</span>
+<span id="cb1-15"><a href="#cb1-15"></a>    if (kind == "xlsx") return(readxl::read_excel(path, ...))</span>
+<span id="cb1-16"><a href="#cb1-16"></a>    if (kind == "rds") return(readRDS(path))</span>
+<span id="cb1-17"><a href="#cb1-17"></a>    columns &lt;- names(read.csv(path, nrows = 0L, fileEncoding = "UTF-8"))</span>
+<span id="cb1-18"><a href="#cb1-18"></a>    ids &lt;- columns[grepl("uid|instat|code|pcode", columns, ignore.case = TRUE)]</span>
+<span id="cb1-19"><a href="#cb1-19"></a>    if (is.null(colClasses)) colClasses &lt;- setNames(rep("character", length(ids)), ids)</span>
+<span id="cb1-20"><a href="#cb1-20"></a>    read.csv(path, colClasses = colClasses,</span>
+<span id="cb1-21"><a href="#cb1-21"></a>             fileEncoding = "UTF-8", stringsAsFactors = FALSE, ...)</span>
+<span id="cb1-22"><a href="#cb1-22"></a>  })</span>
+<span id="cb1-23"><a href="#cb1-23"></a>}</span>
+<span id="cb1-24"><a href="#cb1-24"></a>s5_healthshed_shapes_read_fn &lt;- function(archive, members) {</span>
+<span id="cb1-25"><a href="#cb1-25"></a>  unsafe &lt;- startsWith(members, "/") | vapply(strsplit(members, "/", fixed = TRUE), function(x) any(x == ".."), logical(1))</span>
+<span id="cb1-26"><a href="#cb1-26"></a>  stopifnot(length(members) &gt;= 4L, !any(unsafe))</span>
+<span id="cb1-27"><a href="#cb1-27"></a>  required &lt;- c("shp", "shx", "dbf", "prj")</span>
+<span id="cb1-28"><a href="#cb1-28"></a>  stopifnot(all(required %in% tools::file_ext(members)))</span>
+<span id="cb1-29"><a href="#cb1-29"></a>  scratch &lt;- tempfile("healthshed-shapes-")</span>
+<span id="cb1-30"><a href="#cb1-30"></a>  dir.create(scratch)</span>
+<span id="cb1-31"><a href="#cb1-31"></a>  on.exit(unlink(scratch, recursive = TRUE), add = TRUE)</span>
+<span id="cb1-32"><a href="#cb1-32"></a>  paths &lt;- utils::unzip(archive, files = members, exdir = scratch)</span>
+<span id="cb1-33"><a href="#cb1-33"></a>  stopifnot(all(file.exists(paths)))</span>
+<span id="cb1-34"><a href="#cb1-34"></a>  sf::read_sf(paths[endsWith(paths, ".shp")])</span>
+<span id="cb1-35"><a href="#cb1-35"></a>}</span>
+<span id="cb1-36"><a href="#cb1-36"></a>s5_healthshed_adjacency_fn &lt;- function(x, y = x) {</span>
+<span id="cb1-37"><a href="#cb1-37"></a>  # st_relate uses planar DE-9IM even for geographic coordinates, as in stage 5.</span>
+<span id="cb1-38"><a href="#cb1-38"></a>  relation &lt;- suppressMessages(sf::st_relate(x, y))</span>
+<span id="cb1-39"><a href="#cb1-39"></a>  matrix(grepl("1|2", paste0(substr(relation, 1, 2), substr(relation, 4, 5))),</span>
+<span id="cb1-40"><a href="#cb1-40"></a>         nrow = length(x), ncol = length(y))</span>
+<span id="cb1-41"><a href="#cb1-41"></a>}</span>
+<span id="cb1-42"><a href="#cb1-42"></a>s5_healthshed_components_fn &lt;- function(x) {</span>
+<span id="cb1-43"><a href="#cb1-43"></a>  if (!length(x)) return(0L)</span>
+<span id="cb1-44"><a href="#cb1-44"></a>  igraph::components(igraph::graph_from_adjacency_matrix(s5_healthshed_adjacency_fn(x)), mode = "weak")$no</span>
+<span id="cb1-45"><a href="#cb1-45"></a>}</span>
+<span id="cb1-46"><a href="#cb1-46"></a>s5_grouped_stringdist_fulljoin_fn &lt;- function(df1, df2, df1_group, df2_group,</span>
+<span id="cb1-47"><a href="#cb1-47"></a>    df1_stringmatch, df2_stringmatch, dist_method = "cosine", dist_col = "dist",</span>
+<span id="cb1-48"><a href="#cb1-48"></a>    max_dist = 30, ignore_case = TRUE, select_match = identity, unnest = TRUE, ...) {</span>
+<span id="cb1-49"><a href="#cb1-49"></a>  left &lt;- as.data.frame(df1) %&gt;% mutate(df1_id = seq_len(n())) %&gt;% nest_by(across(all_of(df1_group)), .key = "df1")</span>
+<span id="cb1-50"><a href="#cb1-50"></a>  right &lt;- as.data.frame(df2) %&gt;% mutate(df2_id = seq_len(n())) %&gt;% nest_by(across(all_of(df2_group)), .key = "df2")</span>
+<span id="cb1-51"><a href="#cb1-51"></a>  # Legacy full_join + removal of absent nested groups keeps shared groups only.</span>
+<span id="cb1-52"><a href="#cb1-52"></a>  joined &lt;- inner_join(left, right, by = setNames(df2_group, df1_group)) %&gt;%</span>
+<span id="cb1-53"><a href="#cb1-53"></a>    rowwise() %&gt;% mutate(df_new = list(select_match(fuzzyjoin::stringdist_join(</span>
+<span id="cb1-54"><a href="#cb1-54"></a>      df1, df2, by = setNames(df2_stringmatch, df1_stringmatch), mode = "full",</span>
+<span id="cb1-55"><a href="#cb1-55"></a>      method = dist_method, distance_col = dist_col, max_dist = max_dist,</span>
+<span id="cb1-56"><a href="#cb1-56"></a>      ignore_case = ignore_case, ...))))</span>
+<span id="cb1-57"><a href="#cb1-57"></a>  if (unnest) joined &lt;- joined %&gt;% select(-df1, -df2) %&gt;% tidyr::unnest(df_new)</span>
+<span id="cb1-58"><a href="#cb1-58"></a>  joined</span>
+<span id="cb1-59"><a href="#cb1-59"></a>}</span>
+<span id="cb1-60"><a href="#cb1-60"></a>s5_healthshed_refresh_fn &lt;- function(x, lookup, shapes, fallback = FALSE) {</span>
+<span id="cb1-61"><a href="#cb1-61"></a>  x &lt;- s5_healthshed_drop_geometry_fn(x)</span>
+<span id="cb1-62"><a href="#cb1-62"></a>  previous &lt;- if (fallback &amp;&amp; "ADM4_PCODE" %in% names(x)) x$ADM4_PCODE else rep(NA_character_, nrow(x))</span>
+<span id="cb1-63"><a href="#cb1-63"></a>  x$ADM4_PCODE &lt;- NULL</span>
+<span id="cb1-64"><a href="#cb1-64"></a>  x$.s5_previous_pcode &lt;- previous</span>
+<span id="cb1-65"><a href="#cb1-65"></a>  x &lt;- left_join(x, select(lookup, ADM4C_BNGRC, ADM4_PCODE), by = c("fkt_instat_clean" = "ADM4C_BNGRC"))</span>
+<span id="cb1-66"><a href="#cb1-66"></a>  if (fallback) x$ADM4_PCODE &lt;- coalesce(x$ADM4_PCODE, x$.s5_previous_pcode)</span>
+<span id="cb1-67"><a href="#cb1-67"></a>  x$.s5_previous_pcode &lt;- NULL</span>
+<span id="cb1-68"><a href="#cb1-68"></a>  x &lt;- left_join(x, as.data.frame(select(shapes, ADM4_PCODE)), by = "ADM4_PCODE")</span>
+<span id="cb1-69"><a href="#cb1-69"></a>  sf::st_as_sf(x)</span>
+<span id="cb1-70"><a href="#cb1-70"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb2-1"><a href="#cb2-1"></a>s5_healthshed_aggregate_fn &lt;- function(sect_df){</span>
+<span id="cb2-2"><a href="#cb2-2"></a>  empty_geom &lt;- sf::st_sfc(sf::st_geometrycollection(), crs = sf::st_crs(sect_df))</span>
+<span id="cb2-3"><a href="#cb2-3"></a>  sect_df %&gt;%</span>
+<span id="cb2-4"><a href="#cb2-4"></a>    filter(!(is.na(fkt_uid) | fkt_uid == "" | is.na(fkt_name) | fkt_name == "")) %&gt;% #pull(fs_uid) %&gt;% n_distinct()</span>
+<span id="cb2-5"><a href="#cb2-5"></a>    sf::st_as_sf() %&gt;%</span>
+<span id="cb2-6"><a href="#cb2-6"></a>    group_by(fs_uid) %&gt;%</span>
+<span id="cb2-7"><a href="#cb2-7"></a>    # for each clinic, merge the shapefiles</span>
+<span id="cb2-8"><a href="#cb2-8"></a>    summarise(# since some fkt_uid get matched twice, have to take only unique ones</span>
+<span id="cb2-9"><a href="#cb2-9"></a>      # before summing the population</span>
+<span id="cb2-10"><a href="#cb2-10"></a>      fs_pop = sum(fkt_pop_2022[!duplicated(data.frame(</span>
+<span id="cb2-11"><a href="#cb2-11"></a>        fkt_uid = fkt_uid, fkt_pop_2022 = fkt_pop_2022))], na.rm = TRUE),</span>
+<span id="cb2-12"><a href="#cb2-12"></a>      n_fkt_uid = n_distinct(fkt_uid, na.rm = T),</span>
+<span id="cb2-13"><a href="#cb2-13"></a>      n_fkt_instat = n_distinct(fkt_instat_clean, na.rm = T),</span>
+<span id="cb2-14"><a href="#cb2-14"></a>      across(c(region_uid:district_name,</span>
+<span id="cb2-15"><a href="#cb2-15"></a>               starts_with("fs"),</span>
+<span id="cb2-16"><a href="#cb2-16"></a>               n_fkt_instat, n_fkt_uid),</span>
+<span id="cb2-17"><a href="#cb2-17"></a>             function(x){unique(na.omit(x))}),</span>
+<span id="cb2-18"><a href="#cb2-18"></a>      # recalculate the number of components</span>
+<span id="cb2-19"><a href="#cb2-19"></a>      n_components = {if(n_distinct(fkt_instat_clean, na.rm = T) &gt; 0){</span>
+<span id="cb2-20"><a href="#cb2-20"></a>        s5_healthshed_components_fn(geometry[!is.na(fkt_instat_clean)])} else{0}},</span>
+<span id="cb2-21"><a href="#cb2-21"></a>              geometry = {if(n_distinct(fkt_instat_clean, na.rm = T) &gt; 0){</span>
+<span id="cb2-22"><a href="#cb2-22"></a>                sf::st_union(geometry[!is.na(fkt_instat_clean)]) %&gt;%</span>
+<span id="cb2-23"><a href="#cb2-23"></a>                  sf::st_combine() %&gt;%</span>
+<span id="cb2-24"><a href="#cb2-24"></a>                  sf::st_make_valid()} else {empty_geom}}) %&gt;%</span>
+<span id="cb2-25"><a href="#cb2-25"></a>    rowwise() %&gt;%</span>
+<span id="cb2-26"><a href="#cb2-26"></a>    mutate(n_shape = length(geometry[[1]])) %&gt;%</span>
+<span id="cb2-27"><a href="#cb2-27"></a>    ungroup</span>
+<span id="cb2-28"><a href="#cb2-28"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</div>
+<div class="manual-procedure callout callout-style-default callout-tip no-icon callout-titled" title="Select Exact Archived Sources And Record The Geometry Environment" data-manual-kind="procedure">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span><i class="fa-solid fa-person-walking" aria-label="person-walking"></i> Procedure: Select Exact Archived Sources And Record The Geometry Environment
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The execution page records <code>s5_spatial_runtime_list</code> with an always-check cue. Its unchanged value lets downstream targets skip; changed package, engine, or topology settings invalidate the spatial read. It does not change the global s2 setting or projection.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb3-1"><a href="#cb3-1"></a>s5_healthshed_archive_members_list &lt;- {</span>
+<span id="cb3-2"><a href="#cb3-2"></a>  suffixes &lt;- c(</span>
+<span id="cb3-3"><a href="#cb3-3"></a>    lookup = "data/raw/bngrc_codes_lut_pcodes_2018.xlsx",</span>
+<span id="cb3-4"><a href="#cb3-4"></a>    sectorization = "data/raw/mapping GESIS DHIS questions - FKT code instat.csv",</span>
+<span id="cb3-5"><a href="#cb3-5"></a>    duplicates = "data/raw/symphonia_verified/VERIFIER duplicated_fkt_instat_in_sectorisation2022.csv",</span>
+<span id="cb3-6"><a href="#cb3-6"></a>    match1 = "data/raw/symphonia_verified/VERIFIER fkt_name_matching_for_sectorisation2022.csv",</span>
+<span id="cb3-7"><a href="#cb3-7"></a>    manual1 = "data/raw/symphonia_verified/FKT SECTO UNMATCHED.xlsx",</span>
+<span id="cb3-8"><a href="#cb3-8"></a>    manual2 = "data/raw/geolocation/manual_fkt_match.csv",</span>
+<span id="cb3-9"><a href="#cb3-9"></a>    match2 = "data/raw/symphonia_verified/VERIFIER fkt_name_matching_for_sectorisation2022_v2.csv",</span>
+<span id="cb3-10"><a href="#cb3-10"></a>    match3 = "data/raw/symphonia_verified/VERIFIER fkt_name_matching_for_sectorisation2022_v3.csv",</span>
+<span id="cb3-11"><a href="#cb3-11"></a>    sectorization2018 = "data/raw/sectorisation 2018.xlsx",</span>
+<span id="cb3-12"><a href="#cb3-12"></a>    manual3 = "data/raw/geolocation/manual_fkt_match_v2.csv",</span>
+<span id="cb3-13"><a href="#cb3-13"></a>    manual4 = "data/raw/geolocation/manual_fkt_match_v3.csv",</span>
+<span id="cb3-14"><a href="#cb3-14"></a>    unmatch = "data/raw/geolocation/unmatch_fkt.csv",</span>
+<span id="cb3-15"><a href="#cb3-15"></a>    districts = "data/raw/geolocation/sect_ocha_district_match.rds",</span>
+<span id="cb3-16"><a href="#cb3-16"></a>    final_reviews = "data/raw/from Symphonia/Verification secto vs ocha.xlsx",</span>
+<span id="cb3-17"><a href="#cb3-17"></a>    reassignments = "data/raw/symphonia_verified/noncontig_v2_fix.csv")</span>
+<span id="cb3-18"><a href="#cb3-18"></a>  tables &lt;- vapply(suffixes, function(suffix) s3_dictionary_archive_member_fn(s2_clinic_months_raw_zip, suffix), character(1))</span>
+<span id="cb3-19"><a href="#cb3-19"></a>  names &lt;- utils::unzip(s2_clinic_months_raw_zip, list = TRUE)$Name</span>
+<span id="cb3-20"><a href="#cb3-20"></a>  stem &lt;- "data/raw/mdg_adm_bngrc_ocha_20181031_shp/mdg_admbnda_adm4_BNGRC_OCHA_20181031."</span>
+<span id="cb3-21"><a href="#cb3-21"></a>  shapes &lt;- names[grepl(stem, names, fixed = TRUE) &amp; !grepl("(^|/)__MACOSX/", names)]</span>
+<span id="cb3-22"><a href="#cb3-22"></a>  stopifnot(length(shapes) &gt; 0L, !anyDuplicated(basename(shapes)))</span>
+<span id="cb3-23"><a href="#cb3-23"></a>  list(tables = tables, shapes = shapes)</span>
+<span id="cb3-24"><a href="#cb3-24"></a>}</span>
+<span id="cb3-25"><a href="#cb3-25"></a>s5_fkt_shapes_source_sf &lt;- {</span>
+<span id="cb3-26"><a href="#cb3-26"></a>  s5_spatial_runtime_list</span>
+<span id="cb3-27"><a href="#cb3-27"></a>  s5_healthshed_shapes_read_fn(s2_clinic_months_raw_zip, s5_healthshed_archive_members_list$shapes)</span>
+<span id="cb3-28"><a href="#cb3-28"></a>}</span>
+<span id="cb3-29"><a href="#cb3-29"></a>s5_fkt_shapes_valid_sf &lt;- sf::st_make_valid(s5_fkt_shapes_source_sf)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</div>
+<div class="manual-procedure callout callout-style-default callout-tip no-icon callout-titled" title="Split Nosy Mitsio And Reconcile Population" data-manual-kind="procedure">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span><i class="fa-solid fa-person-walking" aria-label="person-walking"></i> Procedure: Split Nosy Mitsio And Reconcile Population
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The initial split retains the source’s first-polygon versus remaining-parts rule. Part order, bounds, areas, source CRS, and library versions are recorded in the split audit. A synthetic test makes the order dependency explicit. Population merging uses the reviewed notes and the source’s sum/NA semantics; shared assignments are not deduplicated across clinics.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb4-1"><a href="#cb4-1"></a>s5_fkt_shapes_initial_sf &lt;- {</span>
+<span id="cb4-2"><a href="#cb4-2"></a>  fkt_shape &lt;- s5_fkt_shapes_valid_sf</span>
+<span id="cb4-3"><a href="#cb4-3"></a>  # Pinned stage 5, lines 61–74.</span>
+<span id="cb4-4"><a href="#cb4-4"></a>  fkt_shape &lt;- rbind(fkt_shape %&gt;%</span>
+<span id="cb4-5"><a href="#cb4-5"></a>                       filter(ADM4_PCODE != "MG71717150005"),</span>
+<span id="cb4-6"><a href="#cb4-6"></a>                     fkt_shape %&gt;%</span>
+<span id="cb4-7"><a href="#cb4-7"></a>                       filter(ADM4_PCODE == "MG71717150005") %&gt;%</span>
+<span id="cb4-8"><a href="#cb4-8"></a>                       sf::st_cast("POLYGON") %&gt;%</span>
+<span id="cb4-9"><a href="#cb4-9"></a>                       mutate(group = (seq_len(n())) &gt; 1) %&gt;%</span>
+<span id="cb4-10"><a href="#cb4-10"></a>                       summarise(across(!geometry, unique),</span>
+<span id="cb4-11"><a href="#cb4-11"></a>                                 geometry = sf::st_union(geometry),</span>
+<span id="cb4-12"><a href="#cb4-12"></a>                                 .by = group) %&gt;%</span>
+<span id="cb4-13"><a href="#cb4-13"></a>                       select(-group) %&gt;%</span>
+<span id="cb4-14"><a href="#cb4-14"></a>                       mutate(ADM4_EN = ifelse(seq_len(n()) == 1,</span>
+<span id="cb4-15"><a href="#cb4-15"></a>                                               ADM4_EN,</span>
+<span id="cb4-16"><a href="#cb4-16"></a>                                               "Nosy Mitsio"),</span>
+<span id="cb4-17"><a href="#cb4-17"></a>                              ADM4_PCODE = paste0(ADM4_PCODE, LETTERS[seq_len(n())])))</span>
+<span id="cb4-18"><a href="#cb4-18"></a>  fkt_shape</span>
+<span id="cb4-19"><a href="#cb4-19"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb5-1"><a href="#cb5-1"></a>s5_fkt_code_lookup_source_df &lt;- s5_healthshed_read_fn(</span>
+<span id="cb5-2"><a href="#cb5-2"></a>  s2_clinic_months_raw_zip, s5_healthshed_archive_members_list$tables, "lookup", "xlsx", sheet = 5) %&gt;%</span>
+<span id="cb5-3"><a href="#cb5-3"></a>  mutate(across(everything(), as.character))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb6-1"><a href="#cb6-1"></a>s5_fkt_code_lookup_initial_df &lt;- {</span>
+<span id="cb6-2"><a href="#cb6-2"></a>  ocha_map &lt;- s5_fkt_code_lookup_source_df</span>
+<span id="cb6-3"><a href="#cb6-3"></a>  # Pinned stage 5, lines 80–88.</span>
+<span id="cb6-4"><a href="#cb6-4"></a>  ocha_map &lt;- ocha_map %&gt;%</span>
+<span id="cb6-5"><a href="#cb6-5"></a>    {rbind(filter(., ADM4_PCODE != "MG71717150005"),</span>
+<span id="cb6-6"><a href="#cb6-6"></a>           filter(., ADM4_PCODE == "MG71717150005") %&gt;%</span>
+<span id="cb6-7"><a href="#cb6-7"></a>             mutate(across(c(ADM4_PCODE, ADM4C_BNGRC),</span>
+<span id="cb6-8"><a href="#cb6-8"></a>                           ~paste0(.x, "A"))),</span>
+<span id="cb6-9"><a href="#cb6-9"></a>           filter(., ADM4_PCODE == "MG71717150005") %&gt;%</span>
+<span id="cb6-10"><a href="#cb6-10"></a>             mutate(across(c(ADM4_PCODE, ADM4C_BNGRC),</span>
+<span id="cb6-11"><a href="#cb6-11"></a>                           ~paste0(.x, "B")),</span>
+<span id="cb6-12"><a href="#cb6-12"></a>                    ADM4_EN = "Nosy Mitsio",</span>
+<span id="cb6-13"><a href="#cb6-13"></a>                    ADM4E_BNGRC = "NOSY MITSIO"))}</span>
+<span id="cb6-14"><a href="#cb6-14"></a>  ocha_map</span>
+<span id="cb6-15"><a href="#cb6-15"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb7-1"><a href="#cb7-1"></a>s5_sectorization_2022_source_df &lt;- {</span>
+<span id="cb7-2"><a href="#cb7-2"></a>  x &lt;- s5_healthshed_read_fn(s2_clinic_months_raw_zip, s5_healthshed_archive_members_list$tables, "sectorization", colClasses = "character")</span>
+<span id="cb7-3"><a href="#cb7-3"></a>  stopifnot(ncol(x) == 17L)</span>
+<span id="cb7-4"><a href="#cb7-4"></a>  names(x) &lt;- c("region_uid", "region_name", "district_uid", "district_name", "commune_uid", "commune_name",</span>
+<span id="cb7-5"><a href="#cb7-5"></a>                "fs_uid", "fs_type", "fs_name", "f_or_nf", "geometry", "fkt_uid", "fkt_instat", "fkt_name",</span>
+<span id="cb7-6"><a href="#cb7-6"></a>                "fkt_pop_2022", "distance_csb_fkt", "transit")</span>
+<span id="cb7-7"><a href="#cb7-7"></a>  x[c("fkt_pop_2022", "distance_csb_fkt", "transit")] &lt;- lapply(x[c("fkt_pop_2022", "distance_csb_fkt", "transit")], type.convert, as.is = TRUE)</span>
+<span id="cb7-8"><a href="#cb7-8"></a>  mutate(x, fkt_instat = ifelse(fkt_instat == "717150005", "717150005A", fkt_instat))</span>
+<span id="cb7-9"><a href="#cb7-9"></a>}</span>
+<span id="cb7-10"><a href="#cb7-10"></a>s5_sectorization_duplicate_reviews_df &lt;- s5_healthshed_read_fn(</span>
+<span id="cb7-11"><a href="#cb7-11"></a>  s2_clinic_months_raw_zip, s5_healthshed_archive_members_list$tables, "duplicates")</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb8-1"><a href="#cb8-1"></a>s5_sectorization_population_reconciled_df &lt;- {</span>
+<span id="cb8-2"><a href="#cb8-2"></a>  sect &lt;- s5_sectorization_2022_source_df</span>
+<span id="cb8-3"><a href="#cb8-3"></a>  dup_fkt_instat &lt;- s5_sectorization_duplicate_reviews_df</span>
+<span id="cb8-4"><a href="#cb8-4"></a>  # Pinned stage 5, lines 111–121.</span>
+<span id="cb8-5"><a href="#cb8-5"></a>  sect_filled &lt;- sect %&gt;%</span>
+<span id="cb8-6"><a href="#cb8-6"></a>    left_join(dup_fkt_instat %&gt;%</span>
+<span id="cb8-7"><a href="#cb8-7"></a>                mutate(fkt_instat = as.character(fkt_instat)) %&gt;%</span>
+<span id="cb8-8"><a href="#cb8-8"></a>                select(fkt_uid, fkt_instat, NOTE)) %&gt;%</span>
+<span id="cb8-9"><a href="#cb8-9"></a>    group_by(fkt_instat) %&gt;%</span>
+<span id="cb8-10"><a href="#cb8-10"></a>    mutate(merge_fkt = any(grepl("keep that row", NOTE)) &amp; any(NOTE == "delete"),</span>
+<span id="cb8-11"><a href="#cb8-11"></a>           fkt_pop_2022 = ifelse(merge_fkt, sum(fkt_pop_2022), fkt_pop_2022)) %&gt;%</span>
+<span id="cb8-12"><a href="#cb8-12"></a>    ungroup %&gt;%</span>
+<span id="cb8-13"><a href="#cb8-13"></a>    filter(!merge_fkt | (merge_fkt &amp; NOTE != "delete")) %&gt;%</span>
+<span id="cb8-14"><a href="#cb8-14"></a>    select(-merge_fkt, -NOTE)</span>
+<span id="cb8-15"><a href="#cb8-15"></a>  # drops 6 rows --&gt; 21880 to 21874</span>
+<span id="cb8-16"><a href="#cb8-16"></a>  sect_filled</span>
+<span id="cb8-17"><a href="#cb8-17"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</div>
+<div class="manual-procedure callout callout-style-default callout-tip no-icon callout-titled" title="Apply The Initial Reviewed Matching Rounds" data-manual-kind="procedure">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span><i class="fa-solid fa-person-walking" aria-label="person-walking"></i> Procedure: Apply The Initial Reviewed Matching Rounds
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The five matching sources are applied in their original precedence. Invalid original codes are cleared, reviewed one-to-many matches retain multiplicity, and direct clinic assignments are appended before attaching geometry.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb9-1"><a href="#cb9-1"></a>s5_sectorization_fkt_match_reviews_list &lt;- {</span>
+<span id="cb9-2"><a href="#cb9-2"></a>  read &lt;- function(key, kind = "csv", ...) s5_healthshed_read_fn(</span>
+<span id="cb9-3"><a href="#cb9-3"></a>    s2_clinic_months_raw_zip, s5_healthshed_archive_members_list$tables, key, kind, ...)</span>
+<span id="cb9-4"><a href="#cb9-4"></a>  list(match_check = read("match1") %&gt;% mutate(NOTE = ifelse(fkt_code_instat %in% c("114110001", "513010005", "204230010", "410050001", "713232001"), "no", NOTE)),</span>
+<span id="cb9-5"><a href="#cb9-5"></a>       manual_match = read("manual1", "xlsx") %&gt;% select(-`...1`) %&gt;% filter(fkt_code_instat != "305170005"),</span>
+<span id="cb9-6"><a href="#cb9-6"></a>       manual2 = read("manual2") %&gt;% mutate(across(starts_with("match"), trimws)) %&gt;% select(-note_reason, -X) %&gt;% unique(),</span>
+<span id="cb9-7"><a href="#cb9-7"></a>       match_check_v2 = read("match2"), match_check_v3 = read("match3"))</span>
+<span id="cb9-8"><a href="#cb9-8"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb10-1"><a href="#cb10-1"></a>s5_sectorization_fkt_matches_df &lt;- {</span>
+<span id="cb10-2"><a href="#cb10-2"></a>  sect_filled &lt;- s5_sectorization_population_reconciled_df</span>
+<span id="cb10-3"><a href="#cb10-3"></a>  ocha_map &lt;- s5_fkt_code_lookup_initial_df</span>
+<span id="cb10-4"><a href="#cb10-4"></a>  match_check &lt;- s5_sectorization_fkt_match_reviews_list$match_check</span>
+<span id="cb10-5"><a href="#cb10-5"></a>  manual_match &lt;- s5_sectorization_fkt_match_reviews_list$manual_match</span>
+<span id="cb10-6"><a href="#cb10-6"></a>  manual2 &lt;- s5_sectorization_fkt_match_reviews_list$manual2</span>
+<span id="cb10-7"><a href="#cb10-7"></a>  match_check_v2 &lt;- s5_sectorization_fkt_match_reviews_list$match_check_v2</span>
+<span id="cb10-8"><a href="#cb10-8"></a>  match_check_v3 &lt;- s5_sectorization_fkt_match_reviews_list$match_check_v3</span>
+<span id="cb10-9"><a href="#cb10-9"></a>  # Pinned stage 5, lines 142–208.</span>
+<span id="cb10-10"><a href="#cb10-10"></a>  sect_filled &lt;- sect_filled %&gt;% #pull(fkt_instat) %&gt;% n_distinct(na.rm = T) # 13687</span>
+<span id="cb10-11"><a href="#cb10-11"></a>    # remove fkt codes that aren't in the instat/ocha shapefile</span>
+<span id="cb10-12"><a href="#cb10-12"></a>    mutate(fkt_instat_clean = ifelse(fkt_instat %in% ocha_map$ADM4C_BNGRC,</span>
+<span id="cb10-13"><a href="#cb10-13"></a>                                     fkt_instat,</span>
+<span id="cb10-14"><a href="#cb10-14"></a>                                     NA)) %&gt;%</span>
+<span id="cb10-15"><a href="#cb10-15"></a>    # pull(fkt_instat_clean) %&gt;% n_distinct(na.rm = T) # 13687 - 19 = 13668 ocha instat codes</span>
+<span id="cb10-16"><a href="#cb10-16"></a>    # add the confirmed matches from the first fuzzy string matching</span>
+<span id="cb10-17"><a href="#cb10-17"></a>    left_join(match_check %&gt;%</span>
+<span id="cb10-18"><a href="#cb10-18"></a>                filter(NOTE == "yes") %&gt;%</span>
+<span id="cb10-19"><a href="#cb10-19"></a>                select(fkt_uid, match1 = fkt_code_instat),</span>
+<span id="cb10-20"><a href="#cb10-20"></a>              by = "fkt_uid",</span>
+<span id="cb10-21"><a href="#cb10-21"></a>              multiple = "all") %&gt;% # nrow</span>
+<span id="cb10-22"><a href="#cb10-22"></a>    # this left join adds 30 nrow because some fkt_uid got matched to multiple instat codes</span>
+<span id="cb10-23"><a href="#cb10-23"></a>    # 21874 --&gt; 21904</span>
+<span id="cb10-24"><a href="#cb10-24"></a>    mutate(fkt_instat_clean = ifelse(is.na(fkt_instat_clean),</span>
+<span id="cb10-25"><a href="#cb10-25"></a>                                     match1,</span>
+<span id="cb10-26"><a href="#cb10-26"></a>                                     fkt_instat_clean)) %&gt;%</span>
+<span id="cb10-27"><a href="#cb10-27"></a>    # pull(fkt_instat_clean) %&gt;% n_distinct(na.rm = T) # + 2536 rows (4 instat fkt are dupliated) --&gt; 162000 instat/ocha codes</span>
+<span id="cb10-28"><a href="#cb10-28"></a>    # matches from Symphonia's manual matcing</span>
+<span id="cb10-29"><a href="#cb10-29"></a>    left_join(manual_match %&gt;%</span>
+<span id="cb10-30"><a href="#cb10-30"></a>                mutate(check = as.numeric(fkt_code_instat)) %&gt;%</span>
+<span id="cb10-31"><a href="#cb10-31"></a>                filter(!is.na(check)) %&gt;%</span>
+<span id="cb10-32"><a href="#cb10-32"></a>                select(fkt_uid, match2 = fkt_code_instat)) %&gt;%</span>
+<span id="cb10-33"><a href="#cb10-33"></a>    mutate(fkt_instat_clean = ifelse(is.na(fkt_instat_clean),</span>
+<span id="cb10-34"><a href="#cb10-34"></a>                                     match2,</span>
+<span id="cb10-35"><a href="#cb10-35"></a>                                     fkt_instat_clean)) %&gt;%</span>
+<span id="cb10-36"><a href="#cb10-36"></a>    # pull(fkt_instat_clean) %&gt;% n_distinct(na.rm = T)  # + 159 rows  --&gt; 16359 instat/ocha codes match</span>
+<span id="cb10-37"><a href="#cb10-37"></a>    # confirmed matches from fuzzy string matching v2</span>
+<span id="cb10-38"><a href="#cb10-38"></a>    left_join(match_check_v2 %&gt;%</span>
+<span id="cb10-39"><a href="#cb10-39"></a>                filter(NOTE == "yes") %&gt;%</span>
+<span id="cb10-40"><a href="#cb10-40"></a>                select(fkt_uid, match3 = fkt_code_instat),</span>
+<span id="cb10-41"><a href="#cb10-41"></a>              multiple = "all") %&gt;% # nrow</span>
+<span id="cb10-42"><a href="#cb10-42"></a>    # this left join adds 14 nrow because some fkt_uid got matched to multiple instat codes</span>
+<span id="cb10-43"><a href="#cb10-43"></a>    # 21904 --&gt; 21918</span>
+<span id="cb10-44"><a href="#cb10-44"></a>    mutate(fkt_instat_clean = ifelse(is.na(fkt_instat_clean),</span>
+<span id="cb10-45"><a href="#cb10-45"></a>                                     match3,</span>
+<span id="cb10-46"><a href="#cb10-46"></a>                                     fkt_instat_clean)) %&gt;%</span>
+<span id="cb10-47"><a href="#cb10-47"></a>    # pull(fkt_instat_clean) %&gt;% n_distinct(na.rm = T)  # + 722 rows (6 instat codes matched to 2 uid) --&gt; 17075 instat codes matched</span>
+<span id="cb10-48"><a href="#cb10-48"></a>    # confirmed matches from fuzzy string matching v3</span>
+<span id="cb10-49"><a href="#cb10-49"></a>    left_join(match_check_v3 %&gt;%</span>
+<span id="cb10-50"><a href="#cb10-50"></a>                filter(note == "yes") %&gt;%</span>
+<span id="cb10-51"><a href="#cb10-51"></a>                select(fkt_uid, match4 = fkt_code_instat),</span>
+<span id="cb10-52"><a href="#cb10-52"></a>              multiple = "all") %&gt;% # nrow</span>
+<span id="cb10-53"><a href="#cb10-53"></a>    # this left join adds 2 nrow because some fkt_uid got matched to multiple instat codes</span>
+<span id="cb10-54"><a href="#cb10-54"></a>    # 21918 --&gt; 21920</span>
+<span id="cb10-55"><a href="#cb10-55"></a>    mutate(fkt_instat_clean = ifelse(is.na(fkt_instat_clean),</span>
+<span id="cb10-56"><a href="#cb10-56"></a>                                     match4,</span>
+<span id="cb10-57"><a href="#cb10-57"></a>                                     fkt_instat_clean)) %&gt;%</span>
+<span id="cb10-58"><a href="#cb10-58"></a>    # pull(fkt_instat_clean) %&gt;% n_distinct(na.rm = T)  # + 134 rows (6 instat codes matched to 2 uid) --&gt; 17203 (of 17465 instat fkt matched)</span>
+<span id="cb10-59"><a href="#cb10-59"></a>    left_join(manual2 %&gt;%</span>
+<span id="cb10-60"><a href="#cb10-60"></a>                filter(match_type == "fkt") %&gt;%</span>
+<span id="cb10-61"><a href="#cb10-61"></a>                select(match5 = fkt_instat_code,</span>
+<span id="cb10-62"><a href="#cb10-62"></a>                       fkt_uid = match_uid)) %&gt;%</span>
+<span id="cb10-63"><a href="#cb10-63"></a>    mutate(fkt_instat_clean = ifelse(is.na(fkt_instat_clean),</span>
+<span id="cb10-64"><a href="#cb10-64"></a>                                     match5,</span>
+<span id="cb10-65"><a href="#cb10-65"></a>                                     fkt_instat_clean)) %&gt;%</span>
+<span id="cb10-66"><a href="#cb10-66"></a>    # pull(fkt_instat_clean) %&gt;% n_distinct(na.rm = T)  # --&gt; 17264 (of 17465 instat fkt matched)</span>
+<span id="cb10-67"><a href="#cb10-67"></a>    rename(fkt_instat_orig = fkt_instat,</span>
+<span id="cb10-68"><a href="#cb10-68"></a>           fs_ll = geometry) %&gt;%</span>
+<span id="cb10-69"><a href="#cb10-69"></a>    mutate(match_type = case_when(fkt_instat_clean == fkt_instat_orig ~ "original",</span>
+<span id="cb10-70"><a href="#cb10-70"></a>                                  fkt_instat_clean == match1 ~ "fuzzy1",</span>
+<span id="cb10-71"><a href="#cb10-71"></a>                                  fkt_instat_clean == match2 ~ "manual",</span>
+<span id="cb10-72"><a href="#cb10-72"></a>                                  fkt_instat_clean == match3 ~ "fuzzy2",</span>
+<span id="cb10-73"><a href="#cb10-73"></a>                                  fkt_instat_clean == match4 ~ "fuzzy3",</span>
+<span id="cb10-74"><a href="#cb10-74"></a>                                  fkt_instat_clean == match5 ~ "manual2")) %&gt;%</span>
+<span id="cb10-75"><a href="#cb10-75"></a>    select(-(match1:match5))</span>
+<span id="cb10-76"><a href="#cb10-76"></a>  # now 21920 rows x 19 col</span>
+<span id="cb10-77"><a href="#cb10-77"></a>  sect_filled</span>
+<span id="cb10-78"><a href="#cb10-78"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb11-1"><a href="#cb11-1"></a>s5_sectorization_direct_matches_df &lt;- {</span>
+<span id="cb11-2"><a href="#cb11-2"></a>  sect_filled &lt;- s5_sectorization_fkt_matches_df</span>
+<span id="cb11-3"><a href="#cb11-3"></a>  manual2 &lt;- s5_sectorization_fkt_match_reviews_list$manual2</span>
+<span id="cb11-4"><a href="#cb11-4"></a>  # Pinned stage 5, lines 211–221.</span>
+<span id="cb11-5"><a href="#cb11-5"></a>  sect_filled &lt;- sect_filled %&gt;% full_join(manual2 %&gt;%</span>
+<span id="cb11-6"><a href="#cb11-6"></a>                               filter(match_type != "fkt") %&gt;%</span>
+<span id="cb11-7"><a href="#cb11-7"></a>                               transmute(fkt_instat_clean = as.character(fkt_instat_code),</span>
+<span id="cb11-8"><a href="#cb11-8"></a>                                         fkt_name = fkt_ocha_name,</span>
+<span id="cb11-9"><a href="#cb11-9"></a>                                         match_type = "manual2",</span>
+<span id="cb11-10"><a href="#cb11-10"></a>                                         fs_uid = match_uid,</span>
+<span id="cb11-11"><a href="#cb11-11"></a>                                         fkt_uid = "none"),</span>
+<span id="cb11-12"><a href="#cb11-12"></a>                             by = c("fs_uid", "fkt_uid", "fkt_instat_clean",</span>
+<span id="cb11-13"><a href="#cb11-13"></a>                                    "fkt_name",</span>
+<span id="cb11-14"><a href="#cb11-14"></a>                                    "match_type"))</span>
+<span id="cb11-15"><a href="#cb11-15"></a>  # 21933 rows</span>
+<span id="cb11-16"><a href="#cb11-16"></a>  sect_filled</span>
+<span id="cb11-17"><a href="#cb11-17"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb12-1"><a href="#cb12-1"></a>s5_sectorization_initial_geometry_sf &lt;- s5_healthshed_refresh_fn(</span>
+<span id="cb12-2"><a href="#cb12-2"></a>  s5_sectorization_direct_matches_df, s5_fkt_code_lookup_initial_df, s5_fkt_shapes_initial_sf)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</div>
+<div class="manual-procedure callout callout-style-default callout-tip no-icon callout-titled" title="Evaluate Topology And Build Initial Healthsheds" data-manual-kind="procedure">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span><i class="fa-solid fa-person-walking" aria-label="person-walking"></i> Procedure: Evaluate Topology And Build Initial Healthsheds
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Isolated assignments are unlinked only when the legacy component-count rule holds; <code>manual2</code> assignments remain protected. Components and the legacy <code>n_shape</code> field are retained separately. No generic disjointness requirement is imposed on healthsheds.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb13"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb13-1"><a href="#cb13-1"></a>s5_sectorization_initial_topology_sf &lt;- {</span>
+<span id="cb13-2"><a href="#cb13-2"></a>  sect_filled &lt;- s5_sectorization_initial_geometry_sf</span>
+<span id="cb13-3"><a href="#cb13-3"></a>  # Pinned stage 5, lines 233–259.</span>
+<span id="cb13-4"><a href="#cb13-4"></a>  sect_filled &lt;- sect_filled %&gt;%</span>
+<span id="cb13-5"><a href="#cb13-5"></a>    group_by(fs_uid) %&gt;%</span>
+<span id="cb13-6"><a href="#cb13-6"></a>    mutate(n_fkt_instat = n_distinct(fkt_instat_clean, na.rm = T),</span>
+<span id="cb13-7"><a href="#cb13-7"></a>           n_adj_fkt = {if(first(n_fkt_instat) == 0) {NA} else{</span>
+<span id="cb13-8"><a href="#cb13-8"></a>             rowSums(s5_healthshed_adjacency_fn(geometry)) - 1}},</span>
+<span id="cb13-9"><a href="#cb13-9"></a>           n_components = {if(first(n_fkt_instat) == 0) {NA} else{</span>
+<span id="cb13-10"><a href="#cb13-10"></a>             s5_healthshed_components_fn(geometry[!is.na(ADM4_PCODE)])}},</span>
+<span id="cb13-11"><a href="#cb13-11"></a>           drop_solo = (sum(n_adj_fkt == 0) == 1) &amp;</span>
+<span id="cb13-12"><a href="#cb13-12"></a>             (sum(n_adj_fkt &gt; 0) &gt; 1) &amp;</span>
+<span id="cb13-13"><a href="#cb13-13"></a>             n_components == 2)</span>
+<span id="cb13-14"><a href="#cb13-14"></a>  sect_filled</span>
+<span id="cb13-15"><a href="#cb13-15"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb14"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb14-1"><a href="#cb14-1"></a>s5_sectorization_contiguity_filtered_sf &lt;- {</span>
+<span id="cb14-2"><a href="#cb14-2"></a>  sect_filled &lt;- s5_sectorization_initial_topology_sf</span>
+<span id="cb14-3"><a href="#cb14-3"></a>  fkt_shape &lt;- s5_fkt_shapes_initial_sf</span>
+<span id="cb14-4"><a href="#cb14-4"></a>  # Pinned stage 5, lines 264–275.</span>
+<span id="cb14-5"><a href="#cb14-5"></a>  sect_filled &lt;- sect_filled %&gt;%</span>
+<span id="cb14-6"><a href="#cb14-6"></a>    ungroup %&gt;%</span>
+<span id="cb14-7"><a href="#cb14-7"></a>    mutate(fkt_instat_matched = fkt_instat_clean,</span>
+<span id="cb14-8"><a href="#cb14-8"></a>           fkt_instat_clean = case_when(drop_solo &amp; n_adj_fkt == 0 &amp; match_type != "manual2" ~ NA,</span>
+<span id="cb14-9"><a href="#cb14-9"></a>                                          T ~ fkt_instat_clean),</span>
+<span id="cb14-10"><a href="#cb14-10"></a>           ADM4_PCODE = case_when(drop_solo &amp; n_adj_fkt == 0 &amp; match_type != "manual2" ~ NA,</span>
+<span id="cb14-11"><a href="#cb14-11"></a>                                  T ~ ADM4_PCODE)) %&gt;%</span>
+<span id="cb14-12"><a href="#cb14-12"></a>    # drop, then rejoin the geometry to remove the geometries for the ones you want to unmatch</span>
+<span id="cb14-13"><a href="#cb14-13"></a>    s5_healthshed_drop_geometry_fn() %&gt;%</span>
+<span id="cb14-14"><a href="#cb14-14"></a>    left_join(fkt_shape %&gt;% select(ADM4_PCODE))</span>
+<span id="cb14-15"><a href="#cb14-15"></a></span>
+<span id="cb14-16"><a href="#cb14-16"></a>  sf::st_as_sf(sect_filled, sf_column_name = "geometry")</span>
+<span id="cb14-17"><a href="#cb14-17"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb15"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb15-1"><a href="#cb15-1"></a>s5_healthshed_clinic_initial_sf &lt;- s5_healthshed_aggregate_fn(s5_sectorization_contiguity_filtered_sf)</span>
+<span id="cb15-2"><a href="#cb15-2"></a>s5_fkt_unmatched_initial_sf &lt;- s5_fkt_shapes_initial_sf %&gt;%</span>
+<span id="cb15-3"><a href="#cb15-3"></a>  filter(!ADM4_PCODE %in% s5_sectorization_contiguity_filtered_sf$ADM4_PCODE) %&gt;%</span>
+<span id="cb15-4"><a href="#cb15-4"></a>  left_join(select(s5_fkt_code_lookup_initial_df, ADM4_PCODE, ADM4C_BNGRC), by = "ADM4_PCODE")</span>
+<span id="cb15-5"><a href="#cb15-5"></a>s5_sectorization_2018_source_df &lt;- s5_healthshed_read_fn(</span>
+<span id="cb15-6"><a href="#cb15-6"></a>  s2_clinic_months_raw_zip, s5_healthshed_archive_members_list$tables, "sectorization2018", "xlsx", skip = 2) %&gt;%</span>
+<span id="cb15-7"><a href="#cb15-7"></a>  rename_with(function(x) gsub(" ", "_", x)) %&gt;% mutate(across(everything(), as.character)) %&gt;%</span>
+<span id="cb15-8"><a href="#cb15-8"></a>  mutate(row_id = seq_len(n())) %&gt;% select(-(`Population_totale_année_2018/FKT`:`0.076`))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</div>
+<div class="manual-procedure callout callout-style-default callout-tip no-icon callout-titled" title="Recover Historical Assignments And Apply Follow-Up Reviews" data-manual-kind="procedure">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span><i class="fa-solid fa-person-walking" aria-label="person-walking"></i> Procedure: Recover Historical Assignments And Apply Follow-Up Reviews
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The historical bridge reuses the cleaned 2018 GESIS mapping. Candidate geometry and adjacency evidence precede the grouped minimum-distance match; ties and the inclusive cosine cutoff <code>&lt;= 0.11</code> are preserved. Follow-up manual unmatches are applied before manual fills, and geometry is refreshed.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb16"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb16-1"><a href="#cb16-1"></a>s5_sectorization_2018_candidates_sf &lt;- {</span>
+<span id="cb16-2"><a href="#cb16-2"></a>  sect2018 &lt;- s5_sectorization_2018_source_df</span>
+<span id="cb16-3"><a href="#cb16-3"></a>  mapping &lt;- s1_gesis_xwalk_clean_df</span>
+<span id="cb16-4"><a href="#cb16-4"></a>  unmatched_fkt &lt;- s5_fkt_unmatched_initial_sf</span>
+<span id="cb16-5"><a href="#cb16-5"></a>  ocha_map &lt;- s5_fkt_code_lookup_initial_df</span>
+<span id="cb16-6"><a href="#cb16-6"></a>  sheds &lt;- s5_healthshed_clinic_initial_sf</span>
+<span id="cb16-7"><a href="#cb16-7"></a>  # Pinned stage 5, lines 318–347.</span>
+<span id="cb16-8"><a href="#cb16-8"></a>  matches2018 &lt;- sect2018 %&gt;%</span>
+<span id="cb16-9"><a href="#cb16-9"></a>    # add clinic UID to the 2018 sect</span>
+<span id="cb16-10"><a href="#cb16-10"></a>    left_join(mapping %&gt;%</span>
+<span id="cb16-11"><a href="#cb16-11"></a>                filter(cAnnee == "2018") %&gt;%</span>
+<span id="cb16-12"><a href="#cb16-12"></a>                transmute(code_fs = as.character(code_fs),</span>
+<span id="cb16-13"><a href="#cb16-13"></a>                          fs_uid),</span>
+<span id="cb16-14"><a href="#cb16-14"></a>              by = c("Code_GESIS" = "code_fs")) %&gt;%</span>
+<span id="cb16-15"><a href="#cb16-15"></a>    # join in the unmatched fkt so we can limit to those</span>
+<span id="cb16-16"><a href="#cb16-16"></a>    left_join(unmatched_fkt %&gt;%</span>
+<span id="cb16-17"><a href="#cb16-17"></a>                left_join(ocha_map %&gt;%</span>
+<span id="cb16-18"><a href="#cb16-18"></a>                            select(ADM4_PCODE, ADM4C_BNGRC)) %&gt;%</span>
+<span id="cb16-19"><a href="#cb16-19"></a>                select(ADM4C_BNGRC, ADM4_EN, ADM2_EN, ADM1_EN),</span>
+<span id="cb16-20"><a href="#cb16-20"></a>              by = c("Code_Fkt_BNGRC" = "ADM4C_BNGRC")) %&gt;%</span>
+<span id="cb16-21"><a href="#cb16-21"></a>    # limit to unmatched BNGRC codes</span>
+<span id="cb16-22"><a href="#cb16-22"></a>    filter(!is.na(ADM4_EN)) %&gt;%</span>
+<span id="cb16-23"><a href="#cb16-23"></a>    select(-(`Statut_(Pub_ou_Privé)`:`Accessibilté\n(nb_mois_par_an)`)) %&gt;%</span>
+<span id="cb16-24"><a href="#cb16-24"></a>    rename(fkt_geometry = geometry) %&gt;%</span>
+<span id="cb16-25"><a href="#cb16-25"></a>    # add on the fs geometry so we can plot them together</span>
+<span id="cb16-26"><a href="#cb16-26"></a>    left_join(sheds %&gt;% rename(shed_geometry = geometry))</span>
+<span id="cb16-27"><a href="#cb16-27"></a></span>
+<span id="cb16-28"><a href="#cb16-28"></a>  matches2018 &lt;- matches2018 %&gt;%</span>
+<span id="cb16-29"><a href="#cb16-29"></a>    rowwise %&gt;%</span>
+<span id="cb16-30"><a href="#cb16-30"></a>    mutate(relate_str = sf::st_relate(fkt_geometry, shed_geometry),</span>
+<span id="cb16-31"><a href="#cb16-31"></a>           fkt_adj = relate_str %&gt;%</span>
+<span id="cb16-32"><a href="#cb16-32"></a>             {paste0(str_sub(., 1,2),</span>
+<span id="cb16-33"><a href="#cb16-33"></a>                     str_sub(., 4,5))} %&gt;%</span>
+<span id="cb16-34"><a href="#cb16-34"></a>             grepl(pattern = "1|2")) %&gt;%</span>
+<span id="cb16-35"><a href="#cb16-35"></a>    ungroup %&gt;%</span>
+<span id="cb16-36"><a href="#cb16-36"></a>    # also add on information about which of the fs aren't in the healsheds geom</span>
+<span id="cb16-37"><a href="#cb16-37"></a>    mutate(no_shed = fs_uid %in% sheds$fs_uid == FALSE)</span>
+<span id="cb16-38"><a href="#cb16-38"></a>  sf::st_as_sf(matches2018, sf_column_name = "fkt_geometry")</span>
+<span id="cb16-39"><a href="#cb16-39"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb17"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb17-1"><a href="#cb17-1"></a>s5_sectorization_2018_matches_sf &lt;- {</span>
+<span id="cb17-2"><a href="#cb17-2"></a>  matches2018 &lt;- as.data.frame(s5_sectorization_2018_candidates_sf)</span>
+<span id="cb17-3"><a href="#cb17-3"></a>  sect_filled &lt;- as.data.frame(s5_sectorization_contiguity_filtered_sf)</span>
+<span id="cb17-4"><a href="#cb17-4"></a>  # Pinned stage 5, lines 349–369.</span>
+<span id="cb17-5"><a href="#cb17-5"></a>  matches2018_in2022 &lt;- matches2018 %&gt;%</span>
+<span id="cb17-6"><a href="#cb17-6"></a>    filter(fkt_adj | no_shed) %&gt;%</span>
+<span id="cb17-7"><a href="#cb17-7"></a>    filter(!is.na(fs_uid)) %&gt;% #pull(fs_uid) %&gt;% n_distinct 56 potential matches</span>
+<span id="cb17-8"><a href="#cb17-8"></a>    select(fs_uid, Code_GESIS, ends_with("geometry"), no_shed, n_components,</span>
+<span id="cb17-9"><a href="#cb17-9"></a>           Nom_Fokontany_par_CSB, Code_Fkt_BNGRC) %&gt;%</span>
+<span id="cb17-10"><a href="#cb17-10"></a>    distinct %&gt;%</span>
+<span id="cb17-11"><a href="#cb17-11"></a>    # join information about which have a close-ish string match in that fs_uid in 2022 sect</span>
+<span id="cb17-12"><a href="#cb17-12"></a>    {left_join(.,</span>
+<span id="cb17-13"><a href="#cb17-13"></a>               s5_grouped_stringdist_fulljoin_fn(select(., fs_uid, Nom_Fokontany_par_CSB),</span>
+<span id="cb17-14"><a href="#cb17-14"></a>                                           sect_filled %&gt;%</span>
+<span id="cb17-15"><a href="#cb17-15"></a>                                             filter(is.na(fkt_instat_clean)) %&gt;%</span>
+<span id="cb17-16"><a href="#cb17-16"></a>                                             select(fkt_instat_clean, fs_uid, fkt_uid,</span>
+<span id="cb17-17"><a href="#cb17-17"></a>                                                    fkt_name2022 = fkt_name,</span>
+<span id="cb17-18"><a href="#cb17-18"></a>                                                    commune_name, district_name) %&gt;%</span>
+<span id="cb17-19"><a href="#cb17-19"></a>                                             mutate(sect2022 = T),</span>
+<span id="cb17-20"><a href="#cb17-20"></a>                                           "fs_uid", "fs_uid",</span>
+<span id="cb17-21"><a href="#cb17-21"></a>                                           "Nom_Fokontany_par_CSB", "fkt_name2022",</span>
+<span id="cb17-22"><a href="#cb17-22"></a>                                           select_match = (function(df) {group_by(df, df1_id) %&gt;%</span>
+<span id="cb17-23"><a href="#cb17-23"></a>                                               filter(dist == min(dist))})) %&gt;%</span>
+<span id="cb17-24"><a href="#cb17-24"></a>                 filter(dist &lt;= 0.11) %&gt;%</span>
+<span id="cb17-25"><a href="#cb17-25"></a>                 mutate(good_match = T))}</span>
+<span id="cb17-26"><a href="#cb17-26"></a>  sf::st_as_sf(matches2018_in2022, sf_column_name = "fkt_geometry")</span>
+<span id="cb17-27"><a href="#cb17-27"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb18"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb18-1"><a href="#cb18-1"></a>s5_sectorization_historical_filled_sf &lt;- {</span>
+<span id="cb18-2"><a href="#cb18-2"></a>  sect_filled &lt;- s5_sectorization_contiguity_filtered_sf</span>
+<span id="cb18-3"><a href="#cb18-3"></a>  matches2018_in2022 &lt;- as.data.frame(s5_sectorization_2018_matches_sf)</span>
+<span id="cb18-4"><a href="#cb18-4"></a>  # Pinned stage 5, lines 391–404.</span>
+<span id="cb18-5"><a href="#cb18-5"></a>  sect_filled_v2 &lt;- sect_filled %&gt;%</span>
+<span id="cb18-6"><a href="#cb18-6"></a>    left_join(matches2018_in2022 %&gt;%</span>
+<span id="cb18-7"><a href="#cb18-7"></a>                # filter(fs_uid %in% c("MrABDSyBJVd", "MXZMrSow5Oo",</span>
+<span id="cb18-8"><a href="#cb18-8"></a>                #                      "Z0ywXaDzPRm", "JSWV4zCHVlg") == FALSE) %&gt;%</span>
+<span id="cb18-9"><a href="#cb18-9"></a>                filter(!is.na(good_match)) %&gt;%</span>
+<span id="cb18-10"><a href="#cb18-10"></a>                select(fkt_uid,</span>
+<span id="cb18-11"><a href="#cb18-11"></a>                       match_sect2018 = Code_Fkt_BNGRC),</span>
+<span id="cb18-12"><a href="#cb18-12"></a>              by = "fkt_uid") %&gt;%</span>
+<span id="cb18-13"><a href="#cb18-13"></a>    mutate(fkt_instat_clean = ifelse(is.na(fkt_instat_clean),</span>
+<span id="cb18-14"><a href="#cb18-14"></a>                                     match_sect2018,</span>
+<span id="cb18-15"><a href="#cb18-15"></a>                                     fkt_instat_clean),</span>
+<span id="cb18-16"><a href="#cb18-16"></a>           match_type = ifelse(!is.na(match_sect2018),</span>
+<span id="cb18-17"><a href="#cb18-17"></a>                               "sect2018",</span>
+<span id="cb18-18"><a href="#cb18-18"></a>                               match_type))</span>
+<span id="cb18-19"><a href="#cb18-19"></a>  sect_filled_v2</span>
+<span id="cb18-20"><a href="#cb18-20"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb19"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb19-1"><a href="#cb19-1"></a>s5_sectorization_followup_reviews_list &lt;- {</span>
+<span id="cb19-2"><a href="#cb19-2"></a>  read &lt;- function(key) s5_healthshed_read_fn(s2_clinic_months_raw_zip, s5_healthshed_archive_members_list$tables, key)</span>
+<span id="cb19-3"><a href="#cb19-3"></a>  list(manual3 = unique(read("manual3")), manual4 = read("manual4"), unmatch = read("unmatch"))</span>
+<span id="cb19-4"><a href="#cb19-4"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb20"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb20-1"><a href="#cb20-1"></a>s5_sectorization_reviewed_v2_sf &lt;- {</span>
+<span id="cb20-2"><a href="#cb20-2"></a>  sect_filled_v2 &lt;- as.data.frame(s5_sectorization_historical_filled_sf)</span>
+<span id="cb20-3"><a href="#cb20-3"></a>  manual3 &lt;- s5_sectorization_followup_reviews_list$manual3</span>
+<span id="cb20-4"><a href="#cb20-4"></a>  manual4 &lt;- s5_sectorization_followup_reviews_list$manual4</span>
+<span id="cb20-5"><a href="#cb20-5"></a>  unmatch &lt;- s5_sectorization_followup_reviews_list$unmatch</span>
+<span id="cb20-6"><a href="#cb20-6"></a>  ocha_map &lt;- s5_fkt_code_lookup_initial_df</span>
+<span id="cb20-7"><a href="#cb20-7"></a>  fkt_shape &lt;- s5_fkt_shapes_initial_sf</span>
+<span id="cb20-8"><a href="#cb20-8"></a>  # Pinned stage 5, lines 412–459.</span>
+<span id="cb20-9"><a href="#cb20-9"></a>  sect_filled_v2 &lt;- sect_filled_v2 %&gt;%</span>
+<span id="cb20-10"><a href="#cb20-10"></a>    left_join(unmatch %&gt;%</span>
+<span id="cb20-11"><a href="#cb20-11"></a>                transmute(fkt_instat_clean = as.character(fkt_instat_code),</span>
+<span id="cb20-12"><a href="#cb20-12"></a>                          fkt_uid,</span>
+<span id="cb20-13"><a href="#cb20-13"></a>                          unmatch = T)) %&gt;%</span>
+<span id="cb20-14"><a href="#cb20-14"></a>    mutate(fkt_instat_clean = case_when(unmatch == T ~ NA,</span>
+<span id="cb20-15"><a href="#cb20-15"></a>                                        T ~ fkt_instat_clean)) %&gt;%</span>
+<span id="cb20-16"><a href="#cb20-16"></a>    left_join(manual3 %&gt;% filter(match_type == "fkt") %&gt;%</span>
+<span id="cb20-17"><a href="#cb20-17"></a>                select(match6 = fkt_instat_code,</span>
+<span id="cb20-18"><a href="#cb20-18"></a>                       fkt_uid = match_uid)) %&gt;%</span>
+<span id="cb20-19"><a href="#cb20-19"></a>    mutate(fkt_instat_clean = ifelse(is.na(fkt_instat_clean),</span>
+<span id="cb20-20"><a href="#cb20-20"></a>                                     match6,</span>
+<span id="cb20-21"><a href="#cb20-21"></a>                                     fkt_instat_clean)) %&gt;%</span>
+<span id="cb20-22"><a href="#cb20-22"></a>    left_join(manual4 %&gt;% filter(match_type == "fkt") %&gt;%</span>
+<span id="cb20-23"><a href="#cb20-23"></a>                select(match7 = fkt_instat_code,</span>
+<span id="cb20-24"><a href="#cb20-24"></a>                       fkt_uid = match_uid)) %&gt;%</span>
+<span id="cb20-25"><a href="#cb20-25"></a>    mutate(fkt_instat_clean = ifelse(is.na(fkt_instat_clean),</span>
+<span id="cb20-26"><a href="#cb20-26"></a>                                     match7,</span>
+<span id="cb20-27"><a href="#cb20-27"></a>                                     fkt_instat_clean),</span>
+<span id="cb20-28"><a href="#cb20-28"></a>           match_type = case_when(fkt_instat_clean == match6 ~ "manual3",</span>
+<span id="cb20-29"><a href="#cb20-29"></a>                                  fkt_instat_clean == match7 ~ "manual4",</span>
+<span id="cb20-30"><a href="#cb20-30"></a>                                  T ~ match_type))  %&gt;%</span>
+<span id="cb20-31"><a href="#cb20-31"></a>    full_join(manual3 %&gt;%</span>
+<span id="cb20-32"><a href="#cb20-32"></a>                filter(match_type != "fkt") %&gt;%</span>
+<span id="cb20-33"><a href="#cb20-33"></a>                transmute(fkt_instat_clean = as.character(fkt_instat_code),</span>
+<span id="cb20-34"><a href="#cb20-34"></a>                          fkt_name = "-",</span>
+<span id="cb20-35"><a href="#cb20-35"></a>                          match_type = "manual3",</span>
+<span id="cb20-36"><a href="#cb20-36"></a>                          fs_uid = match_uid,</span>
+<span id="cb20-37"><a href="#cb20-37"></a>                          fkt_uid = "none"),</span>
+<span id="cb20-38"><a href="#cb20-38"></a>              by = c("fs_uid", "fkt_uid", "fkt_instat_clean",</span>
+<span id="cb20-39"><a href="#cb20-39"></a>                     "fkt_name",</span>
+<span id="cb20-40"><a href="#cb20-40"></a>                     "match_type")) %&gt;%</span>
+<span id="cb20-41"><a href="#cb20-41"></a>    full_join(manual4 %&gt;%</span>
+<span id="cb20-42"><a href="#cb20-42"></a>                filter(match_type != "fkt") %&gt;%</span>
+<span id="cb20-43"><a href="#cb20-43"></a>                transmute(fkt_instat_clean = as.character(fkt_instat_code),</span>
+<span id="cb20-44"><a href="#cb20-44"></a>                          fkt_name = "-",</span>
+<span id="cb20-45"><a href="#cb20-45"></a>                          match_type = "manual4",</span>
+<span id="cb20-46"><a href="#cb20-46"></a>                          fs_uid = match_uid,</span>
+<span id="cb20-47"><a href="#cb20-47"></a>                          fkt_uid = "none"),</span>
+<span id="cb20-48"><a href="#cb20-48"></a>              by = c("fs_uid", "fkt_uid", "fkt_instat_clean",</span>
+<span id="cb20-49"><a href="#cb20-49"></a>                     "fkt_name",</span>
+<span id="cb20-50"><a href="#cb20-50"></a>                     "match_type"))</span>
+<span id="cb20-51"><a href="#cb20-51"></a></span>
+<span id="cb20-52"><a href="#cb20-52"></a>  sect_filled_v2 &lt;- sect_filled_v2 %&gt;%</span>
+<span id="cb20-53"><a href="#cb20-53"></a>    select(-c(ADM4_PCODE, geometry)) %&gt;%</span>
+<span id="cb20-54"><a href="#cb20-54"></a>    left_join(ocha_map %&gt;% select(ADM4C_BNGRC, ADM4_PCODE),</span>
+<span id="cb20-55"><a href="#cb20-55"></a>              by = c("fkt_instat_clean" = "ADM4C_BNGRC")) %&gt;%</span>
+<span id="cb20-56"><a href="#cb20-56"></a>    left_join(fkt_shape %&gt;% select(ADM4_PCODE))</span>
+<span id="cb20-57"><a href="#cb20-57"></a>  sf::st_as_sf(sect_filled_v2, sf_column_name = "geometry")</span>
+<span id="cb20-58"><a href="#cb20-58"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb21"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb21-1"><a href="#cb21-1"></a>s5_healthshed_clinic_v2_sf &lt;- s5_healthshed_aggregate_fn(s5_sectorization_reviewed_v2_sf)</span>
+<span id="cb21-2"><a href="#cb21-2"></a>s5_fkt_unmatched_v2_sf &lt;- s5_fkt_shapes_initial_sf %&gt;% filter(!ADM4_PCODE %in% s5_sectorization_reviewed_v2_sf$ADM4_PCODE)</span>
+<span id="cb21-3"><a href="#cb21-3"></a>s5_sectorization_district_lookup_df &lt;- s5_healthshed_read_fn(</span>
+<span id="cb21-4"><a href="#cb21-4"></a>  s2_clinic_months_raw_zip, s5_healthshed_archive_members_list$tables, "districts", "rds")</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</div>
+<div class="manual-procedure callout callout-style-default callout-tip no-icon callout-titled" title="Evaluate Commune Matches With The Contiguity Guard" data-manual-kind="procedure">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span><i class="fa-solid fa-person-walking" aria-label="person-walking"></i> Procedure: Evaluate Commune Matches With The Contiguity Guard
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Closest-commune ties are preserved. A candidate must have one clinic and distance <code>&lt; 0.075</code>; accepted additions must not worsen the component count. The candidate and rejection evidence remains available independently of the accepted assignment table.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb22"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb22-1"><a href="#cb22-1"></a>s5_sectorization_commune_candidates_sf &lt;- {</span>
+<span id="cb22-2"><a href="#cb22-2"></a>  unmatched_fkt2 &lt;- as.data.frame(s5_fkt_unmatched_v2_sf)</span>
+<span id="cb22-3"><a href="#cb22-3"></a>  district_map &lt;- s5_sectorization_district_lookup_df</span>
+<span id="cb22-4"><a href="#cb22-4"></a>  sect_filled_v2 &lt;- as.data.frame(s5_sectorization_reviewed_v2_sf)</span>
+<span id="cb22-5"><a href="#cb22-5"></a>  # Pinned stage 5, lines 484–503.</span>
+<span id="cb22-6"><a href="#cb22-6"></a>  fkt_to_fs_by_commune &lt;- unmatched_fkt2 %&gt;%</span>
+<span id="cb22-7"><a href="#cb22-7"></a>    left_join(district_map %&gt;% select(ADM2_PCODE, district_uid)) %&gt;%</span>
+<span id="cb22-8"><a href="#cb22-8"></a>    s5_grouped_stringdist_fulljoin_fn(sect_filled_v2 %&gt;%</span>
+<span id="cb22-9"><a href="#cb22-9"></a>                                  filter(!is.na(fkt_name) &amp; fkt_name != "") %&gt;%</span>
+<span id="cb22-10"><a href="#cb22-10"></a>                                  group_by(commune_uid) %&gt;%</span>
+<span id="cb22-11"><a href="#cb22-11"></a>                                  summarise(n_fs = n_distinct(fs_uid, na.rm = T),</span>
+<span id="cb22-12"><a href="#cb22-12"></a>                                            across(starts_with("fs"),</span>
+<span id="cb22-13"><a href="#cb22-13"></a>                                                   first),</span>
+<span id="cb22-14"><a href="#cb22-14"></a>                                            across(c(region_uid:district_name,</span>
+<span id="cb22-15"><a href="#cb22-15"></a>                                                     commune_name),</span>
+<span id="cb22-16"><a href="#cb22-16"></a>                                                   unique)),</span>
+<span id="cb22-17"><a href="#cb22-17"></a>                                df1_group = "district_uid",</span>
+<span id="cb22-18"><a href="#cb22-18"></a>                                df2_group = "district_uid",</span>
+<span id="cb22-19"><a href="#cb22-19"></a>                                df1_stringmatch = "ADM3_EN",</span>
+<span id="cb22-20"><a href="#cb22-20"></a>                                df2_stringmatch = "commune_name") %&gt;%</span>
+<span id="cb22-21"><a href="#cb22-21"></a>    group_by(df1_id) %&gt;%</span>
+<span id="cb22-22"><a href="#cb22-22"></a>    filter(dist == min(dist)) %&gt;%</span>
+<span id="cb22-23"><a href="#cb22-23"></a>    filter(n_fs == 1) %&gt;%</span>
+<span id="cb22-24"><a href="#cb22-24"></a>    filter(dist &lt; 0.075)</span>
+<span id="cb22-25"><a href="#cb22-25"></a>  sf::st_as_sf(fkt_to_fs_by_commune, sf_column_name = "geometry")</span>
+<span id="cb22-26"><a href="#cb22-26"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb23"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb23-1"><a href="#cb23-1"></a>s5_sectorization_commune_topology_sf &lt;- {</span>
+<span id="cb23-2"><a href="#cb23-2"></a>  fkt_to_fs_by_commune &lt;- as.data.frame(s5_sectorization_commune_candidates_sf)</span>
+<span id="cb23-3"><a href="#cb23-3"></a>  sheds_v2 &lt;- s5_healthshed_clinic_v2_sf</span>
+<span id="cb23-4"><a href="#cb23-4"></a>  # Pinned stage 5, lines 506–529.</span>
+<span id="cb23-5"><a href="#cb23-5"></a>  by_commune_adj &lt;- fkt_to_fs_by_commune %&gt;%</span>
+<span id="cb23-6"><a href="#cb23-6"></a>    ungroup %&gt;%</span>
+<span id="cb23-7"><a href="#cb23-7"></a>    select(fkt_code = ADM4_PCODE,</span>
+<span id="cb23-8"><a href="#cb23-8"></a>           fkt_geometry = geometry, fs_uid) %&gt;%</span>
+<span id="cb23-9"><a href="#cb23-9"></a>    left_join(sheds_v2 %&gt;% select(fs_uid, geometry, n_components)) %&gt;%</span>
+<span id="cb23-10"><a href="#cb23-10"></a>    rename(fs_geometry = geometry) %&gt;%</span>
+<span id="cb23-11"><a href="#cb23-11"></a>    pivot_longer(ends_with("geometry"),</span>
+<span id="cb23-12"><a href="#cb23-12"></a>                 names_to = "type",</span>
+<span id="cb23-13"><a href="#cb23-13"></a>                 values_to = "geometry") %&gt;%</span>
+<span id="cb23-14"><a href="#cb23-14"></a>    mutate(type = gsub("_geometry", "", type)) %&gt;%</span>
+<span id="cb23-15"><a href="#cb23-15"></a>    select(-fkt_code) %&gt;%</span>
+<span id="cb23-16"><a href="#cb23-16"></a>    unique %&gt;%</span>
+<span id="cb23-17"><a href="#cb23-17"></a>    group_by(fs_uid) %&gt;%</span>
+<span id="cb23-18"><a href="#cb23-18"></a>    mutate(n_comp_new = s5_healthshed_components_fn(geometry),</span>
+<span id="cb23-19"><a href="#cb23-19"></a>           type = ifelse(n_comp_new &gt; n_components &amp; type == "fkt", "bad", type))</span>
+<span id="cb23-20"><a href="#cb23-20"></a>  sf::st_as_sf(by_commune_adj, sf_column_name = "geometry")</span>
+<span id="cb23-21"><a href="#cb23-21"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb24"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb24-1"><a href="#cb24-1"></a>s5_sectorization_commune_filled_sf &lt;- {</span>
+<span id="cb24-2"><a href="#cb24-2"></a>  sect_filled_v2 &lt;- as.data.frame(s5_sectorization_reviewed_v2_sf)</span>
+<span id="cb24-3"><a href="#cb24-3"></a>  fkt_to_fs_by_commune &lt;- as.data.frame(s5_sectorization_commune_candidates_sf)</span>
+<span id="cb24-4"><a href="#cb24-4"></a>  by_commune_adj &lt;- as.data.frame(s5_sectorization_commune_topology_sf)</span>
+<span id="cb24-5"><a href="#cb24-5"></a>  ocha_map &lt;- s5_fkt_code_lookup_initial_df</span>
+<span id="cb24-6"><a href="#cb24-6"></a>  fkt_shape &lt;- s5_fkt_shapes_initial_sf</span>
+<span id="cb24-7"><a href="#cb24-7"></a>  # Pinned stage 5, lines 540–563.</span>
+<span id="cb24-8"><a href="#cb24-8"></a>  sect_filled_v3 &lt;- sect_filled_v2 %&gt;%</span>
+<span id="cb24-9"><a href="#cb24-9"></a>    full_join(fkt_to_fs_by_commune %&gt;%</span>
+<span id="cb24-10"><a href="#cb24-10"></a>                ungroup %&gt;%</span>
+<span id="cb24-11"><a href="#cb24-11"></a>                left_join(by_commune_adj %&gt;%</span>
+<span id="cb24-12"><a href="#cb24-12"></a>                            transmute(fs_uid,</span>
+<span id="cb24-13"><a href="#cb24-13"></a>                                      keep = (n_comp_new &lt;= n_components)) %&gt;%</span>
+<span id="cb24-14"><a href="#cb24-14"></a>                            unique) %&gt;%</span>
+<span id="cb24-15"><a href="#cb24-15"></a>                filter(keep) %&gt;%</span>
+<span id="cb24-16"><a href="#cb24-16"></a>                mutate(fkt_uid = "none",</span>
+<span id="cb24-17"><a href="#cb24-17"></a>                       match_type = "commune") %&gt;%</span>
+<span id="cb24-18"><a href="#cb24-18"></a>                left_join(ocha_map %&gt;% select(ADM4_PCODE, ADM4C_BNGRC)) %&gt;%</span>
+<span id="cb24-19"><a href="#cb24-19"></a>                select(starts_with(c("region", "district", "commune", "fs")),</span>
+<span id="cb24-20"><a href="#cb24-20"></a>                       match_type,</span>
+<span id="cb24-21"><a href="#cb24-21"></a>                       fkt_uid, fkt_name = ADM4_EN,</span>
+<span id="cb24-22"><a href="#cb24-22"></a>                       fkt_instat_clean = ADM4C_BNGRC))</span>
+<span id="cb24-23"><a href="#cb24-23"></a>  # should just add rows because there's nothing to join to --&gt; 22027 + 117 = 22144</span>
+<span id="cb24-24"><a href="#cb24-24"></a></span>
+<span id="cb24-25"><a href="#cb24-25"></a>  # also re-fill in the ADM4_PCODE and fkt geometry for everything</span>
+<span id="cb24-26"><a href="#cb24-26"></a>  sect_filled_v3 &lt;- sect_filled_v3 %&gt;%</span>
+<span id="cb24-27"><a href="#cb24-27"></a>    select(-c(ADM4_PCODE, geometry, n_components)) %&gt;%</span>
+<span id="cb24-28"><a href="#cb24-28"></a>    left_join(ocha_map %&gt;% select(ADM4C_BNGRC, ADM4_PCODE),</span>
+<span id="cb24-29"><a href="#cb24-29"></a>              by = c("fkt_instat_clean" = "ADM4C_BNGRC")) %&gt;%</span>
+<span id="cb24-30"><a href="#cb24-30"></a>    left_join(fkt_shape %&gt;% select(ADM4_PCODE))</span>
+<span id="cb24-31"><a href="#cb24-31"></a>  sf::st_as_sf(sect_filled_v3, sf_column_name = "geometry")</span>
+<span id="cb24-32"><a href="#cb24-32"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb25"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb25-1"><a href="#cb25-1"></a>s5_healthshed_clinic_v3_sf &lt;- s5_healthshed_aggregate_fn(s5_sectorization_commune_filled_sf)</span>
+<span id="cb25-2"><a href="#cb25-2"></a>s5_fkt_unmatched_v3_sf &lt;- s5_fkt_shapes_initial_sf %&gt;% filter(!ADM4_PCODE %in% s5_sectorization_commune_filled_sf$ADM4_PCODE)</span>
+<span id="cb25-3"><a href="#cb25-3"></a>s5_sectorization_final_reviews_df &lt;- s5_healthshed_read_fn(</span>
+<span id="cb25-4"><a href="#cb25-4"></a>  s2_clinic_months_raw_zip, s5_healthshed_archive_members_list$tables, "final_reviews", "xlsx", sheet = "SECTO 2022", col_types = "text")</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</div>
+<div class="manual-procedure callout callout-style-default callout-tip no-icon callout-titled" title="Apply Reviewed Reassignments And Administrative Corrections" data-manual-kind="procedure">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span><i class="fa-solid fa-person-walking" aria-label="person-walking"></i> Procedure: Apply Reviewed Reassignments And Administrative Corrections
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The reviewed workbook’s duplicate header names, hard-coded corrections, and join keys retain their legacy meaning. Each round consumes the previous round’s state; full joins retain reviewed additions and shared assignments.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb26"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb26-1"><a href="#cb26-1"></a>s5_sectorization_noncontiguous_reviews_df &lt;- {</span>
+<span id="cb26-2"><a href="#cb26-2"></a>  sect_filled_v3 &lt;- as.data.frame(s5_sectorization_commune_filled_sf)</span>
+<span id="cb26-3"><a href="#cb26-3"></a>  sect_filled &lt;- as.data.frame(s5_sectorization_contiguity_filtered_sf)</span>
+<span id="cb26-4"><a href="#cb26-4"></a>  noncontig_fixes &lt;- s5_sectorization_final_reviews_df %&gt;%</span>
+<span id="cb26-5"><a href="#cb26-5"></a># and finally, remove the lines with those fkt from the sect_filled_v3 and add these in</span>
+<span id="cb26-6"><a href="#cb26-6"></a>  filter(note...21 == "noncontig_healthsheds") %&gt;%</span>
+<span id="cb26-7"><a href="#cb26-7"></a>  # one fkt gets incorrectly moved to a different fs, just drop that row</span>
+<span id="cb26-8"><a href="#cb26-8"></a>  filter(fkt_uid != "kJgR66aF9g6") %&gt;%</span>
+<span id="cb26-9"><a href="#cb26-9"></a>  # one fix we discussed didn't get added to the xlsx file, so lets fix it manually here</span>
+<span id="cb26-10"><a href="#cb26-10"></a>  mutate(fs_uid = case_when(fkt_uid == "NWtrDDpi5n0" ~ "rmlBT17TlZ3",</span>
+<span id="cb26-11"><a href="#cb26-11"></a>                            T ~ fs_uid)) %&gt;%</span>
+<span id="cb26-12"><a href="#cb26-12"></a>  select(fs_uid, fkt_uid, fkt_name = fkt_nm, fkt_instat = fkt_instat...15) %&gt;%</span>
+<span id="cb26-13"><a href="#cb26-13"></a>  # lets also manually move Marovaka to Marovovonana bc its two neighbors moved to that fs</span>
+<span id="cb26-14"><a href="#cb26-14"></a>  rbind(data.frame(fs_uid = "xt1C9F1Flqu",</span>
+<span id="cb26-15"><a href="#cb26-15"></a>                   fkt_uid = "XwLQg8znk5g",</span>
+<span id="cb26-16"><a href="#cb26-16"></a>                   fkt_name = "Marovaka",</span>
+<span id="cb26-17"><a href="#cb26-17"></a>                   fkt_instat = "303090008")) %&gt;%</span>
+<span id="cb26-18"><a href="#cb26-18"></a>  # accented e in fkt names got converted to ? somewhere in the line, fix it</span>
+<span id="cb26-19"><a href="#cb26-19"></a>  mutate(fkt_name = gsub("\\?", "é", fkt_name)) %&gt;%</span>
+<span id="cb26-20"><a href="#cb26-20"></a>  # add on the fs information</span>
+<span id="cb26-21"><a href="#cb26-21"></a>  left_join(sect_filled_v3 %&gt;%</span>
+<span id="cb26-22"><a href="#cb26-22"></a>              filter(!is.na(f_or_nf)) %&gt;%</span>
+<span id="cb26-23"><a href="#cb26-23"></a>              select(region_uid:fs_ll) %&gt;%</span>
+<span id="cb26-24"><a href="#cb26-24"></a>              distinct) %&gt;%</span>
+<span id="cb26-25"><a href="#cb26-25"></a>  # add on the fkt information</span>
+<span id="cb26-26"><a href="#cb26-26"></a>  left_join(sect_filled %&gt;%</span>
+<span id="cb26-27"><a href="#cb26-27"></a>              select(fkt_uid, fkt_instat_orig:transit)) %&gt;%</span>
+<span id="cb26-28"><a href="#cb26-28"></a>  rename(fkt_instat_clean = fkt_instat) %&gt;%</span>
+<span id="cb26-29"><a href="#cb26-29"></a>  mutate(match_type = "noncontig_fix")</span>
+<span id="cb26-30"><a href="#cb26-30"></a>  noncontig_fixes</span>
+<span id="cb26-31"><a href="#cb26-31"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb27"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb27-1"><a href="#cb27-1"></a>s5_sectorization_reassigned_v4_sf &lt;- {</span>
+<span id="cb27-2"><a href="#cb27-2"></a>  sect_filled_v3 &lt;- as.data.frame(s5_sectorization_commune_filled_sf)</span>
+<span id="cb27-3"><a href="#cb27-3"></a>  noncontig_fixes &lt;- s5_sectorization_noncontiguous_reviews_df</span>
+<span id="cb27-4"><a href="#cb27-4"></a>  # Pinned stage 5, lines 616–625.</span>
+<span id="cb27-5"><a href="#cb27-5"></a>  sect_filled_v4 &lt;- sect_filled_v3 %&gt;%</span>
+<span id="cb27-6"><a href="#cb27-6"></a>    select(-c(n_fkt_instat, n_adj_fkt, drop_solo, unmatch, match6, match7,</span>
+<span id="cb27-7"><a href="#cb27-7"></a>              fkt_instat_matched, match_sect2018, ADM4_PCODE, geometry)) %&gt;%</span>
+<span id="cb27-8"><a href="#cb27-8"></a>    # join in the noncontig fix fkt to know which rows to drop</span>
+<span id="cb27-9"><a href="#cb27-9"></a>    left_join(noncontig_fixes %&gt;%</span>
+<span id="cb27-10"><a href="#cb27-10"></a>                select(fkt_uid, fkt_name) %&gt;%</span>
+<span id="cb27-11"><a href="#cb27-11"></a>                mutate(drop = T)) %&gt;%</span>
+<span id="cb27-12"><a href="#cb27-12"></a>    filter(is.na(drop)) %&gt;%  select(-drop) %&gt;%</span>
+<span id="cb27-13"><a href="#cb27-13"></a>    rbind(., noncontig_fixes %&gt;% select(all_of(colnames(.))))</span>
+<span id="cb27-14"><a href="#cb27-14"></a>  s5_healthshed_refresh_fn(sect_filled_v4, s5_fkt_code_lookup_initial_df, s5_fkt_shapes_initial_sf)</span>
+<span id="cb27-15"><a href="#cb27-15"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb28"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb28-1"><a href="#cb28-1"></a>s5_sectorization_unmatched_fixed_sf &lt;- {</span>
+<span id="cb28-2"><a href="#cb28-2"></a>  sect_filled_v4 &lt;- as.data.frame(s5_sectorization_reassigned_v4_sf)</span>
+<span id="cb28-3"><a href="#cb28-3"></a>  ocha_map &lt;- s5_fkt_code_lookup_initial_df</span>
+<span id="cb28-4"><a href="#cb28-4"></a>  unmatched_fkt_fixes &lt;- s5_sectorization_final_reviews_df %&gt;%</span>
+<span id="cb28-5"><a href="#cb28-5"></a>  filter(note...20 == "unmatch FKT") %&gt;%</span>
+<span id="cb28-6"><a href="#cb28-6"></a>  select(fs_uid, fkt_uid, fkt_name = fkt_nm,</span>
+<span id="cb28-7"><a href="#cb28-7"></a>         fkt_ocha_code = fkt_instat...18,</span>
+<span id="cb28-8"><a href="#cb28-8"></a>         fkt_ocha_name = instat_nm...19) %&gt;%</span>
+<span id="cb28-9"><a href="#cb28-9"></a>  left_join(ocha_map %&gt;% select(fkt_ocha_code = ADM4_PCODE, fkt_instat_match = ADM4C_BNGRC)) %&gt;%</span>
+<span id="cb28-10"><a href="#cb28-10"></a>  mutate(row_id = seq_len(n()))</span>
+<span id="cb28-11"><a href="#cb28-11"></a></span>
+<span id="cb28-12"><a href="#cb28-12"></a>sect_filled_v4 &lt;- sect_filled_v4 %&gt;%</span>
+<span id="cb28-13"><a href="#cb28-13"></a>  full_join(unmatched_fkt_fixes) %&gt;%</span>
+<span id="cb28-14"><a href="#cb28-14"></a>  mutate(match_type = ifelse(!is.na(row_id), "unmatched_fkt_fix", match_type),</span>
+<span id="cb28-15"><a href="#cb28-15"></a>         fkt_instat_clean = ifelse(!is.na(row_id),  fkt_instat_match, fkt_instat_clean)) %&gt;%</span>
+<span id="cb28-16"><a href="#cb28-16"></a>  select(-row_id)</span>
+<span id="cb28-17"><a href="#cb28-17"></a></span>
+<span id="cb28-18"><a href="#cb28-18"></a>  s5_healthshed_refresh_fn(sect_filled_v4, s5_fkt_code_lookup_initial_df, s5_fkt_shapes_initial_sf)</span>
+<span id="cb28-19"><a href="#cb28-19"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb29"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb29-1"><a href="#cb29-1"></a>s5_sectorization_misc_fixed_sf &lt;- {</span>
+<span id="cb29-2"><a href="#cb29-2"></a>  sect_filled_v4 &lt;- as.data.frame(s5_sectorization_unmatched_fixed_sf)</span>
+<span id="cb29-3"><a href="#cb29-3"></a>  misc_fixes &lt;- s5_sectorization_final_reviews_df %&gt;%</span>
+<span id="cb29-4"><a href="#cb29-4"></a>  filter(note...20 %in% c("duplicate", "DUPLICATE", "New code instat", "INSTAT CODE FKT UPDATE") |</span>
+<span id="cb29-5"><a href="#cb29-5"></a>           grepl("^\\d", fkt_instat...18))</span>
+<span id="cb29-6"><a href="#cb29-6"></a></span>
+<span id="cb29-7"><a href="#cb29-7"></a>sect_filled_v4 &lt;- sect_filled_v4 %&gt;%</span>
+<span id="cb29-8"><a href="#cb29-8"></a>  left_join(misc_fixes %&gt;%</span>
+<span id="cb29-9"><a href="#cb29-9"></a>              select(fs_uid, fkt_uid, fkt_instat_clean = fkt_instat...15,</span>
+<span id="cb29-10"><a href="#cb29-10"></a>                     fkt_instat_fix = fkt_instat...18, note = note...20) %&gt;%</span>
+<span id="cb29-11"><a href="#cb29-11"></a>              mutate(misc_id = seq_len(n()))) %&gt;%</span>
+<span id="cb29-12"><a href="#cb29-12"></a>  filter(!grepl("duplicate", note, ignore.case = T)) %&gt;%</span>
+<span id="cb29-13"><a href="#cb29-13"></a>  mutate(match_type = ifelse(!is.na(misc_id), "misc_fix", match_type),</span>
+<span id="cb29-14"><a href="#cb29-14"></a>         fkt_instat_clean = ifelse(!is.na(misc_id), fkt_instat_fix, fkt_instat_clean)) %&gt;%</span>
+<span id="cb29-15"><a href="#cb29-15"></a>  select(-misc_id)</span>
+<span id="cb29-16"><a href="#cb29-16"></a></span>
+<span id="cb29-17"><a href="#cb29-17"></a>  s5_healthshed_refresh_fn(sect_filled_v4, s5_fkt_code_lookup_initial_df, s5_fkt_shapes_initial_sf)</span>
+<span id="cb29-18"><a href="#cb29-18"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</div>
+<div class="manual-procedure callout callout-style-default callout-tip no-icon callout-titled" title="Split Coastal Islands And Apply The Final Unlinks" data-manual-kind="procedure">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span><i class="fa-solid fa-person-walking" aria-label="person-walking"></i> Procedure: Split Coastal Islands And Apply The Final Unlinks
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The largest polygon remains mainland except for <code>MG71713253004</code>, where the smallest part is separated as in the source. The <code>_A</code> lookup extension and new assignment rows are updated together. The final review first unlinks old clinic assignments, appends the new rows with missing population, and then refreshes geometry with the legacy old-PCODE fallback.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb30"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb30-1"><a href="#cb30-1"></a>s5_sectorization_island_assignments_df &lt;- {</span>
+<span id="cb30-2"><a href="#cb30-2"></a>  ocha_map &lt;- s5_fkt_code_lookup_initial_df</span>
+<span id="cb30-3"><a href="#cb30-3"></a>  # Pinned stage 5, lines 666–672.</span>
+<span id="cb30-4"><a href="#cb30-4"></a>  island_fixes &lt;- data.frame(fkt_instat = c("713151001", "713151004",</span>
+<span id="cb30-5"><a href="#cb30-5"></a>                                            "713232005", "713254003",</span>
+<span id="cb30-6"><a href="#cb30-6"></a>                                            "713253004", "713010004"),</span>
+<span id="cb30-7"><a href="#cb30-7"></a>                             fs_uid = c("Z0mzcQCqySd", "Z0mzcQCqySd",</span>
+<span id="cb30-8"><a href="#cb30-8"></a>                                        "Zmgnljl5frE", "yPSYALQxVv2",</span>
+<span id="cb30-9"><a href="#cb30-9"></a>                                        "yPSYALQxVv2", "wnWoQcrvINJ")) %&gt;%</span>
+<span id="cb30-10"><a href="#cb30-10"></a>    left_join(ocha_map %&gt;% select(fkt_instat = ADM4C_BNGRC, ADM4_PCODE))</span>
+<span id="cb30-11"><a href="#cb30-11"></a>  island_fixes</span>
+<span id="cb30-12"><a href="#cb30-12"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The coastal split retains the literal legacy expression: area ranks are computed per feature, while the special-code comparison uses the maximum rank across the six features. In the archived inputs, that feature has three parts and the global maximum rank is three. This distinction matters if the source geometry is replaced; the split audit records each part explicitly.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb31"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb31-1"><a href="#cb31-1"></a>s5_fkt_shapes_final_sf &lt;- {</span>
+<span id="cb31-2"><a href="#cb31-2"></a>  fkt_shape &lt;- s5_fkt_shapes_initial_sf</span>
+<span id="cb31-3"><a href="#cb31-3"></a>  island_fixes &lt;- s5_sectorization_island_assignments_df</span>
+<span id="cb31-4"><a href="#cb31-4"></a>  # Pinned stage 5, lines 674–700.</span>
+<span id="cb31-5"><a href="#cb31-5"></a>  fkt_shape &lt;- rbind(fkt_shape %&gt;%</span>
+<span id="cb31-6"><a href="#cb31-6"></a>                       filter(ADM4_PCODE %in% c(island_fixes$ADM4_PCODE) == FALSE),</span>
+<span id="cb31-7"><a href="#cb31-7"></a>                     fkt_shape %&gt;%</span>
+<span id="cb31-8"><a href="#cb31-8"></a>                       filter(ADM4_PCODE %in% c(island_fixes$ADM4_PCODE)) %&gt;%</span>
+<span id="cb31-9"><a href="#cb31-9"></a>                       mutate(row_id = seq_len(n())) %&gt;%</span>
+<span id="cb31-10"><a href="#cb31-10"></a>                       sf::st_cast("POLYGON") %&gt;%</span>
+<span id="cb31-11"><a href="#cb31-11"></a>                       mutate(area = sf::st_area(geometry)) %&gt;%</span>
+<span id="cb31-12"><a href="#cb31-12"></a>                       mutate(area_rank = rank(-area), # biggest is rank 1, smallest is max rank</span>
+<span id="cb31-13"><a href="#cb31-13"></a>                              .by = row_id) %&gt;%</span>
+<span id="cb31-14"><a href="#cb31-14"></a>                       # for groups 1-3, 5 the largest shape is mainland and other islands can go together</span>
+<span id="cb31-15"><a href="#cb31-15"></a>                       # for group 4, smallest island goes separate, larger island can stay with mainland</span>
+<span id="cb31-16"><a href="#cb31-16"></a>                       # for 5, i think the land is bigger, its the second element when its cast</span>
+<span id="cb31-17"><a href="#cb31-17"></a>                       mutate(mainland = ifelse(ADM4_PCODE != "MG71713253004", area_rank == 1, area_rank != max(area_rank))) %&gt;%</span>
+<span id="cb31-18"><a href="#cb31-18"></a>                       select(-starts_with("area")) %&gt;%</span>
+<span id="cb31-19"><a href="#cb31-19"></a>                       # merge the mainland and non-mainland pieces</span>
+<span id="cb31-20"><a href="#cb31-20"></a>                       summarise(across(!geometry, unique),</span>
+<span id="cb31-21"><a href="#cb31-21"></a>                                 geometry = sf::st_union(geometry),</span>
+<span id="cb31-22"><a href="#cb31-22"></a>                                 .by = c(row_id, mainland)) %&gt;%</span>
+<span id="cb31-23"><a href="#cb31-23"></a>                       select(-row_id) %&gt;%</span>
+<span id="cb31-24"><a href="#cb31-24"></a>                       # if its the mainland, leave the name and pcode, if its non-mainlan, add a letter to the name and pcode</span>
+<span id="cb31-25"><a href="#cb31-25"></a>                       mutate(ADM4_EN = ifelse(mainland,</span>
+<span id="cb31-26"><a href="#cb31-26"></a>                                               ADM4_EN,</span>
+<span id="cb31-27"><a href="#cb31-27"></a>                                               paste0(ADM4_EN, "_A")),</span>
+<span id="cb31-28"><a href="#cb31-28"></a>                              ADM4_PCODE = ifelse(mainland,</span>
+<span id="cb31-29"><a href="#cb31-29"></a>                                                  ADM4_PCODE,</span>
+<span id="cb31-30"><a href="#cb31-30"></a>                                                  paste0(ADM4_PCODE, "_A"))) %&gt;%</span>
+<span id="cb31-31"><a href="#cb31-31"></a>                       select(-mainland))</span>
+<span id="cb31-32"><a href="#cb31-32"></a>  fkt_shape</span>
+<span id="cb31-33"><a href="#cb31-33"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb32"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb32-1"><a href="#cb32-1"></a>s5_fkt_code_lookup_final_df &lt;- {</span>
+<span id="cb32-2"><a href="#cb32-2"></a>  ocha_map &lt;- s5_fkt_code_lookup_initial_df</span>
+<span id="cb32-3"><a href="#cb32-3"></a>  island_fixes &lt;- s5_sectorization_island_assignments_df</span>
+<span id="cb32-4"><a href="#cb32-4"></a>  # Pinned stage 5, lines 702–705.</span>
+<span id="cb32-5"><a href="#cb32-5"></a>  ocha_map &lt;- ocha_map %&gt;% rbind(ocha_map %&gt;%</span>
+<span id="cb32-6"><a href="#cb32-6"></a>                        filter(ADM4C_BNGRC %in% island_fixes$fkt_instat) %&gt;%</span>
+<span id="cb32-7"><a href="#cb32-7"></a>                        mutate(across(starts_with("ADM4"), ~paste0(.x, "_A"))))</span>
+<span id="cb32-8"><a href="#cb32-8"></a>  ocha_map</span>
+<span id="cb32-9"><a href="#cb32-9"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb33"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb33-1"><a href="#cb33-1"></a>s5_sectorization_islands_fixed_sf &lt;- {</span>
+<span id="cb33-2"><a href="#cb33-2"></a>  sect_filled_v4 &lt;- as.data.frame(s5_sectorization_misc_fixed_sf)</span>
+<span id="cb33-3"><a href="#cb33-3"></a>  island_fixes &lt;- s5_sectorization_island_assignments_df</span>
+<span id="cb33-4"><a href="#cb33-4"></a>  # Pinned stage 5, lines 707–720.</span>
+<span id="cb33-5"><a href="#cb33-5"></a>  sect_filled_v4 &lt;- sect_filled_v4 %&gt;%</span>
+<span id="cb33-6"><a href="#cb33-6"></a>    select(-(fkt_ocha_code:note)) %&gt;%</span>
+<span id="cb33-7"><a href="#cb33-7"></a>    full_join(island_fixes %&gt;% select(-ADM4_PCODE) %&gt;%</span>
+<span id="cb33-8"><a href="#cb33-8"></a>                mutate(fkt_instat_clean = paste0(fkt_instat, "_A"),</span>
+<span id="cb33-9"><a href="#cb33-9"></a>                       fkt_uid = "none",</span>
+<span id="cb33-10"><a href="#cb33-10"></a>                       fkt_name = "-",</span>
+<span id="cb33-11"><a href="#cb33-11"></a>                       match_type = "island_fix") %&gt;%</span>
+<span id="cb33-12"><a href="#cb33-12"></a>                select(-fkt_instat) %&gt;%</span>
+<span id="cb33-13"><a href="#cb33-13"></a>                # add the fs info from the sect file</span>
+<span id="cb33-14"><a href="#cb33-14"></a>                left_join(sect_filled_v4 %&gt;%</span>
+<span id="cb33-15"><a href="#cb33-15"></a>                            filter(!is.na(f_or_nf)) %&gt;%</span>
+<span id="cb33-16"><a href="#cb33-16"></a>                            select(region_uid:fs_ll) %&gt;%</span>
+<span id="cb33-17"><a href="#cb33-17"></a>                            distinct))</span>
+<span id="cb33-18"><a href="#cb33-18"></a>  # should result in 22147 rows</span>
+<span id="cb33-19"><a href="#cb33-19"></a>  s5_healthshed_refresh_fn(sect_filled_v4, s5_fkt_code_lookup_final_df, s5_fkt_shapes_final_sf)</span>
+<span id="cb33-20"><a href="#cb33-20"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb34"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb34-1"><a href="#cb34-1"></a>s5_sectorization_final_reassignment_reviews_df &lt;- s5_healthshed_read_fn(</span>
+<span id="cb34-2"><a href="#cb34-2"></a>  s2_clinic_months_raw_zip, s5_healthshed_archive_members_list$tables, "reassignments") %&gt;%</span>
+<span id="cb34-3"><a href="#cb34-3"></a>  mutate(across(everything(), stringr::str_trim))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb35"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb35-1"><a href="#cb35-1"></a>s5_sectorization_final_unlinked_sf &lt;- {</span>
+<span id="cb35-2"><a href="#cb35-2"></a>  sect_filled_v4 &lt;- as.data.frame(s5_sectorization_islands_fixed_sf) %&gt;% select(-geometry, -ADM4_PCODE)</span>
+<span id="cb35-3"><a href="#cb35-3"></a>  ocha_map &lt;- s5_fkt_code_lookup_final_df</span>
+<span id="cb35-4"><a href="#cb35-4"></a>  noncontig_fixes2 &lt;- s5_sectorization_final_reassignment_reviews_df</span>
+<span id="cb35-5"><a href="#cb35-5"></a>  # Pinned stage 5, lines 745–752.</span>
+<span id="cb35-6"><a href="#cb35-6"></a>  sect_filled_v4 &lt;- sect_filled_v4 %&gt;%</span>
+<span id="cb35-7"><a href="#cb35-7"></a>    left_join(ocha_map %&gt;% select(ADM4C_BNGRC, ADM4_PCODE),</span>
+<span id="cb35-8"><a href="#cb35-8"></a>              by = c("fkt_instat_clean" = "ADM4C_BNGRC")) %&gt;%</span>
+<span id="cb35-9"><a href="#cb35-9"></a>    left_join(noncontig_fixes2 %&gt;% transmute(ADM4_PCODE, old_fs_uid, unmatch = T),</span>
+<span id="cb35-10"><a href="#cb35-10"></a>              by = c("ADM4_PCODE", "fs_uid" = "old_fs_uid")) %&gt;%</span>
+<span id="cb35-11"><a href="#cb35-11"></a>    mutate(across(c(fkt_instat_orig, fkt_instat_clean, match_type, ADM4_PCODE),</span>
+<span id="cb35-12"><a href="#cb35-12"></a>                  ~ifelse(is.na(unmatch), .x, NA))) %&gt;%</span>
+<span id="cb35-13"><a href="#cb35-13"></a>    select(-unmatch)</span>
+<span id="cb35-14"><a href="#cb35-14"></a>  s5_healthshed_refresh_fn(sect_filled_v4, s5_fkt_code_lookup_final_df, s5_fkt_shapes_final_sf, fallback = TRUE)</span>
+<span id="cb35-15"><a href="#cb35-15"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb36"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb36-1"><a href="#cb36-1"></a>s5_sectorization_final_reassignment_rows_df &lt;- {</span>
+<span id="cb36-2"><a href="#cb36-2"></a>  noncontig_fixes2 &lt;- s5_sectorization_final_reassignment_reviews_df</span>
+<span id="cb36-3"><a href="#cb36-3"></a>  sect_filled_v4 &lt;- as.data.frame(s5_sectorization_final_unlinked_sf)</span>
+<span id="cb36-4"><a href="#cb36-4"></a>  ocha_map &lt;- s5_fkt_code_lookup_final_df</span>
+<span id="cb36-5"><a href="#cb36-5"></a>  # Pinned stage 5, lines 755–768.</span>
+<span id="cb36-6"><a href="#cb36-6"></a>  noncontig_fixes2 &lt;- noncontig_fixes2 %&gt;%</span>
+<span id="cb36-7"><a href="#cb36-7"></a>    rename_with(~gsub("^new_", "", .x)) %&gt;%</span>
+<span id="cb36-8"><a href="#cb36-8"></a>    select(-old_fs_uid, -fs_name) %&gt;%</span>
+<span id="cb36-9"><a href="#cb36-9"></a>    left_join(sect_filled_v4 %&gt;%</span>
+<span id="cb36-10"><a href="#cb36-10"></a>                select(region_uid:fs_ll) %&gt;%</span>
+<span id="cb36-11"><a href="#cb36-11"></a>                filter(!is.na(region_uid)) %&gt;%</span>
+<span id="cb36-12"><a href="#cb36-12"></a>                distinct,</span>
+<span id="cb36-13"><a href="#cb36-13"></a>              by = c("fs_uid")) %&gt;%</span>
+<span id="cb36-14"><a href="#cb36-14"></a>    left_join(ocha_map %&gt;% select(ADM4_PCODE, ADM4_EN,</span>
+<span id="cb36-15"><a href="#cb36-15"></a>                                  fkt_instat_clean = ADM4C_BNGRC)) %&gt;%</span>
+<span id="cb36-16"><a href="#cb36-16"></a>    rename(fkt_name = ADM4_EN) %&gt;%</span>
+<span id="cb36-17"><a href="#cb36-17"></a>    mutate(fkt_uid = "none", fkt_instat_orig = NA,</span>
+<span id="cb36-18"><a href="#cb36-18"></a>           fkt_pop_2022 = NA, distance_csb_fkt = NA, transit = NA,</span>
+<span id="cb36-19"><a href="#cb36-19"></a>           match_type = "noncontig_fix2")</span>
+<span id="cb36-20"><a href="#cb36-20"></a>  noncontig_fixes2</span>
+<span id="cb36-21"><a href="#cb36-21"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb37"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb37-1"><a href="#cb37-1"></a>s5_sectorization_2022_clean_sf &lt;- {</span>
+<span id="cb37-2"><a href="#cb37-2"></a>  x &lt;- bind_rows(as.data.frame(s5_sectorization_final_unlinked_sf) %&gt;% select(-geometry),</span>
+<span id="cb37-3"><a href="#cb37-3"></a>                 s5_sectorization_final_reassignment_rows_df)</span>
+<span id="cb37-4"><a href="#cb37-4"></a>  s5_healthshed_refresh_fn(x, s5_fkt_code_lookup_final_df, s5_fkt_shapes_final_sf, fallback = TRUE) %&gt;%</span>
+<span id="cb37-5"><a href="#cb37-5"></a>    left_join(select(s5_fkt_code_lookup_final_df, ADM4_PCODE, fkt_instat_name = ADM4_EN), by = "ADM4_PCODE")</span>
+<span id="cb37-6"><a href="#cb37-6"></a>}</span>
+<span id="cb37-7"><a href="#cb37-7"></a>s5_healthshed_clinic_final_sf &lt;- s5_healthshed_aggregate_fn(s5_sectorization_2022_clean_sf)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</div>
+<div class="manual-procedure callout callout-style-default callout-tip no-icon callout-titled" title="Retain Audits And Review Plots Without Publishing Protected Data" data-manual-kind="procedure">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span><i class="fa-solid fa-person-walking" aria-label="person-walking"></i> Procedure: Retain Audits And Review Plots Without Publishing Protected Data
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The audit reports coverage and population at every major round. Historical counts are comparison observations, not universal assertions. Plot-list targets contain clinic diagnostics for authorized review and are never rendered into this manual. True polygon-part counts are audited separately from the literal legacy <code>n_shape</code> field.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb38"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb38-1"><a href="#cb38-1"></a>s5_healthshed_audit_fn &lt;- function(sectorizations, shapes) {</span>
+<span id="cb38-2"><a href="#cb38-2"></a>  bind_rows(lapply(names(sectorizations), function(round) {</span>
+<span id="cb38-3"><a href="#cb38-3"></a>    x &lt;- sectorizations[[round]]</span>
+<span id="cb38-4"><a href="#cb38-4"></a>    tibble::tibble(round = round, rows = nrow(x), clinics = n_distinct(x$fs_uid, na.rm = TRUE),</span>
+<span id="cb38-5"><a href="#cb38-5"></a>      population = sum(x$fkt_pop_2022, na.rm = TRUE),</span>
+<span id="cb38-6"><a href="#cb38-6"></a>      unmatched_assignment_rows = sum(is.na(x$fkt_instat_clean)),</span>
+<span id="cb38-7"><a href="#cb38-7"></a>      unmatched_polygons = sum(!shapes$ADM4_PCODE %in% x$ADM4_PCODE),</span>
+<span id="cb38-8"><a href="#cb38-8"></a>      empty_assignment_geometries = sum(sf::st_is_empty(x)),</span>
+<span id="cb38-9"><a href="#cb38-9"></a>      unknown_pcodes = sum(!is.na(x$ADM4_PCODE) &amp; !x$ADM4_PCODE %in% shapes$ADM4_PCODE))</span>
+<span id="cb38-10"><a href="#cb38-10"></a>  }))</span>
+<span id="cb38-11"><a href="#cb38-11"></a>}</span>
+<span id="cb38-12"><a href="#cb38-12"></a>s5_healthshed_assignment_audit_df &lt;- s5_healthshed_audit_fn(list(</span>
+<span id="cb38-13"><a href="#cb38-13"></a>  initial = s5_sectorization_contiguity_filtered_sf, v2 = s5_sectorization_reviewed_v2_sf,</span>
+<span id="cb38-14"><a href="#cb38-14"></a>  v3 = s5_sectorization_commune_filled_sf, final = s5_sectorization_2022_clean_sf), s5_fkt_shapes_final_sf)</span>
+<span id="cb38-15"><a href="#cb38-15"></a>s5_healthshed_clinic_audit_df &lt;- s5_healthshed_clinic_final_sf %&gt;%</span>
+<span id="cb38-16"><a href="#cb38-16"></a>  mutate(polygon_parts = lengths(sf::st_geometry(s5_healthshed_clinic_final_sf)),</span>
+<span id="cb38-17"><a href="#cb38-17"></a>         empty_geometry = sf::st_is_empty(s5_healthshed_clinic_final_sf)) %&gt;% sf::st_drop_geometry()</span>
+<span id="cb38-18"><a href="#cb38-18"></a>s5_fkt_split_audit_df &lt;- bind_rows(lapply(c("source", "initial", "final"), function(stage) {</span>
+<span id="cb38-19"><a href="#cb38-19"></a>  x &lt;- switch(stage, source = s5_fkt_shapes_valid_sf, initial = s5_fkt_shapes_initial_sf, final = s5_fkt_shapes_final_sf)</span>
+<span id="cb38-20"><a href="#cb38-20"></a>  split_codes &lt;- c("MG71717150005", s5_sectorization_island_assignments_df$ADM4_PCODE)</span>
+<span id="cb38-21"><a href="#cb38-21"></a>  selected &lt;- x %&gt;% filter(sub("(_A|[AB])$", "", ADM4_PCODE) %in% split_codes)</span>
+<span id="cb38-22"><a href="#cb38-22"></a>  bind_rows(lapply(seq_len(nrow(selected)), function(i) {</span>
+<span id="cb38-23"><a href="#cb38-23"></a>    parts &lt;- suppressWarnings(sf::st_cast(sf::st_geometry(selected[i, ]), "POLYGON"))</span>
+<span id="cb38-24"><a href="#cb38-24"></a>    bounds &lt;- t(vapply(parts, function(part) sf::st_bbox(part), numeric(4)))</span>
+<span id="cb38-25"><a href="#cb38-25"></a>    tibble::tibble(stage = stage, ADM4_PCODE = selected$ADM4_PCODE[[i]], part = seq_along(parts),</span>
+<span id="cb38-26"><a href="#cb38-26"></a>      area_m2 = as.numeric(sf::st_area(parts)), xmin = bounds[,1], ymin = bounds[,2],</span>
+<span id="cb38-27"><a href="#cb38-27"></a>      xmax = bounds[,3], ymax = bounds[,4], wkt = sf::st_as_text(parts), crs_wkt = sf::st_crs(x)$wkt)</span>
+<span id="cb38-28"><a href="#cb38-28"></a>  }))</span>
+<span id="cb38-29"><a href="#cb38-29"></a>}))</span>
+<span id="cb38-30"><a href="#cb38-30"></a>s5_healthshed_review_plots_fn &lt;- function(sheds, assignments, multipart = FALSE) {</span>
+<span id="cb38-31"><a href="#cb38-31"></a>  selected &lt;- if (multipart) filter(sheds, n_components == 1, n_shape &gt; 1) else filter(sheds, n_components &gt; 1)</span>
+<span id="cb38-32"><a href="#cb38-32"></a>  plots &lt;- lapply(seq_len(nrow(selected)), function(i) {</span>
+<span id="cb38-33"><a href="#cb38-33"></a>    focus &lt;- selected[i, ]</span>
+<span id="cb38-34"><a href="#cb38-34"></a>    nearby &lt;- sf::st_filter(sheds, sf::st_as_sfc(sf::st_bbox(focus)))</span>
+<span id="cb38-35"><a href="#cb38-35"></a>    cells &lt;- filter(assignments, fs_uid %in% nearby$fs_uid)</span>
+<span id="cb38-36"><a href="#cb38-36"></a>    plot &lt;- ggplot2::ggplot() + ggplot2::geom_sf(data = nearby, ggplot2::aes(fill = fs_uid)) +</span>
+<span id="cb38-37"><a href="#cb38-37"></a>      ggplot2::geom_sf(data = cells, fill = NA, colour = "grey35", linetype = "dotted") +</span>
+<span id="cb38-38"><a href="#cb38-38"></a>      ggplot2::scale_fill_manual(values = MetBrewer::met.brewer("Renoir", nrow(nearby))) +</span>
+<span id="cb38-39"><a href="#cb38-39"></a>      ggplot2::ggtitle(paste(focus$fs_uid, focus$fs_name, focus$district_name, sep = ": ")) +</span>
+<span id="cb38-40"><a href="#cb38-40"></a>      ggplot2::coord_sf(xlim = extendrange(sf::st_bbox(focus)[c(1, 3)], f = 0.5),</span>
+<span id="cb38-41"><a href="#cb38-41"></a>                        ylim = extendrange(sf::st_bbox(focus)[c(2, 4)], f = 0.5)) + ggplot2::theme_void()</span>
+<span id="cb38-42"><a href="#cb38-42"></a>    locations &lt;- sf::st_drop_geometry(nearby) %&gt;%</span>
+<span id="cb38-43"><a href="#cb38-43"></a>      filter(!is.na(fs_ll), grepl("^POINT[[:space:]]*[(]", fs_ll))</span>
+<span id="cb38-44"><a href="#cb38-44"></a>    if (nrow(locations)) {</span>
+<span id="cb38-45"><a href="#cb38-45"></a>      locations &lt;- sf::st_sf(locations, geometry = sf::st_as_sfc(locations$fs_ll, crs = sf::st_crs(sheds)))</span>
+<span id="cb38-46"><a href="#cb38-46"></a>      plot &lt;- plot + ggplot2::geom_sf(data = locations, colour = "grey15", size = 2, inherit.aes = FALSE)</span>
+<span id="cb38-47"><a href="#cb38-47"></a>    }</span>
+<span id="cb38-48"><a href="#cb38-48"></a>    plot</span>
+<span id="cb38-49"><a href="#cb38-49"></a>  })</span>
+<span id="cb38-50"><a href="#cb38-50"></a>  setNames(plots, selected$fs_uid)</span>
+<span id="cb38-51"><a href="#cb38-51"></a>}</span>
+<span id="cb38-52"><a href="#cb38-52"></a>s5_healthshed_clinic_noncontiguous_review_list &lt;- s5_healthshed_review_plots_fn(</span>
+<span id="cb38-53"><a href="#cb38-53"></a>  s5_healthshed_clinic_final_sf, s5_sectorization_2022_clean_sf)</span>
+<span id="cb38-54"><a href="#cb38-54"></a>s5_healthshed_clinic_multipart_review_list &lt;- s5_healthshed_review_plots_fn(</span>
+<span id="cb38-55"><a href="#cb38-55"></a>  s5_healthshed_clinic_final_sf, s5_sectorization_2022_clean_sf, multipart = TRUE)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</div>
+<div class="manual-procedure callout callout-style-default callout-tip no-icon callout-titled" title="Expose Spatial Handoffs And Nonspatial Parquet Products" data-manual-kind="procedure">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span><i class="fa-solid fa-person-walking" aria-label="person-walking"></i> Procedure: Expose Spatial Handoffs And Nonspatial Parquet Products
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Pages 24–25 consume the final sectorization and healthshed <code>sf</code> objects directly, retaining full field names and geometry. Only explicit nonspatial assignment/audit exports are written below. No shapefile field truncation or new spatial interchange format is introduced.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb39"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb39-1"><a href="#cb39-1"></a>s5_healthshed_write_table_fn &lt;- function(x, path) {</span>
+<span id="cb39-2"><a href="#cb39-2"></a>  dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)</span>
+<span id="cb39-3"><a href="#cb39-3"></a>  duckplyr::compute_parquet(duckplyr::as_duckdb_tibble(as.data.frame(x)), path)</span>
+<span id="cb39-4"><a href="#cb39-4"></a>  path</span>
+<span id="cb39-5"><a href="#cb39-5"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb40"><pre class="sourceCode numberSource {r} number-lines code-with-copy"><code class="sourceCode"><span id="cb40-1"><a href="#cb40-1"></a>#| format: file</span>
+<span id="cb40-2"><a href="#cb40-2"></a>s5_sectorization_2022_clean_parquet &lt;- s5_healthshed_write_table_fn(</span>
+<span id="cb40-3"><a href="#cb40-3"></a>  sf::st_drop_geometry(s5_sectorization_2022_clean_sf), here::here("data/intermediates/healthsheds/sectorization2022_clean.parquet"))</span>
+<span id="cb40-4"><a href="#cb40-4"></a>s5_healthshed_assignment_audit_parquet &lt;- s5_healthshed_write_table_fn(</span>
+<span id="cb40-5"><a href="#cb40-5"></a>  s5_healthshed_assignment_audit_df, here::here("data/intermediates/healthsheds/assignment_audit.parquet"))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</div>
+<div class="manual-check callout callout-style-default callout-warning no-icon callout-titled" title="Verify Rules Before Building Research Products" data-manual-kind="check">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Warning</span><i class="fa-solid fa-clipboard-check" aria-label="clipboard-check"></i> Check: Verify Rules Before Building Research Products
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The synthetic suite extracts helpers and target expressions from this page, compares legacy behavior on controlled geometry, and validates the targets graph without building targets. Run it before the stage-5 build. Full-data parity is an explicit comparison against the most recent archived data; synthetic tests alone do not prove it. The <a href="../pipeline/mapping/legacy-pipeline-map.html#most-recent-archived-data-comparison-baseline">baseline selection</a>, loaded with <code>dget(here::here("src", "archived-comparison-baseline.R"))</code>, selects <code>sectorization_member</code> and <code>healthsheds_member</code> from <code>archive_zip</code>. These are October 2024 products; no newer replacements were found in the staged sources.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb41"><pre class="sourceCode numberSource sh number-lines code-with-copy"><code class="sourceCode bash"><span id="cb41-1"><a href="#cb41-1"></a><span class="ex">scripts/mdg-healthshed-clinic-data</span> exec Rscript tests/check-healthshed-rules.R</span>
+<span id="cb41-2"><a href="#cb41-2"></a><span class="ex">scripts/mdg-healthshed-clinic-data</span> exec Rscript tests/check-data-storage-convention.R</span>
+<span id="cb41-3"><a href="#cb41-3"></a><span class="ex">python3</span> tests/check-manual-structure.py</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Current scope (2026-11-08): inspect output shape before proceeding.</strong> The initial pages’ shape checks appear to pass according to the researcher. Run the following plain R examples in order after S5 completes; they read existing products and build no targets. Results stay in the authorized session, outside rendered HTML. The archived healthsheds are RDS and can be compared directly. Archived sectorization is Feather; that comparison is deferred, with no Feather reader added.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb42"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1"></a><span class="co"># Shape check: healthsheds-setup</span></span>
+<span id="cb42-2"><a href="#cb42-2"></a>archived_baseline <span class="ot">&lt;-</span> <span class="fu">dget</span>(here<span class="sc">::</span><span class="fu">here</span>(<span class="st">"src"</span>, <span class="st">"archived-comparison-baseline.R"</span>))</span>
+<span id="cb42-3"><a href="#cb42-3"></a>read_fn <span class="ot">&lt;-</span> targets<span class="sc">::</span><span class="fu">tar_read</span>(s3_dictionary_archive_read_fn)</span>
+<span id="cb42-4"><a href="#cb42-4"></a>old_healthsheds <span class="ot">&lt;-</span> <span class="fu">read_fn</span>(here<span class="sc">::</span><span class="fu">here</span>(archived_baseline<span class="sc">$</span>archive_zip),</span>
+<span id="cb42-5"><a href="#cb42-5"></a>  archived_baseline<span class="sc">$</span>healthsheds_member, readRDS)</span>
+<span id="cb42-6"><a href="#cb42-6"></a>new_healthsheds <span class="ot">&lt;-</span> targets<span class="sc">::</span><span class="fu">tar_read</span>(s5_healthshed_clinic_final_sf)</span>
+<span id="cb42-7"><a href="#cb42-7"></a>new_sectorization <span class="ot">&lt;-</span> targets<span class="sc">::</span><span class="fu">tar_read</span>(s5_sectorization_2022_clean_sf)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Healthshed dimensions, UID coverage, and geometry structure side by side.</strong> Here <code>columns</code> includes geometry; <code>attribute_columns</code> excludes all <code>sfc</code> columns. Geometry validity is reported separately from empty geometry. <code>difference</code> is current minus archived; equal counts do not establish equal polygons or clinic memberships.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb43"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1"></a><span class="co"># Shape check: healthsheds-dimensions</span></span>
+<span id="cb43-2"><a href="#cb43-2"></a>healthshed_shape <span class="ot">&lt;-</span> <span class="cf">function</span>(x) {</span>
+<span id="cb43-3"><a href="#cb43-3"></a>  valid <span class="ot">&lt;-</span> sf<span class="sc">::</span><span class="fu">st_is_valid</span>(x)</span>
+<span id="cb43-4"><a href="#cb43-4"></a>  tibble<span class="sc">::</span><span class="fu">tibble</span>(</span>
+<span id="cb43-5"><a href="#cb43-5"></a>    <span class="at">rows =</span> <span class="fu">nrow</span>(x), <span class="at">columns =</span> <span class="fu">length</span>(<span class="fu">names</span>(x)),</span>
+<span id="cb43-6"><a href="#cb43-6"></a>    <span class="at">attribute_columns =</span> <span class="fu">sum</span>(<span class="sc">!</span><span class="fu">vapply</span>(x, inherits, <span class="fu">logical</span>(<span class="dv">1</span>), <span class="at">what =</span> <span class="st">"sfc"</span>)),</span>
+<span id="cb43-7"><a href="#cb43-7"></a>    <span class="at">clinics =</span> dplyr<span class="sc">::</span><span class="fu">n_distinct</span>(x<span class="sc">$</span>fs_uid, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb43-8"><a href="#cb43-8"></a>    <span class="at">missing_uids =</span> <span class="fu">sum</span>(<span class="fu">is.na</span>(x<span class="sc">$</span>fs_uid) <span class="sc">|</span> x<span class="sc">$</span>fs_uid <span class="sc">==</span> <span class="st">""</span>),</span>
+<span id="cb43-9"><a href="#cb43-9"></a>    <span class="at">empty_geometries =</span> <span class="fu">sum</span>(sf<span class="sc">::</span><span class="fu">st_is_empty</span>(x), <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb43-10"><a href="#cb43-10"></a>    <span class="at">invalid_geometries =</span> <span class="fu">sum</span>(<span class="sc">!</span>valid, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb43-11"><a href="#cb43-11"></a>    <span class="at">unknown_validity =</span> <span class="fu">sum</span>(<span class="fu">is.na</span>(valid))</span>
+<span id="cb43-12"><a href="#cb43-12"></a>  )</span>
+<span id="cb43-13"><a href="#cb43-13"></a>}</span>
+<span id="cb43-14"><a href="#cb43-14"></a>dplyr<span class="sc">::</span><span class="fu">bind_rows</span>(</span>
+<span id="cb43-15"><a href="#cb43-15"></a>  <span class="st">`</span><span class="at">most recent archived data</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">healthshed_shape</span>(old_healthsheds),</span>
+<span id="cb43-16"><a href="#cb43-16"></a>  <span class="st">`</span><span class="at">current pipeline</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">healthshed_shape</span>(new_healthsheds), <span class="at">.id =</span> <span class="st">"source"</span></span>
+<span id="cb43-17"><a href="#cb43-17"></a>) <span class="sc">|&gt;</span></span>
+<span id="cb43-18"><a href="#cb43-18"></a>  tidyr<span class="sc">::</span><span class="fu">pivot_longer</span>(<span class="sc">-</span>source, <span class="at">names_to =</span> <span class="st">"metric"</span>, <span class="at">values_to =</span> <span class="st">"count"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb43-19"><a href="#cb43-19"></a>  tidyr<span class="sc">::</span><span class="fu">pivot_wider</span>(<span class="at">names_from =</span> source, <span class="at">values_from =</span> count) <span class="sc">|&gt;</span></span>
+<span id="cb43-20"><a href="#cb43-20"></a>  dplyr<span class="sc">::</span><span class="fu">mutate</span>(<span class="at">difference =</span> <span class="st">`</span><span class="at">current pipeline</span><span class="st">`</span> <span class="sc">-</span> <span class="st">`</span><span class="at">most recent archived data</span><span class="st">`</span>) <span class="sc">|&gt;</span></span>
+<span id="cb43-21"><a href="#cb43-21"></a>  <span class="fu">print</span>(<span class="at">n =</span> <span class="cn">Inf</span>)</span>
+<span id="cb43-22"><a href="#cb43-22"></a>tibble<span class="sc">::</span><span class="fu">tibble</span>(</span>
+<span id="cb43-23"><a href="#cb43-23"></a>  <span class="at">source =</span> <span class="fu">c</span>(<span class="st">"most recent archived data"</span>, <span class="st">"current pipeline"</span>),</span>
+<span id="cb43-24"><a href="#cb43-24"></a>  <span class="at">crs =</span> <span class="fu">c</span>(sf<span class="sc">::</span><span class="fu">st_crs</span>(old_healthsheds)<span class="sc">$</span>input, sf<span class="sc">::</span><span class="fu">st_crs</span>(new_healthsheds)<span class="sc">$</span>input)</span>
+<span id="cb43-25"><a href="#cb43-25"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb44"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1"></a><span class="co"># Shape check: healthsheds-schema</span></span>
+<span id="cb44-2"><a href="#cb44-2"></a>dplyr<span class="sc">::</span><span class="fu">bind_rows</span>(</span>
+<span id="cb44-3"><a href="#cb44-3"></a>  <span class="st">`</span><span class="at">most recent archived data</span><span class="st">`</span> <span class="ot">=</span> tibble<span class="sc">::</span><span class="fu">tibble</span>(<span class="at">position =</span> <span class="fu">seq_along</span>(<span class="fu">names</span>(old_healthsheds)), <span class="at">column =</span> <span class="fu">names</span>(old_healthsheds)),</span>
+<span id="cb44-4"><a href="#cb44-4"></a>  <span class="st">`</span><span class="at">current pipeline</span><span class="st">`</span> <span class="ot">=</span> tibble<span class="sc">::</span><span class="fu">tibble</span>(<span class="at">position =</span> <span class="fu">seq_along</span>(<span class="fu">names</span>(new_healthsheds)), <span class="at">column =</span> <span class="fu">names</span>(new_healthsheds)),</span>
+<span id="cb44-5"><a href="#cb44-5"></a>  <span class="at">.id =</span> <span class="st">"source"</span></span>
+<span id="cb44-6"><a href="#cb44-6"></a>) <span class="sc">|&gt;</span></span>
+<span id="cb44-7"><a href="#cb44-7"></a>  tidyr<span class="sc">::</span><span class="fu">pivot_wider</span>(<span class="at">names_from =</span> source, <span class="at">values_from =</span> column) <span class="sc">|&gt;</span></span>
+<span id="cb44-8"><a href="#cb44-8"></a>  dplyr<span class="sc">::</span><span class="fu">arrange</span>(position) <span class="sc">|&gt;</span></span>
+<span id="cb44-9"><a href="#cb44-9"></a>  <span class="fu">print</span>(<span class="at">n =</span> <span class="cn">Inf</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb45"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1"></a><span class="co"># Shape check: healthsheds-types</span></span>
+<span id="cb45-2"><a href="#cb45-2"></a>dplyr<span class="sc">::</span><span class="fu">bind_rows</span>(</span>
+<span id="cb45-3"><a href="#cb45-3"></a>  <span class="st">`</span><span class="at">most recent archived data</span><span class="st">`</span> <span class="ot">=</span> tibble<span class="sc">::</span><span class="fu">tibble</span>(<span class="at">type =</span> <span class="fu">as.character</span>(sf<span class="sc">::</span><span class="fu">st_geometry_type</span>(old_healthsheds))),</span>
+<span id="cb45-4"><a href="#cb45-4"></a>  <span class="st">`</span><span class="at">current pipeline</span><span class="st">`</span> <span class="ot">=</span> tibble<span class="sc">::</span><span class="fu">tibble</span>(<span class="at">type =</span> <span class="fu">as.character</span>(sf<span class="sc">::</span><span class="fu">st_geometry_type</span>(new_healthsheds))),</span>
+<span id="cb45-5"><a href="#cb45-5"></a>  <span class="at">.id =</span> <span class="st">"source"</span></span>
+<span id="cb45-6"><a href="#cb45-6"></a>) <span class="sc">|&gt;</span></span>
+<span id="cb45-7"><a href="#cb45-7"></a>  dplyr<span class="sc">::</span><span class="fu">count</span>(source, type, <span class="at">name =</span> <span class="st">"rows"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb45-8"><a href="#cb45-8"></a>  tidyr<span class="sc">::</span><span class="fu">pivot_wider</span>(<span class="at">names_from =</span> source, <span class="at">values_from =</span> rows, <span class="at">values_fill =</span> <span class="dv">0</span>L) <span class="sc">|&gt;</span></span>
+<span id="cb45-9"><a href="#cb45-9"></a>  dplyr<span class="sc">::</span><span class="fu">mutate</span>(<span class="at">difference =</span> <span class="st">`</span><span class="at">current pipeline</span><span class="st">`</span> <span class="sc">-</span> <span class="st">`</span><span class="at">most recent archived data</span><span class="st">`</span>) <span class="sc">|&gt;</span></span>
+<span id="cb45-10"><a href="#cb45-10"></a>  <span class="fu">print</span>(<span class="at">n =</span> <span class="cn">Inf</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Current sectorization shape and assignment-method counts.</strong> Assignment rows can share a clinic or FKT; these counts do not impose uniqueness on those fields. The column listing includes the geometry column.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb46"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1"></a><span class="co"># Shape check: sectorization-dimensions</span></span>
+<span id="cb46-2"><a href="#cb46-2"></a>tibble<span class="sc">::</span><span class="fu">tibble</span>(<span class="at">rows =</span> <span class="fu">nrow</span>(new_sectorization), <span class="at">columns =</span> <span class="fu">length</span>(<span class="fu">names</span>(new_sectorization)))</span>
+<span id="cb46-3"><a href="#cb46-3"></a>tibble<span class="sc">::</span><span class="fu">tibble</span>(<span class="at">position =</span> <span class="fu">seq_along</span>(<span class="fu">names</span>(new_sectorization)), <span class="at">column =</span> <span class="fu">names</span>(new_sectorization)) <span class="sc">|&gt;</span></span>
+<span id="cb46-4"><a href="#cb46-4"></a>  <span class="fu">print</span>(<span class="at">n =</span> <span class="cn">Inf</span>)</span>
+<span id="cb46-5"><a href="#cb46-5"></a>sf<span class="sc">::</span><span class="fu">st_drop_geometry</span>(new_sectorization) <span class="sc">|&gt;</span></span>
+<span id="cb46-6"><a href="#cb46-6"></a>  tibble<span class="sc">::</span><span class="fu">as_tibble</span>() <span class="sc">|&gt;</span></span>
+<span id="cb46-7"><a href="#cb46-7"></a>  dplyr<span class="sc">::</span><span class="fu">summarise</span>(</span>
+<span id="cb46-8"><a href="#cb46-8"></a>    <span class="at">rows =</span> dplyr<span class="sc">::</span><span class="fu">n</span>(), <span class="at">clinics =</span> dplyr<span class="sc">::</span><span class="fu">n_distinct</span>(fs_uid, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb46-9"><a href="#cb46-9"></a>    <span class="at">assigned_fkt_codes =</span> dplyr<span class="sc">::</span><span class="fu">n_distinct</span>(fkt_instat_clean, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb46-10"><a href="#cb46-10"></a>    <span class="at">missing_fkt_codes =</span> <span class="fu">sum</span>(<span class="fu">is.na</span>(fkt_instat_clean) <span class="sc">|</span> fkt_instat_clean <span class="sc">==</span> <span class="st">""</span>)</span>
+<span id="cb46-11"><a href="#cb46-11"></a>  )</span>
+<span id="cb46-12"><a href="#cb46-12"></a>sf<span class="sc">::</span><span class="fu">st_drop_geometry</span>(new_sectorization) <span class="sc">|&gt;</span></span>
+<span id="cb46-13"><a href="#cb46-13"></a>  tibble<span class="sc">::</span><span class="fu">as_tibble</span>() <span class="sc">|&gt;</span></span>
+<span id="cb46-14"><a href="#cb46-14"></a>  dplyr<span class="sc">::</span><span class="fu">count</span>(match_type, <span class="at">name =</span> <span class="st">"rows"</span>, <span class="at">sort =</span> <span class="cn">TRUE</span>) <span class="sc">|&gt;</span></span>
+<span id="cb46-15"><a href="#cb46-15"></a>  <span class="fu">print</span>(<span class="at">n =</span> <span class="cn">Inf</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Run scientific targets only inside the compute-node allocation through the existing launcher. The stage-5 selection for that allocation is:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb47"><pre class="sourceCode numberSource r number-lines code-with-copy"><code class="sourceCode r"><span id="cb47-1"><a href="#cb47-1"></a>targets<span class="sc">::</span><span class="fu">tar_make</span>(<span class="at">names =</span> tidyselect<span class="sc">::</span><span class="fu">starts_with</span>(<span class="st">"s5_"</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Record CRS, native/package versions, split-part identity, coverage, population, component counts, and overlap exceptions when evaluating the real outputs. Do not assert that all clinics have healthsheds or that all healthsheds are disjoint. No research maps or exception tables are embedded in public HTML.</p>
+</div>
+</div>
+
+
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="../pipeline/22_page-clean-clinic-diagnosis.html" class="pagination-link" aria-label="Clean and Combine Clinic Diagnoses">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Clean and Combine Clinic Diagnoses</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="../pipeline/24_page-locate-clinics.html" class="pagination-link" aria-label="Compare and Select Clinic Locations">
+        <span class="nav-page-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Compare and Select Clinic Locations</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

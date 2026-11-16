@@ -1,0 +1,194 @@
+---
+title: "Review the Cleaned Database User Contract"
+subtitle: "Current outputs, legacy compatibility gaps, and decisions for the researcher"
+date: 2026-11-04
+toc: true
+execute:
+  eval: false
+engine: markdown
+---
+
+## Scope and evidence
+
+This second mapping notebook compares the user's supplied description of the
+legacy cleaned database with the saved pipeline products inspected on
+2026-11-04. The requested interface consists of clinic spatial metadata,
+clinic-month reporting metadata, healthshed polygons, a bilingual diagnosis
+dictionary, and manageable diagnosis partitions.
+
+The pipeline already produces most of these components. A compatible release
+still needs a diagnosis-ID reconciliation, a decision about ambiguous monthly
+database codes, and a versioned export procedure. The recommendations below
+are proposals; **no decision in the guidance table has been approved or
+implemented by this review**.
+
+The inspection read completed Parquet products and existing targets. It did
+not rebuild the pipeline, modify source data, compare all historical diagnosis
+values, or establish full scientific equivalence with a legacy release.
+Counts describe this saved state, not permanent acceptance thresholds.
+
+This notebook contains aggregate observations from governed data. It is kept
+outside the book's chapter list, consistent with the
+[data-governance guidance](../../03_misc-data-governance.qmd), pending review
+for inclusion in a rendered Manual.
+
+### Reference artifacts
+
+- Current tables: `data/intermediates/by_diagnosis/file1.parquet` through
+  `file40.parquet`, `diagnosis_dictionary_translated.parquet`,
+  `clinic_reporting_metadata.parquet`, and `clinic_spatial_metadata.parquet`.
+- Current geometry: target `s5_healthshed_clinic_final_sf`.
+- Archived dictionary: target `s3_diagnosis_translation_archive_df`, selected
+  from `data/clean/diagnosis_dictionary_translated.csv` inside the staged
+  `gdn_datafreeze_may2025/madagascar_clinic_data_cleaning.zip` archive.
+- Additional dictionary reference: staged
+  `RMA_clinic_data_gdrive/National clinic data/Clean/by_diagnosis_2024_deprecated/diagnosis_dictionary_translated.csv`.
+- Legacy implementation: local scripts pinned to revision
+  `31e0769683e133e136b09ac0c6608c5a12657a9a`. The
+  [first mapping notebook](legacy-pipeline-map.qmd#outputs-found-in-the-pre-targets-repository-archive)
+  explains why similarly named archived output families are reference
+  candidates rather than an automatically authoritative baseline.
+
+### Comparison baseline selected after this review
+
+On 2026-11-06, the researcher selected [the most recent archived data within
+the hand-delivered May 2025 ZIP](legacy-pipeline-map.qmd#most-recent-archived-data-comparison-baseline)
+as the sole input and comparison source, with selectors in
+`src/archived-comparison-baseline.R`. This supersedes the earlier mixed-source
+proposal. W3 uses the ZIP's generic prepared member (previously verified as
+v3 by content), and diagnoses use the ZIP's May 4 `by_diagnosis_2024` family,
+tracker, and May 3 clean dictionary. The May 20 Drive family and the
+`_deprecated` reference mentioned above are excluded. The selected ZIP
+dictionary is the dictionary inspected for this review, so the diagnosis-ID
+findings remain relevant. Older ZIP spatial/reporting metadata remain
+stage-specific references. The observations below retain their original
+inspection date and scope; saved pipeline products must be rebuilt from the
+ZIP before being treated as products of the selected freeze.
+
+## Observed output shape
+
+| Component | Observed saved state | Implication for the user contract |
+| --- | --- | --- |
+| Diagnosis partitions | All 40 retained files have 550,932 rows, unique clinic-year-month keys, 4,272 clinics, and coverage from January 2010 through December 2024. Their complete `clinic_ID`, `cAnnee`, `cPeriode`, `fname` key sets agree. | The manageable wide-table structure already exists. No reshaping to a single large table is necessary. |
+| Dictionary | 3,595 unique variables across 40 filename groups. Each group's ordered variable columns agree with the current dictionary. One English description is missing. | Current files are internally consistent with their own dictionary, but legacy variable identity needs reconciliation. |
+| Spatial metadata | 4,272 rows and unique clinic IDs. `n_month` totals 550,932. Contains the legacy attributes plus origins, raw coordinate-source labels, and coordinate status. | Clinic-level grain and reporting totals already agree with diagnoses. Decide which additional provenance fields enter the user interface. |
+| Reporting metadata | 768,993 rows for 768,960 unique clinic-months across the full 180-month calendar. There are 218,028 nonreporting rows. Reported key/source sets agree with diagnoses. | Resolve 33 repeated keys before promising one row per clinic-month. |
+| Healthsheds | Internal spatial target has 2,773 unique facility UIDs, seven empty geometries, EPSG:4326, and no invalid geometries under the inspected runtime. Of the reporting clinics, 2,765 have nonempty healthsheds. | Write an external spatial artifact and verify geometry presence against `has_healthshed`; a matching facility record alone does not establish a usable polygon. |
+| Neighbor pairings | Nine reviewed pairs, with unique source IDs, both endpoints in the reporting population, no blank destinations, and no self-pairs. | Preserve the supplied pairings and check destination geometries before recommending geographic aggregation. |
+| Release | `data/processed` is empty; release notebooks are scaffolds. | Users currently lack a standalone, versioned package. |
+
+## Findings that need resolution
+
+### Diagnosis identity changes despite matching file structure
+
+The supplied description says `V1` through `V3621`. The current dictionary
+and both inspected reference dictionaries instead have 3,595 rows. This
+does not establish that 26 variables were lost; the description may refer
+to a different version. Identify the authoritative baseline before changing
+the dictionary's size.
+
+There is a separate, demonstrated ID compatibility issue. Among 2,096
+French descriptions that occur exactly once in each of the current and
+archived dictionaries, all match by text, but **1,954 have different `V`
+identifiers**. For example, `Accouchement 10 - 14 ans` is archived as `V237`
+and currently appears as `V236`. These exact description matches diagnose
+label movement; they do not prove that all underlying wave expressions agree.
+
+[Page 21](../21_page-construct-diagnosis-dictionary.qmd) assigns `V` IDs by
+row position and partitions variables by position. Consequently, reproducing
+the same column names and number of files does not establish stable diagnosis
+identity. Build a reviewed crosswalk using definitions and wave expressions,
+resolving `X` terms through each version's own source schema. Preserve legacy
+IDs and file assignments for equivalent definitions; explicitly version any
+definition changes. Do not match or renumber variables from descriptions alone.
+
+The missing English description is `V2531`, whose current French description
+is `T10 II: Femmes enceintes PCPER CDI`. Its wording requires a reviewed
+translation rather than an inferred expansion of an unfamiliar acronym.
+
+### Historical code ambiguity expands reporting rows
+
+Each of the 33 repeated reporting keys has two distinct historical database
+codes and one retained `fname`. All 66 affected rows obtain their codes from
+the historical crosswalk. The [page 25 join](../25_page-combine-clinic-metadata.qmd)
+preserves these multiple code matches. They are not exact duplicate rows,
+so `distinct()` cannot resolve the ambiguity.
+
+The diagnosis files remain uniquely keyed. The decision concerns how a scalar
+`clinic_database_code` should represent multiple historical codes, not whether
+to remove or combine diagnosis observations. With the current population and
+calendar, the resolved metadata would have 768,960 rows: 550,932 reported and
+218,028 nonreporting clinic-months.
+
+### Export format and data semantics need an explicit contract
+
+The current pipeline stores tabular handoffs in Parquet; healthshed geometry
+remains an ordinary spatial target. The supplied R example instead expects
+CSV dictionaries and Feather diagnosis files. Keeping Parquet preserves table
+shape but requires changing the reader. Supporting the existing example
+unchanged requires a compatibility export and a reviewed exception to the
+[Parquet artifact convention](../../02_misc-project-contract.qmd).
+
+The actual legacy diagnosis writer uses `cAnnee` and `cPeriode`, matching our
+current files. Its reporting metadata uses `year` and `month`. The supplied
+prose's English date terms are not evidence that diagnosis columns should be
+renamed. Similarly, the actual dictionary field is `wave1_colname`, not the
+prose's `wave1_colname1`.
+
+Retain distinctions between entered zero, missing values, and `-1`. The
+implementation also reserves `-99` for unresolved duplicate reductions;
+the inspected reduction audits have no error decisions. Document the
+different earlier-wave and W3 aggregation rules rather than applying a
+blanket zero replacement during export. Reporting eligibility is established
+before projecting an individual diagnosis partition, so an all-missing
+partition row does not necessarily mean the clinic failed to report.
+
+Facility type and public/private status are cross-sectional attributes with
+recorded source precedence and inference rules. They are not validated
+monthly histories. The 2022 healthsheds likewise remain a fixed geographic
+reference for diagnoses extending through 2024. Preserve category-overlap
+and wave-transition cautions, and recalculate dated coverage statements such
+as the historical count of 16 clinics lacking healthsheds.
+
+## Researcher guidance and decisions
+
+Enter guidance in the last column, including any departure from the
+recommendation. All entries remain **pending** until the researcher records
+a decision. Filling this table records design guidance; it does not itself
+publish data or establish scientific equivalence.
+
+| ID | Issue / decision needed | Recommendation | User guidance / decision |
+| --- | --- | --- | --- |
+| D1 | Which legacy artifacts define compatibility? The prose says 3,621 variables; both inspected dictionary references have 3,595. | Select an exact diagnosis family and its matching dictionary/tracker with recorded provenance. Treat 3,621 as unverified until that baseline is established. | In line with the archived data, we can treat 3595 as the true number of variables |
+| D2 | Must historical `V` IDs and `filename` assignments remain stable? | Preserve legacy IDs and groups for definitions proven equivalent through a reviewed wave-expression crosswalk. Explicitly identify new or changed definitions; retain the crosswalk as evidence. | Confirmed; identify the IDs that carryover, and those that do not, and label clearly |
+| D3 | How should 33 clinic-months with two historical codes be represented? | Use a reviewed primary code where supported. Otherwise use one row with a missing scalar code and an ambiguity indicator, retaining both candidates in an audit table. Never select an arbitrary first code. | **Pending:** choose a code-resolution policy and review the affected cases. |
+| D4 | Should existing CSV/Feather loading code work unchanged? | Keep canonical curation products in Parquet and add CSV/Feather compatibility exports at the release boundary if unchanged loading code is required. Explicitly scope the storage-convention exception. | **Pending:** choose legacy-format exports, Parquet-only delivery, or both. |
+| D5 | Which field names and extra provenance columns belong in the user interface? | Preserve actual legacy diagnosis keys `clinic_ID`, `cAnnee`, `cPeriode`, `fname`; retain `year`/`month` in reporting metadata. Keep useful provenance as documented additions or companion tables. | **Pending:** confirm column names and whether provenance is inline or separate. |
+| D6 | Which external healthshed format and empty-geometry policy should users receive? | For exact legacy delivery, write the complete shapefile bundle with `fs_uid` and CRS. Preserve evidence for empty geometries, reconcile `has_healthshed`, and validate neighbor destination geometry. | **Pending:** choose the spatial format and treatment of empty geometry records. |
+| D7 | Should the release retain the 2022 spatial snapshot and cross-sectional facility attributes? | Label their reference period and inference rules clearly. Defer monthly type/ownership histories and updated healthsheds to separately scoped work with authoritative evidence. | **Pending:** confirm the snapshot approach or specify required extensions. |
+| D8 | Should export alter missing, blank, or sentinel values? | Preserve current curated values and document zero, missing, `-1`, and reserved `-99`, including wave-specific aggregation. Keep geographic neighbor aggregation as an explicit analysis step. | **Pending:** confirm preservation or specify a separately documented transformation. |
+| D9 | How should the missing English description and dated README statements be resolved? | Review the translation of current `V2531`; refresh coverage through December 2024, extend `fname = 6` documentation to 2020–2024, and update spatial counts while retaining clinical discontinuity cautions. | **Pending:** provide or approve wording and any additional scientific notes. |
+| D10 | What constitutes a releasable, reproducible package? | Write a versioned package under `data/processed` with schemas, source/code/environment provenance, checksums, and passing checks below. Use the existing release review for access and publication decisions. | **Pending:** specify version, intended users/access, and acceptance requirements. |
+
+## Implementation handoff after decisions
+
+1. Record D1–D3 and resolve diagnosis identity and historical code ambiguity
+   in their owning transformations or an explicitly reviewed compatibility
+   mapping. Keep scientific decisions out of ad hoc serialization code.
+2. Implement the selected interface through
+   [release packaging](../../releases/19_page-package-release.qmd), consuming
+   curated products without reimplementing cleaning. Move rejected
+   `*_wrong_fname` partitions to a distinct user-facing directory if included;
+   keep optional reference/audit products separate from primary diagnosis files.
+3. Verify unique clinic and clinic-month keys; identical diagnosis partition
+   key sets; exact dictionary-column correspondence; reporting/source
+   agreement; metadata reporting totals; spatial joins and empty geometry
+   handling; and export round-trip equality, including sentinel values.
+4. Run the user's pneumonia-loading workflow against the selected package
+   format. Record the exact artifacts, accepted definition differences,
+   dependency versions, and checksums through
+   [release verification](../../releases/21_page-verify-release.qmd).
+
+Full historical value parity and accepted clinical definition differences
+remain separate evidence requirements. Passing file-shape checks alone is
+insufficient to claim that the new release reproduces legacy analyses.

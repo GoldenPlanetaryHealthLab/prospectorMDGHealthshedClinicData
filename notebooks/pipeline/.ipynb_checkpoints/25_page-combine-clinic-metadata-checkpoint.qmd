@@ -1,0 +1,428 @@
+---
+title: "Combine Reporting and Spatial Clinic Metadata"
+subtitle: "Implement legacy stage 7 with reporting and attribute provenance"
+execute:
+  eval: false
+engine: markdown
+---
+
+This page implements [`7_combine_clinic_metadata.R`][legacy-7] at revision
+`31e0769683e133e136b09ac0c6608c5a12657a9a`. It produces monthly reporting
+metadata and clinic-level spatial attributes. All transformations are targets;
+rendering does not execute them. The final tables are nonspatial Parquet
+products, while page 23 retains the healthshed geometry handoff.
+
+::: {.manual-prereq title="Require The Reporting, Identity, And Spatial Handoffs"}
+
+| Dependency | Producing page | Contract |
+| --- | --- | --- |
+| `s4a_clinic_reporting_track_parquet` | [22](22_page-clean-clinic-diagnosis.qmd) | Scalar retained `fname` in `yYYYY_mMM` columns; zero means no retained report |
+| `s2_clinic_ids_df` | [20](20_page-construct-clinic-ids.qmd) | Historical code, name, type, and `ID_checked` evidence |
+| `s5_sectorization_2022_clean_sf` | [23](23_page-construct-healthsheds.qmd) | Reviewed 2022 clinic and administrative attributes |
+| `s5_healthshed_clinic_final_sf` | [23](23_page-construct-healthsheds.qmd) | Healthshed geometry keyed by facility UID |
+| `s6_clinic_locations_selected_sf` | [24](24_page-locate-clinics.qmd) | Candidate coordinates, source labels, and fallback geometry |
+
+The reviewed neighbor-pairing CSV is an exact member of the already tracked
+`s2_clinic_months_raw_zip`. Source reads reuse the private extraction helper.
+Run scientific target builds only on the compute node. The checks below use
+synthetic fixtures or read completed targets; they never build the pipeline.
+
+:::
+
+::: {.manual-procedure title="Record Coordinate Policy And Declare Helpers"}
+
+**Reviewed policy: preserve legacy missing coordinates for UNICEF.** Both
+`unicef` and `unicef2` retain missing coordinates in S7 even when S6 selected
+a valid UNICEF candidate. The policy is a tracked target, and the coordinate
+status explicitly identifies these rows. Other labels ending in `2` use their
+stored source pair; the original label remains in `gps_source_raw`.
+
+Centroids use the same `sf::st_centroid()` operation and input CRS as the
+legacy script. Only the selected, nonempty geometries need calculation.
+No new projection, geodesic algorithm, or point-on-surface rule is introduced.
+Empty geometries yield missing coordinates. The spatial runtime from page 23
+remains a dependency of location extraction and centroid calculation.
+
+```{r}
+s7_clinic_coordinate_policy_list <- list(
+  unicef = "legacy_missing",
+  centroid = "legacy_st_centroid_input_crs",
+  legacy_revision = "31e0769683e133e136b09ac0c6608c5a12657a9a")
+s7_clinic_centroid_xy_fn <- function(geometry) {
+  result <- matrix(NA_real_, nrow = length(geometry), ncol = 2L,
+                   dimnames = list(NULL, c("x", "y")))
+  present <- which(!sf::st_is_empty(geometry))
+  if (length(present)) {
+    result[present, ] <- sf::st_coordinates(sf::st_centroid(geometry[present]))[, c("X", "Y"), drop = FALSE]
+  }
+  result
+}
+s7_clinic_selected_coordinates_fn <- function(locations, policy) {
+  stopifnot(identical(policy$unicef, "legacy_missing"))
+  label <- sub("2$", "", as.character(locations$which_use))
+  result <- tibble::tibble(fs_uid = locations$fs_uid,
+    gps_source_raw = as.character(locations$which_use), which_use = label,
+    clinic_x = rep(NA_real_, nrow(locations)), clinic_y = rep(NA_real_, nrow(locations)))
+  for (source in c("who", "mdss", "sect", "gps")) {
+    selected <- which(label == source)
+    if (length(selected)) {
+      result$clinic_x[selected] <- as.numeric(locations[[paste0(source, "_x")]][selected])
+      result$clinic_y[selected] <- as.numeric(locations[[paste0(source, "_y")]][selected])
+    }
+  }
+  selected <- which(label == "fkt_centroid")
+  if (length(selected)) {
+    xy <- s7_clinic_centroid_xy_fn(locations$fkt_geometry[selected])
+    result$clinic_x[selected] <- xy[, "x"]
+    result$clinic_y[selected] <- xy[, "y"]
+  }
+  result
+}
+s7_clinic_reporting_long_fn <- function(tracker) {
+  tracker %>% tidyr::pivot_longer(!clinic_ID, names_to = "year_month", values_to = "fname") %>%
+    tidyr::separate_wider_position(year_month, widths = c(1, year = 4, 2, month = 2), cols_remove = FALSE) %>%
+    mutate(across(c(year, month), as.numeric))
+}
+```
+
+:::
+
+::: {.manual-procedure title="Reshape The Reporting Calendar And Attach Database Codes"}
+
+Read the compact reporting tracker, retaining every existing calendar column
+and its `fname == 0` rows. Do not manufacture months absent from the tracker.
+The historical join uses clinic, year, month, and source file together. Code
+strings retain their leading zeros. A missing code is filled with the clinic
+UID only for reported months in 2020 or later, as in the legacy script.
+
+The join retains repeated historical rows. The reporting-key audit exposes
+expansion instead of silently choosing a code or deleting duplicate rows.
+`database_code_origin` records the UID fallback separately from a historical
+crosswalk code. `year_month` remains in the long intermediate for checks.
+
+```{r}
+s7_clinic_reporting_track_df <- duckplyr::read_parquet_duckdb(
+  s4a_clinic_reporting_track_parquet, prudence = "stingy") %>% collect()
+s7_clinic_reporting_long_df <- s7_clinic_reporting_long_fn(s7_clinic_reporting_track_df)
+s7_clinic_reporting_metadata_df <- s7_clinic_reporting_long_df %>%
+  select(-year_month) %>%
+  left_join(s2_clinic_ids_df %>% transmute(clinic_ID, year = cAnnee, month = cPeriode,
+    fname, clinic_database_code = as.character(cCodeStru)),
+    by = c("clinic_ID", "year", "month", "fname")) %>%
+  mutate(database_code_origin = case_when(
+      !is.na(clinic_database_code) ~ "historical_crosswalk",
+      is.na(clinic_database_code) & fname != 0 & year >= 2020 ~ "reported_uid_fallback",
+      TRUE ~ "missing"),
+    clinic_database_code = ifelse(is.na(clinic_database_code) & fname != 0 & year >= 2020,
+      clinic_ID, clinic_database_code))
+```
+
+:::
+
+::: {.manual-procedure title="Summarize Reporting And Apply Attribute Precedence"}
+
+The clinic-level population includes only clinics with at least one retained
+report. `n_month` counts distinct reported calendar labels; `first_report` and
+`last_report` use those zero-padded labels, not a duration calculation.
+
+Sectorization attributes win when present. The historical fallback uses all
+records tied at `cAnnee + cPeriode / 13`'s maximum, then the legacy distinct
+attribute projection. The shared `unique_nonNA()` helper retains multiple
+nonmissing values. Neither source ambiguity nor tied latest descriptions is
+reduced to `first()`; audits expose those conditions before interpreting the
+result as one record per clinic.
+
+Ownership is a legacy heuristic: a nonmissing sectorization type other than
+`FSP` implies public, with `ID_checked` as fallback. It is computed before
+historical type fallback, preserving the original order. Normalize `FSP_` as
+in the source. The added origin fields describe this precedence; they do not
+claim a validated ownership or facility-type history.
+
+```{r}
+s7_clinic_reporting_summary_df <- s7_clinic_reporting_long_df %>%
+  filter(fname != 0) %>%
+  summarise(n_month = n_distinct(year_month), first_report = min(year_month),
+            last_report = max(year_month), .by = clinic_ID)
+s7_clinic_sectorization_attributes_df <- s5_sectorization_2022_clean_sf %>%
+  sf::st_drop_geometry() %>%
+  summarise(across(c(region_uid:district_name, fs_type, fs_name, f_or_nf),
+                   s6_clinic_location_unique_nonNA_fn), .by = fs_uid)
+s7_clinic_latest_historical_attributes_df <- s2_clinic_ids_df %>%
+  filter((cAnnee + cPeriode / 13) == max(cAnnee + cPeriode / 13), .by = clinic_ID) %>%
+  select(clinic_ID, fs_name2 = cNom, fs_type2 = type_map, ID_checked) %>% distinct()
+s7_clinic_metadata_attributes_df <- s7_clinic_reporting_summary_df %>%
+  left_join(s7_clinic_sectorization_attributes_df, by = c("clinic_ID" = "fs_uid")) %>%
+  left_join(s7_clinic_latest_historical_attributes_df, by = "clinic_ID") %>%
+  mutate(across(c(fs_type, fs_type2), ~gsub("FSP_", "FSP", .x)),
+    fs_name_origin = case_when(!is.na(fs_name) ~ "sectorization_2022",
+      !is.na(fs_name2) ~ "latest_historical", TRUE ~ "missing"),
+    fs_type_origin = case_when(!is.na(fs_type) ~ "sectorization_2022",
+      !is.na(fs_type2) ~ "latest_historical", TRUE ~ "missing"),
+    pub_priv_origin = case_when(!is.na(fs_type) ~ "sectorization_type_heuristic",
+      !is.na(ID_checked) ~ "id_checked_heuristic", TRUE ~ "missing"),
+    pub_priv = ifelse(fs_type != "FSP", "public", "private"),
+    pub_priv2 = ifelse(ID_checked, "public", "private"),
+    fs_type = ifelse(is.na(fs_type), fs_type2, fs_type),
+    fs_name = ifelse(is.na(fs_name), fs_name2, fs_name),
+    pub_priv = ifelse(is.na(pub_priv), pub_priv2, pub_priv)) %>%
+  select(-fs_type2, -fs_name2, -pub_priv2)
+```
+
+:::
+
+::: {.manual-procedure title="Extract Coordinates And Fill The Selected Healthshed Centroids"}
+
+Attach healthshed geometry and the selected-coordinate table by clinic UID.
+These ordinary dataframe intermediates retain an `sfc` column while geometry
+is needed. A selected healthshed centroid is computed after that join. The
+raw selection label remains distinct from the normalized display label.
+
+`coordinate_status` distinguishes an available pair, the deliberate UNICEF
+parity gap, an absent location decision, and other missing selected pairs.
+It does not label a missing coordinate successful because S6 chose a source.
+
+```{r}
+s7_clinic_selected_coordinates_df <- {
+  s5_spatial_runtime_list
+  s7_clinic_selected_coordinates_fn(s6_clinic_locations_selected_sf, s7_clinic_coordinate_policy_list)
+}
+s7_clinic_metadata_located_df <- s7_clinic_metadata_attributes_df %>%
+  left_join(as.data.frame(select(s5_healthshed_clinic_final_sf, clinic_ID = fs_uid, geometry)),
+            by = "clinic_ID") %>%
+  left_join(s7_clinic_selected_coordinates_df, by = c("clinic_ID" = "fs_uid"))
+s7_clinic_metadata_centroid_filled_df <- {
+  s5_spatial_runtime_list
+  x <- s7_clinic_metadata_located_df
+  selected <- which(x$which_use == "shed_centroid")
+  if (length(selected)) {
+    xy <- s7_clinic_centroid_xy_fn(x$geometry[selected])
+    x$clinic_x[selected] <- xy[, "x"]
+    x$clinic_y[selected] <- xy[, "y"]
+  }
+  x %>% rename(healthshed_geometry = geometry) %>%
+    mutate(coordinate_status = case_when(
+      which_use == "unicef" ~ "legacy_unicef_missing",
+      is.na(which_use) | which_use == "none" ~ "no_selected_location",
+      !is.na(clinic_x) & !is.na(clinic_y) ~ "available_pair",
+      TRUE ~ "missing_selected_pair"))
+}
+```
+
+:::
+
+::: {.manual-procedure title="Retain Ownership Inference And Reviewed Neighbor Evidence"}
+
+The final ownership fallback marks an otherwise unclassified clinic private
+when it reported since `y2022_m01` and is absent from sectorization. The origin
+field names this inference. Historical comments about 36 such clinics are
+comparison observations, not assertions.
+
+Read only the two reviewed pairing fields needed by the legacy join. Preserve
+missing and blank strings, duplicate pairing rows, and the join's multiplicity;
+these are visible in the endpoint and final-key audits. A proposed neighbor
+does not replace the reporting clinic UID and no merge is performed.
+
+```{r}
+s7_clinic_metadata_classified_df <- s7_clinic_metadata_centroid_filled_df %>%
+  mutate(pub_priv_origin = ifelse(is.na(pub_priv) & last_report >= "y2022_m01" &
+      !clinic_ID %in% s5_sectorization_2022_clean_sf$fs_uid,
+      "recent_report_absent_sectorization_heuristic", pub_priv_origin),
+    pub_priv = ifelse(is.na(pub_priv) & last_report >= "y2022_m01" &
+      !clinic_ID %in% s5_sectorization_2022_clean_sf$fs_uid, "private", pub_priv))
+s7_clinic_neighbor_member_chr <- s3_dictionary_archive_member_fn(s2_clinic_months_raw_zip,
+  "data/raw/symphonia_verified/VERIFIED public_active_fs_missing_fkt.csv")
+s7_clinic_neighbor_pairings_df <- s3_dictionary_archive_read_fn(
+  s2_clinic_months_raw_zip, s7_clinic_neighbor_member_chr, function(path) {
+    read.csv(path, fileEncoding = "UTF-8", colClasses = "character", stringsAsFactors = FALSE) %>%
+      select(clinic_ID = fs_uid, neighbor_to_merge = clinic.uid.to.be.paired.with)
+  })
+s7_clinic_spatial_metadata_df <- s7_clinic_metadata_classified_df %>%
+  left_join(s7_clinic_neighbor_pairings_df, by = "clinic_ID") %>%
+  mutate(has_healthshed = !sf::st_is_empty(healthshed_geometry)) %>%
+  rename(gps_source = which_use) %>% select(-healthshed_geometry)
+```
+
+:::
+
+::: {.manual-procedure title="Expose Multiplicity, Calendar, And Pairing Audits"}
+
+The monthly key and clinic-level key are claims to examine with these audits,
+not enforced by deleting repeated rows. The sectorization audit counts distinct
+nonmissing source values before summary; incompatible vector lengths may still
+raise the legacy summary error. The historical audit reports distinct tied
+latest descriptions. No audit rows are published during notebook rendering.
+
+```{r}
+s7_clinic_reporting_key_audit_df <- s7_clinic_reporting_metadata_df %>%
+  summarise(rows = n(), codes = n_distinct(clinic_database_code),
+    sources = n_distinct(fname), .by = c(clinic_ID, year, month)) %>%
+  filter(rows != 1 | is.na(clinic_ID) | is.na(year) | is.na(month) | month < 1 | month > 12)
+s7_clinic_reporting_calendar_audit_df <- s7_clinic_reporting_long_df %>%
+  distinct(year_month, year, month) %>%
+  mutate(valid_calendar = grepl("^y[0-9]{4}_m(0[1-9]|1[0-2])$", year_month))
+s7_clinic_sectorization_attribute_audit_df <- s5_sectorization_2022_clean_sf %>%
+  sf::st_drop_geometry() %>%
+  summarise(across(c(region_uid:district_name, fs_type, fs_name, f_or_nf),
+    ~n_distinct(.x, na.rm = TRUE), .names = "{.col}_n_values"), .by = fs_uid) %>%
+  filter(if_any(ends_with("_n_values"), ~.x > 1L))
+s7_clinic_historical_attribute_audit_df <- s7_clinic_latest_historical_attributes_df %>%
+  count(clinic_ID, name = "latest_descriptions") %>% filter(latest_descriptions > 1L)
+s7_clinic_spatial_key_audit_df <- s7_clinic_spatial_metadata_df %>%
+  count(clinic_ID, name = "rows") %>% filter(rows != 1 | is.na(clinic_ID))
+s7_clinic_neighbor_audit_df <- s7_clinic_neighbor_pairings_df %>%
+  add_count(clinic_ID, name = "pairing_rows") %>%
+  mutate(source_in_metadata = clinic_ID %in% s7_clinic_reporting_summary_df$clinic_ID,
+    neighbor_blank = !is.na(neighbor_to_merge) & trimws(neighbor_to_merge) == "",
+    neighbor_missing = is.na(neighbor_to_merge),
+    neighbor_in_metadata = neighbor_to_merge %in% s7_clinic_reporting_summary_df$clinic_ID,
+    self_pair = !is.na(neighbor_to_merge) & clinic_ID == neighbor_to_merge)
+```
+
+:::
+
+::: {.manual-procedure title="Write The Two Nonspatial Parquet Handoffs"}
+
+| File target | Destination and grain |
+| --- | --- |
+| `s7_clinic_reporting_metadata_parquet` | `data/intermediates/clinic_reporting_metadata.parquet`; clinic/year/month, with repeated-key evidence retained |
+| `s7_clinic_spatial_metadata_parquet` | `data/intermediates/clinic_spatial_metadata.parquet`; clinic-level attributes, with source ambiguities retained |
+
+The schemas retain the legacy columns and add field origins, raw location
+labels, and coordinate status. No `sfc` columns enter Parquet. Consumers must
+inspect the key audits before assuming uniqueness. Page 23's final healthshed
+`sf` remains the geometry handoff. These are curated intermediates; release
+approval and publication belong to the [release pages](../releases/19_page-package-release.qmd).
+
+```{r}
+s7_clinic_metadata_write_fn <- function(x, path) {
+  stopifnot(!any(vapply(x, inherits, logical(1), what = "sfc")))
+  s5_healthshed_write_table_fn(x, path)
+}
+```
+
+```{r}
+#| format: file
+s7_clinic_reporting_metadata_parquet <- s7_clinic_metadata_write_fn(s7_clinic_reporting_metadata_df,
+  here::here("data/intermediates/clinic_reporting_metadata.parquet"))
+s7_clinic_spatial_metadata_parquet <- s7_clinic_metadata_write_fn(s7_clinic_spatial_metadata_df,
+  here::here("data/intermediates/clinic_spatial_metadata.parquet"))
+```
+
+:::
+
+::: {.manual-check title="Explore Metadata Against The Frozen Legacy Outputs"}
+
+The synthetic checks exercise reference transformations, code fallback,
+attribute precedence, selected coordinates and centroid handling, UNICEF parity,
+ownership, pairings, and Parquet round trips. Graph checks construct declarations
+without building targets.
+
+```sh
+scripts/mdg-healthshed-clinic-data exec Rscript tests/check-clinic-metadata.R
+scripts/mdg-healthshed-clinic-data exec Rscript tests/check-data-storage-convention.R
+python3 tests/check-manual-structure.py
+```
+
+After S7 runs on the compute node, use the following **read-only EDA prompts**
+in an authorized R session. These plain R examples are not tangled into the
+graph and do not run during rendering. They write no data and build no targets.
+The frozen reference CSVs use the old `data/clean/` paths, not the embedded
+reference-data copies. Read identifiers as character and decode the old CSVs
+as CP1252; their accented text is not UTF-8. Fix comparison contracts before
+interpreting changed values as scientific disagreements.
+
+**Are clinic sets, reporting calendars, and keys comparable?** Inspect both
+sides' multiplicity before joining. The new reporting tracker comes from S4;
+the archived script used an intermediate tracker that differs from the later
+2024 diagnosis export. A calendar difference may therefore begin upstream.
+
+```r
+library(dplyr)
+library(tidyr)
+archive <- targets::tar_read(s2_clinic_months_raw_zip)
+member_fn <- targets::tar_read(s3_dictionary_archive_member_fn)
+read_fn <- targets::tar_read(s3_dictionary_archive_read_fn)
+read_old <- function(suffix, classes) read_fn(archive, member_fn(archive, suffix), function(path) {
+  read.csv(path, fileEncoding = "CP1252", colClasses = classes, stringsAsFactors = FALSE)
+})
+old_time <- read_old("data/clean/clinic_reporting_metadata.csv",
+  c(clinic_ID = "character", clinic_database_code = "character"))
+old_spatial <- read_old("data/clean/clinic_spatial_metadata.csv", c(clinic_ID = "character"))
+new_time <- targets::tar_read(s7_clinic_reporting_metadata_df)
+new_spatial <- targets::tar_read(s7_clinic_spatial_metadata_df)
+anti_join(distinct(old_spatial, clinic_ID), distinct(new_spatial, clinic_ID), by = "clinic_ID")
+anti_join(distinct(new_spatial, clinic_ID), distinct(old_spatial, clinic_ID), by = "clinic_ID")
+old_time %>% count(year, month, reported = fname != 0)
+new_time %>% count(year, month, reported = fname != 0)
+old_time %>% count(clinic_ID, year, month) %>% filter(n != 1)
+targets::tar_read(s7_clinic_reporting_key_audit_df)
+targets::tar_read(s7_clinic_reporting_calendar_audit_df) %>% filter(!valid_calendar)
+targets::tar_read(s7_clinic_spatial_key_audit_df)
+```
+
+**Did reporting counts, codes, or source choices change for uniquely keyed
+records?** Keep repeated keys outside the first paired comparison. Use explicit
+missing-value equality instead of dropping missing discrepancies with `!=`.
+
+```r
+time_keys <- c("clinic_ID", "year", "month")
+a <- old_time %>% filter(n() == 1, .by = all_of(time_keys))
+b <- new_time %>% filter(n() == 1, .by = all_of(time_keys))
+anti_join(a, b, by = time_keys)
+anti_join(b, a, by = time_keys)
+paired_time <- inner_join(a, b, by = time_keys, suffix = c("_old", "_new"))
+same <- function(a, b) (is.na(a) & is.na(b)) | coalesce(as.character(a) == as.character(b), FALSE)
+paired_time %>% filter(!same(fname_old, fname_new) |
+  !same(clinic_database_code_old, clinic_database_code_new))
+# Check code provenance, including reported UID fallbacks and missing older codes:
+new_time %>% count(year, reported = fname != 0, database_code_origin)
+```
+
+**Are attribute and location differences traceable to a source?** Restrict
+spatial-attribute pairing to one row per UID on both sides. Compare discrete
+fields first, then coordinate differences with an explicitly chosen tolerance.
+Inspect the raw source label, the normalized display label, and coordinate
+status together; `unicef` deliberately remains missing under the parity policy.
+
+```r
+paired_spatial <- inner_join(old_spatial %>% filter(n() == 1, .by = clinic_ID),
+  new_spatial %>% filter(n() == 1, .by = clinic_ID), by = "clinic_ID", suffix = c("_old", "_new"))
+fields <- c("n_month", "first_report", "last_report", "fs_name", "fs_type", "pub_priv",
+            "gps_source", "neighbor_to_merge", "has_healthshed")
+bind_rows(lapply(fields, function(field) tibble(field = field,
+  compared = nrow(paired_spatial), changed = sum(!same(paired_spatial[[paste0(field, "_old")]],
+    paired_spatial[[paste0(field, "_new")]])))))
+paired_spatial %>% transmute(clinic_ID, gps_source_old, gps_source_new,
+  x_missing_changed = is.na(clinic_x_old) != is.na(clinic_x_new),
+  y_missing_changed = is.na(clinic_y_old) != is.na(clinic_y_new),
+  delta_longitude = clinic_x_new - clinic_x_old, delta_latitude = clinic_y_new - clinic_y_old) %>%
+  arrange(desc(abs(delta_longitude)), desc(abs(delta_latitude))) %>% head(20)
+targets::tar_read(s7_clinic_coordinate_policy_list)
+new_spatial %>% count(gps_source_raw, gps_source, coordinate_status)
+new_spatial %>% count(fs_name_origin, fs_type_origin, pub_priv_origin)
+targets::tar_read(s7_clinic_sectorization_attribute_audit_df)
+targets::tar_read(s7_clinic_historical_attribute_audit_df)
+```
+
+**Which reviewed neighbors are unresolved, and which public CSBs still lack
+healthsheds?** Inspect pairing endpoints and duplicates before treating a
+neighbor as usable. The legacy count of seven is an observation from its
+freeze. Do not turn it into a universal assertion or automatically merge rows.
+
+```r
+targets::tar_read(s7_clinic_neighbor_audit_df) %>%
+  filter(pairing_rows > 1 | !source_in_metadata | neighbor_blank | neighbor_missing |
+           !neighbor_in_metadata | self_pair)
+new_spatial %>% filter(last_report >= "y2022_m01", pub_priv == "public" | is.na(pub_priv),
+  !has_healthshed, is.na(neighbor_to_merge), grepl("CSB", fs_type)) %>%
+  select(clinic_ID, fs_name, fs_type, pub_priv, pub_priv_origin, gps_source, coordinate_status)
+# Compare the same legacy predicate on old_spatial before interpreting count changes.
+```
+
+Full-data parity remains a compute-node investigation. Differences can arise
+from reporting selection, identity ties, S5 geometry/native versions, or S6
+source choice before this page applies its documented rules.
+
+:::
+
+[legacy-7]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/7_combine_clinic_metadata.R

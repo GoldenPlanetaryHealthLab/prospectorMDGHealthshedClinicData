@@ -1,0 +1,181 @@
+---
+title: "Compare and Select Clinic Locations"
+subtitle: "Implementation plan for legacy stage 6"
+execute:
+  eval: false
+engine: markdown
+---
+
+**Status: detailed implementation plan; targets are not wired.** This page
+plans [`6_locate_clinics.R`][legacy-6]. It retains candidate coordinates,
+identity evidence, spatial tests, and the selected-source label. A reported
+point, an administrative center, and an inferred centroid are different
+products and must remain distinguishable.
+
+::: {.manual-prereq title="Confirm Identities, Geometry, And Frozen Location Sources"}
+
+Require `s2_clinic_ids_df`, `s5_sectorization_2022_clean_sf`, and
+`s5_healthshed_clinic_final_sf` from pages [20](20_page-construct-clinic-ids.qmd)
+and [23](23_page-construct-healthsheds.qmd). Use the in-memory spatial targets;
+do not reread a shapefile export solely to reconstruct truncated field names.
+
+Inventory and file-track the staged MDDSS, WHO, UNICEF, and separate GPS
+sources, recording their source revision, coordinate fields, and CRS/axis
+interpretation. Use frozen inputs rather than retrieving current master lists
+from the web. The source labels its separate GPS coordinates as FKT centers;
+do not relabel them as measured facility coordinates.
+
+List the reviewed WHO UID replacements, ambiguous-source exclusions, and
+GPS exclusions as explicit correction evidence. Minimum-name-distance matches
+are candidate evidence, not independent proof of location accuracy.
+
+:::
+
+::: {.manual-procedure title="Prepare Source Candidates Without Losing Provenance"}
+
+| Proposed target | Responsibility |
+| --- | --- |
+| `s6_clinic_location_sectorization_df` | Clinic attributes and parsed sectorization point coordinates |
+| `s6_clinic_location_mdss_source_df` | MDDSS fields, excluding the source's zero/zero pair |
+| `s6_clinic_location_other_sources_list` | Named WHO, UNICEF, and GPS source tables |
+
+Preserve original identifiers and coordinate text alongside normalized numeric
+fields. Distinguish empty strings, invalid text, and missing coordinates.
+Do not exclude an individual zero coordinate just because the source excludes
+the pair `(0, 0)`.
+
+Place the source's `unique_nonNA()` behavior in a tracked helper or reuse an
+equivalent already tested helper. Multiple nonmissing attribute values remain
+an ambiguity to report. Do not silently pick the first. The unused legacy
+`mode()` definition does not need a new target without an actual consumer.
+
+:::
+
+::: {.manual-procedure title="Join MDDSS Through Historical Clinic Codes"}
+
+Build `s6_clinic_location_mdss_joined_df` by matching character `FacilityID`
+to the historical clinic-code crosswalk. Preserve the ASCII name
+normalization and cosine-distance ranking. Keep equal minima and audit
+multiple identities or candidate points instead of introducing a new cutoff.
+
+The source has a commented-out distance threshold; it is not an active
+scientific rule. Reproduce the subsequent clinic-name ranking after the join.
+Record join expansion and unmatched codes so source multiplicity is visible.
+
+:::
+
+::: {.manual-procedure title="Apply WHO Corrections And Add The Other Sources"}
+
+Implement the exact WHO UID/name exceptions and reviewed duplicate choices
+in `s6_clinic_location_who_clean_df`. Preserve removal of `#N/A` UIDs and the
+trailing-minus coordinate repair, including which field controls the sign.
+Add the WHO candidates with the legacy full join in
+`s6_clinic_location_who_joined_df`, retaining clinics absent from sectorization.
+
+Parse UNICEF's bracketed coordinate pair into
+`s6_clinic_location_unicef_joined_df`. For
+`s6_clinic_location_gps_joined_df`, preserve the two explicit exclusions, the
+GESIS-to-ID candidate join, closest-name ranking, and distinct-row behavior.
+Keep source coordinates separate rather than overwriting one generic pair.
+
+:::
+
+::: {.manual-procedure title="Identify A Unique Matching FKT"}
+
+Build `s6_clinic_location_fkt_matched_df` from sectorization candidates with
+nonblank FKT names. Preserve clinic-name prefix removal, cosine distance,
+name containment, and conversion of comma decimals and kilometer strings.
+
+Reproduce the source's combined condition: minimum name distance, distance
+`<= 0.12` or name containment, and minimum reported geographic distance;
+a clinic with one candidate is treated separately. Retain an FKT match only
+when exactly one candidate qualifies. Missing distances and ties need tests;
+do not make an arbitrary winner to satisfy a uniqueness assertion.
+
+:::
+
+::: {.manual-procedure title="Create Point Candidates And Containment Evidence"}
+
+Create `s6_clinic_location_points_sf` with the five source point geometries
+and their original coordinate columns in EPSG:4326. Missing coordinates must
+produce the same empty-point semantics as the reference implementation.
+
+Join healthshed and matched-FKT geometry to
+`s6_clinic_location_containment_sf`. The legacy fields named `fktContains`
+and `shedContains` actually use row-aligned `st_intersects()` results, not
+strict polygon containment. Preserve boundary behavior and pairing by clinic
+ID. Avoid a full candidate-by-all-polygons matrix when a row-paired operation
+can reproduce it; verify equivalence before changing the implementation.
+
+Containment success rates are diagnostics for the later check block. They do
+not themselves select the preferred coordinates or establish measured accuracy.
+
+:::
+
+::: {.manual-procedure title="Apply The Exact Source Precedence And Fallbacks"}
+
+`s6_clinic_locations_selected_sf` will retain every candidate, the evidence,
+and `which_use`, with the source's first-match ordering:
+
+| Priority | Qualifying evidence | Label |
+| --- | --- | --- |
+| 1–4 | WHO, sectorization, UNICEF, then MDDSS intersects the matched FKT | `who`, `sect`, `unicef`, `mdss` |
+| 5 | GPS intersects the healthshed | `gps` |
+| 6–10 | WHO, sectorization, UNICEF, MDDSS, then GPS intersects the healthshed | `who2`, `sect2`, `unicef2`, `mdss2`, `gps2` |
+| 11 | Matched FKT geometry is nonempty | `fkt_centroid` |
+| 12 | Healthshed geometry is nonempty | `shed_centroid` |
+| 13 | No qualifying location | `none` |
+
+The earlier GPS predicate makes the later identical GPS condition redundant
+in the legacy order. Preserve and test that order before considering a
+cleanup; do not claim all labels must occur in the data.
+
+Keep the full selection evidence in an ordinary target, with any nonspatial
+audit table persisted as a Parquet file target. Do not discard evidence in
+order to produce only the selected coordinate pair.
+
+:::
+
+::: {.manual-procedure title="Define The Metadata Handoff And UNICEF Decision"}
+
+[Page 25](25_page-combine-clinic-metadata.qmd) will consume
+`s6_clinic_locations_selected_sf` directly. Keep `which_use` and the distinction
+between FKT-based and healthshed-based selection even if a downstream display
+label removes its trailing `2`.
+
+The legacy metadata script lacks coordinate extraction cases for `unicef` and
+`unicef2`, although this stage can select them. Record an explicit decision
+between literal missing-coordinate parity and a reviewed extraction fix.
+Do not change the source-selection order here to hide the missing case.
+Selection can be implemented and checked before that downstream decision;
+final coordinate acceptance depends on the recorded policy.
+
+:::
+
+::: {.manual-check title="Specify Location Acceptance Evidence"}
+
+Create `tests/check-clinic-location-rules.R` before wiring the stage. Use
+small synthetic candidate tables and polygons to test:
+
+| Check | Required cases |
+| --- | --- |
+| Parsing | Empty and malformed coordinates, `(0, 0)`, bracketed UNICEF pairs, longitude/latitude order, comma distances, and WHO's sign repair |
+| Identity | A code with multiple identities, equal name distances, full-join-only clinics, and unmatched historical codes |
+| FKT choice | One candidate, equal minima, missing distances, name containment, and the `0.12` threshold boundary |
+| Spatial evidence | Empty points, empty polygons, boundary intersections, row pairing, and deliberate overlaps |
+| Source selection | Every reachable label, competing qualifying sources, no-coordinate fallback, and precedence of reported points versus centroids |
+| Metadata contract | All emitted labels recognized by page 25 and UNICEF behavior matched to its explicit parity/correction decision |
+
+After a separately authorized build, inspect candidate counts, unmatched IDs,
+source-label frequencies, containment fractions with their denominators, and
+unresolved ambiguities. Assert agreed key/cardinality contracts while keeping
+exception records available for review. Do not treat a high intersection
+fraction as validation of each individual coordinate.
+
+```sh
+python3 tests/check-manual-structure.py
+```
+
+:::
+
+[legacy-6]: https://github.com/marissachilds/madagascar_clinic_data_cleaning/blob/31e0769683e133e136b09ac0c6608c5a12657a9a/scripts/6_locate_clinics.R

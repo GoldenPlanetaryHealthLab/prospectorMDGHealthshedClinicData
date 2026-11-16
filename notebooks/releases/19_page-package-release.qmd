@@ -1,0 +1,219 @@
+---
+title: "Inventory and Package a Versioned Release"
+subtitle: "Serialize curated products without re-cleaning or publishing them"
+execute:
+  eval: false
+engine: markdown
+---
+
+Packaging consumes pages 26–30's final curated products. The default is an
+internal candidate in canonical Parquet, with explicit schemas and source,
+code, and environment provenance. It is not an external publication action.
+No CSV/Feather compatibility export or public disclosure policy is inferred.
+
+::: {.manual-prereq title="Require Passing Final Contracts"}
+
+All final shape/key checks must pass. Unavailable measurements remain missing;
+ambiguous historical codes retain their candidates and ambiguity flags.
+Missing new-clinic locations remain explicit. Geometry is a 2022 reference.
+A version is immutable: changed data, code, or resource selection requires a
+new version, including after a partially completed package attempt.
+
+:::
+
+::: {.manual-procedure title="Declare Tracked R Release Parameters"}
+
+```{r}
+srelease_parameters_list <- list(
+  name = "mdg-healthshed-clinic-data",
+  title = "Madagascar Healthshed Clinic Data",
+  version = "0.1.0",
+  previous_version = NULL,
+  change = "initial",
+  notes = "Initial versioned Parquet data package.",
+  access = "internal",
+  status = "candidate",
+  prohibited_columns = character()
+)
+```
+
+The release name is stable across versions. The initial release is `0.1.0`;
+`access` and `status` remain separate metadata. Following KiribatiBiomarkers,
+release directories use **vMAJOR.MINOR.BUGFIX** under `data/outputs/releases/`,
+starting with `data/outputs/releases/v0.1.0/`. Package metadata stores the
+unprefixed version (`0.1.0`). BUGFIX is the semantic-version PATCH component;
+numeric components have no leading zeroes or suffixes:
+
+| Change | Increment | Examples |
+| --- | --- | --- |
+| Breaking for external collaborators | MAJOR; reset MINOR and PATCH | Renamed/removed columns, changed keys, units, geometry interpretation, or resource paths |
+| Non-breaking addition | MINOR; reset PATCH | Additional periods, clinics, diagnoses, or optional fields compatible with existing readers |
+| Bug fix | PATCH | Corrected values or metadata without changing the interface |
+
+For subsequent releases set `previous_version`, choose `change` as `major`,
+`minor`, or `patch`, and record the reason in `notes`. The validator checks the
+exact increment. The researcher classifies compatibility with collaborators;
+schema inspection alone cannot determine whether a scientific meaning changed.
+Existing `data/processed/0.1.0-internal/` artifacts remain historical candidates.
+
+The spatial resource carries WKT at 17-digit precision, CRS WKT, the facility
+UID, empty-geometry status and reference year. It is ordinary Parquet with
+an explicit spatial schema, not an implied GeoParquet or shapefile export.
+The ordinary `sf` target remains available for native R consumers.
+
+:::
+
+::: {.manual-procedure title="Prepare Resource Schemas And Provenance"}
+
+```{r}
+srelease_parameters_fn <- function(config) {
+  valid <- function(x) is.character(x) && length(x)==1L && !is.na(x) &&
+    grepl("^(0|[1-9][0-9]*)[.](0|[1-9][0-9]*)[.](0|[1-9][0-9]*)$",x)
+  if(!valid(config$version)) stop("Release version must be MAJOR.MINOR.PATCH without leading zeroes.")
+  if(length(config$name)!=1L || is.na(config$name) ||
+     !grepl("^[a-z0-9][a-z0-9._-]*$",config$name)) stop("Invalid release name.")
+  if(length(config$title)!=1L || is.na(config$title) || !nzchar(config$title) ||
+     length(config$notes)!=1L || is.na(config$notes) || !nzchar(config$notes)) stop("Release title and notes are required.")
+  if(is.null(config$previous_version)) {
+    if(!identical(config$change,"initial")) stop("Initial release must declare change = initial.")
+  } else {
+    if(!valid(config$previous_version) || !config$change %in% c("major","minor","patch")) stop("Declare the previous semantic version and change category.")
+    parts <- as.numeric(strsplit(config$previous_version,".",fixed=TRUE)[[1L]])
+    i <- match(config$change,c("major","minor","patch"))
+    parts[[i]] <- parts[[i]]+1
+    if(i<3L) parts[(i+1L):3L] <- 0
+    if(!identical(config$version,paste(parts,collapse="."))) stop("Version does not match the declared semantic increment.")
+  }
+  invisible(config)
+}
+srelease_directory_fn <- function(root,config) {
+  srelease_parameters_fn(config)
+  file.path(root,paste0("v",config$version))
+}
+srelease_geometry_fn <- function(x,year,path) {
+  table <- tibble::tibble(fs_uid=as.character(x$fs_uid),geometry_wkt=sf::st_as_text(sf::st_geometry(x),digits=17),
+    crs_wkt=sf::st_crs(x)$wkt,is_empty=sf::st_is_empty(x),reference_year=as.integer(year))
+  s5_healthshed_write_table_fn(table,path)
+}
+srelease_provenance_fn <- function(files,source_inventory,config,archive) {
+  packages <- c("targets","duckdb","duckplyr","sf","dplyr","tidyr","frictionless","jsonlite")
+  baseline <- dget(here::here("src/archived-comparison-baseline.R"))
+  archive_sha256 <- srelease_sha256_fn(archive)
+  if(!identical(archive_sha256,baseline$archive_sha256)) stop("Historical archive differs from the reviewed freeze.")
+  dplyr::bind_rows(
+    tibble::tibble(component=paste0("file:",files),value=unname(tools::md5sum(files))),
+    tibble::tibble(component=paste0("package:",packages),value=vapply(packages,function(p) as.character(utils::packageVersion(p)),"")),
+    tibble::tibble(component=c("R","source_inventory_sha256","historical_archive_sha256","release_version","access","status"),
+      value=c(as.character(getRversion()),srelease_sha256_fn(source_inventory),archive_sha256,config$version,config$access,config$status)))
+}
+srelease_resources_fn <- function(diagnoses,dictionary,reporting,spatial,geometry,schema_audit,mapping_audit,
+  identity,codes,availability,seams,provenance,source_inventory,numeric_audit,key_audit,predecessors,reviews,reports) {
+  named <- c(setNames(diagnoses,paste0("by_diagnosis/",basename(diagnoses))),
+    diagnosis_dictionary=dictionary,clinic_reporting_metadata=reporting,clinic_spatial_metadata=spatial,
+    healthsheds2022=geometry,`audits/final_shape`=schema_audit,`audits/mapping`=mapping_audit,
+    `audits/identity`=identity,`audits/reporting_code_candidates`=codes,`audits/availability`=availability,
+    setNames(seams,paste0("audits/seams/",basename(seams))),provenance=provenance,source_inventory=source_inventory,
+    `audits/numeric`=numeric_audit,`audits/source_keys`=key_audit,`audits/predecessor_candidates`=predecessors,
+    `audits/review_inputs`=reviews,`audits/new_source_reports`=reports)
+  names(named) <- ifelse(endsWith(names(named),".parquet"),names(named),paste0(names(named),".parquet"))
+  stopifnot(!anyDuplicated(names(named)),all(file.exists(named)))
+  lapply(seq_along(named),function(i) list(name=names(named)[[i]],source=unname(named[[i]])))
+}
+srelease_sha256_fn <- function(path) {
+  out <- system2("sha256sum",shQuote(path),stdout=TRUE)
+  stopifnot(length(out)==1L,is.null(attr(out,"status")),grepl("^[a-f0-9]{64}",out))
+  substr(out,1L,64L)
+}
+srelease_contract_fn <- function(resources,shape,config,root) {
+  srelease_parameters_fn(config)
+  stopifnot(identical(config$access,"internal"),identical(config$status,"candidate"))
+  if(!nrow(shape) || !all(shape$ok)) stop("Final product checks failed; inspect the governed shape audit.")
+  stopifnot(length(resources)>0L)
+  contract <- dplyr::bind_rows(lapply(resources,function(x) {
+    if(grepl("^/|(^|/)\\.\\.(/|$)",x$name)) stop("Unsafe release resource name.")
+    columns <- s4a_diagnosis_columns_fn(paste("SELECT * FROM",s4a_diagnosis_read_fn(x$source)))
+    if(any(columns %in% config$prohibited_columns)) stop("Release resource contains a prohibited field.")
+    tibble::tibble(resource=x$name,source_sha256=srelease_sha256_fn(x$source),
+      release_name=config$name,version=config$version,title=config$title,
+      previous_version=if(is.null(config$previous_version)) NA_character_ else config$previous_version,
+      change=config$change,notes=config$notes,access=config$access,status=config$status)
+  })) |> dplyr::arrange(resource)
+  directory <- srelease_directory_fn(root,config); path <- file.path(directory,"_contract.parquet")
+  if(file.exists(path)) {
+    old <- duckplyr::read_parquet_duckdb(path,prudence="stingy") |> dplyr::collect() |> dplyr::arrange(resource)
+    if(!isTRUE(all.equal(as.data.frame(old),as.data.frame(contract),check.attributes=FALSE))) stop("Immutable release version differs; select a new version.")
+    return(path)
+  }
+  if(dir.exists(directory) && length(list.files(directory,all.files=TRUE,no..=TRUE))) stop("Nonempty release has no matching immutable contract.")
+  s5_healthshed_write_table_fn(contract,path)
+}
+srelease_copy_fn <- function(resource,contract,config,root) {
+  stopifnot(file.exists(contract))
+  manifest <- duckplyr::read_parquet_duckdb(contract,prudence="stingy") |> dplyr::collect()
+  row <- manifest[manifest$resource==resource$name,]
+  stopifnot(nrow(row)==1L,identical(srelease_sha256_fn(resource$source),row$source_sha256))
+  destination <- file.path(srelease_directory_fn(root,config),resource$name)
+  if(file.exists(destination)) {
+    if(!identical(srelease_sha256_fn(destination),row$source_sha256)) stop("Existing immutable resource differs.")
+    return(destination)
+  }
+  dir.create(dirname(destination),recursive=TRUE,showWarnings=FALSE)
+  temporary <- tempfile("package-",tmpdir=dirname(destination),fileext=".parquet")
+  on.exit(unlink(temporary),add=TRUE)
+  if(!file.copy(resource$source,temporary) || !identical(srelease_sha256_fn(temporary),row$source_sha256)) stop("Release copy failed checksum verification.")
+  if(!file.rename(temporary,destination)) stop("Could not atomically install release resource.")
+  destination
+}
+srelease_write_once_fn <- function(table,path) {
+  if(file.exists(path)) {
+    old <- duckplyr::read_parquet_duckdb(path,prudence="stingy") |> dplyr::collect()
+    if(!isTRUE(all.equal(as.data.frame(old),as.data.frame(table),check.attributes=FALSE))) stop("Immutable release metadata differs.")
+    return(path)
+  }
+  s5_healthshed_write_table_fn(table,path)
+}
+```
+
+```{r}
+#| format: file
+srelease_code_raw_files <- c(here::here("_targets.R"),here::here("uvr.lock"),here::here("spack.yaml"),
+  here::here("src/archived-comparison-baseline.R"),
+  list.files(here::here("notebooks/pipeline"),"[.]qmd$",full.names=TRUE),
+  list.files(here::here("notebooks/releases"),"[.]qmd$",full.names=TRUE))
+```
+
+```{r}
+#| format: file
+srelease_geometry_parquet <- srelease_geometry_fn(s10_final_healthsheds_sf,s8_new_wave_parameters_list$historical_healthshed_year,
+  here::here("data/intermediates/final/healthsheds2022_wkt.parquet"))
+srelease_source_inventory_parquet <- s5_healthshed_write_table_fn(
+  dplyr::select(s8_new_wave_source_snapshot_df,source_id,relative_path,content_md5),
+  here::here("data/intermediates/final/source_inventory.parquet"))
+srelease_review_inputs_parquet <- s5_healthshed_write_table_fn(dplyr::bind_rows(
+  mapping=s9_new_wave_mapping_review_df,
+  identity=s10_new_wave_identity_review_df,
+  na_corrections=s10_new_wave_na_corrections_df,.id="review_type"),
+  here::here("data/intermediates/final/review_inputs.parquet"))
+srelease_provenance_parquet <- s5_healthshed_write_table_fn(srelease_provenance_fn(c(srelease_code_raw_files,s0_pipeline_stagecoach_yml),
+  srelease_source_inventory_parquet,srelease_parameters_list,s0_pipeline_raw_zip),here::here("data/intermediates/final/provenance.parquet"))
+srelease_contract_parquet <- srelease_contract_fn(srelease_resources_list,schecks_final_shape_df,
+  srelease_parameters_list,here::here("data","outputs","releases"))
+```
+
+Resource records and package files are explicitly branched on the execution
+page. Every package copy depends on the immutable contract above.
+
+:::
+
+::: {.manual-check title="Check Packaging On Synthetic Products"}
+
+```sh
+scripts/mdg-healthshed-clinic-data exec Rscript tests/check-new-wave-pipeline.R
+python3 tests/check-manual-structure.py
+```
+
+Small fixtures must confirm equal-content retries, different-content refusal,
+explicit schemas and geometry CRS, and independent round-trip verification.
+No release files are created by rendering or by implementing these declarations.
+
+:::

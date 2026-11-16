@@ -1,0 +1,484 @@
+---
+title: "Curate the Healthshed Clinic Data"
+subtitle: "Translate reviewed domain decisions into targets"
+execute:
+  eval: false
+engine: markdown
+---
+
+This page declares the Wave 3 preparation targets tangled by `_targets.R`.
+
+::: {.manual-prereq title="Approve The Curation Contract"}
+
+The source-inspection page must first record the source schema, record grain,
+stable keys, pre-/post-DHIS2 boundary, missing-value semantics, validation
+rules, and disclosure controls.
+
+:::
+
+::: {.manual-procedure title="Declare The Parquet Transformation Boundary"}
+
+Declare the shared file-to-file transformation used by this page and by the
+clinic-month inventory. Each caller supplies its dependencies and output path.
+
+The helper below opens Parquet inputs with automatic materialization into R
+disabled, applies the supplied transformation, and writes the result through
+DuckDB. Only the output path crosses the target boundary. Input paths, output
+paths, and transformation dependencies stay explicit at each call site.
+
+```{r}
+s0_pipeline_parquet_transform_fn <- function(
+  input_paths, output_path, transform, read_options = list()
+) {
+  input_paths <- unname(as.character(input_paths))
+  stopifnot(
+    length(input_paths) > 0L,
+    all(file.exists(input_paths)),
+    length(output_path) == 1L, !is.na(output_path), nzchar(output_path),
+    is.function(transform)
+  )
+
+  relation <- duckplyr::read_parquet_duckdb(
+    input_paths,
+    prudence = "stingy",
+    options = read_options
+  )
+  result <- transform(relation)
+
+  dir.create(dirname(output_path), recursive = TRUE, showWarnings = FALSE)
+  duckplyr::compute_parquet(result, output_path)
+  output_path
+}
+```
+
+:::
+
+::: {.manual-procedure title="Read One Raw RMA File With Explicit Types"}
+
+In this first section of the script, we take raw files and prepare them
+by aggregating them into a tracked Parquet file, one row per
+clinic-year-month, and one column per health outcome-age-sex.
+
+Applies only to 2020-2022 data.
+
+We've also opted-in to using DuckDB via the `duckplyr` package
+to avoid in-memory limitations.
+
+```{r}
+library(targets)
+library(readr)
+library(openxlsx)
+library(duckplyr)
+library(cli)
+
+tar_load(s0_pipeline_inputs_raw_chr)
+```
+
+
+We have a variable number of missing values in our
+first rows of data, so we'll need to ensure they don't
+get read as logical NAs. The `duckplyr` `options`
+list allows us to force `DOUBLE` and `VARCHAR` types: 
+
+The archived CSVs also use literal `NA` for missing values. The legacy
+`readr::read_csv()` reader recognizes both empty fields and `NA` as missing;
+set DuckDB's `nullstr` explicitly to preserve that rule before converting
+measurements to `DOUBLE`. Otherwise row-count diagnostics can succeed while
+the Parquet write fails when it evaluates the measurement columns. Missing
+values remain null, including in entirely missing numeric columns.
+
+
+```{r}
+s0_clinic_RMA_read_nonlogical_fn <- function(filepath){
+
+  readr_spec <- spec_csv(filepath) 
+  spec_names <- names(readr_spec$cols)
+
+  readr_spec %>%
+    as.character() %>%
+    str_split_1("") %>%
+    tibble(spec = .) %>%
+    mutate(
+      name = spec_names,
+      duckdb_dtype = case_when(
+        str_detect(name, regex("description", ignore_case = TRUE)) ~ "VARCHAR",
+        spec == "c" ~ "VARCHAR",
+        spec == "d" ~ "DOUBLE",
+        spec == "l" ~ "DOUBLE",
+        .default = "DOUBLE"
+      )
+    ) %>%
+    select(name, duckdb_dtype) %>%
+    deframe() -> duckdb_spec
+
+  
+  # Set the CSV dialect explicitly. Auto-detection samples only the first
+  # rows, so a quoted comma appearing later can otherwise be misclassified as
+  # an extra column.
+  read_csv_duckdb(
+    filepath,
+    options = list(
+      types = list(duckdb_spec),
+      nullstr = list(c("", "NA")),
+      delim = ",",
+      quote = "\"",
+      escape = "\""
+    )
+  ) %>%
+    return()
+  
+}
+
+```
+
+:::
+
+::: {.manual-procedure title="Declare The Clinic-Month Maximum Reduction"}
+
+Define the reducer shared by the per-file and cross-file aggregation stages.
+Missing grouping keys fail before a result can be written.
+
+The reductions below use operations that `duckplyr` translates to DuckDB.
+DuckDB's `MAX()` ignores null values and returns null for an all-null group,
+which preserves the behavior of the previous `max_or_na()` helper without
+materializing columns in R.
+
+```{r}
+s0_clinic_RMA_summarise_group_max_fn <- function(df) {
+  grouping_columns <- c("organisationunitid", "periodname")
+  missing_grouping_columns <- setdiff(grouping_columns, names(df))
+  if (length(missing_grouping_columns)) {
+    stop(
+      "Cannot calculate clinic-month maxima; missing grouping column(s): ",
+      paste(missing_grouping_columns, collapse = ", ")
+    )
+  }
+
+  df |>
+    summarise(
+      across(
+        -all_of(grouping_columns),
+        ~ max(.x, na.rm = TRUE)
+      ),
+      .by = all_of(grouping_columns)
+    )
+}
+
+```
+
+:::
+
+::: {.manual-procedure title="Write One Reduced Parquet Branch"}
+
+Read one source file, remove redundant columns, compute its clinic-month
+maxima, and write the branch artifact. The small row-count diagnostics are
+collected for the execution log; the measurement table stays in DuckDB.
+
+```{r}
+s0_clinic_RMA_process_csv_fn <- function(csv_path, output_path=here("data/intermediates"), drop_cols = c("organisationunitcode", "organisationunitdescription")) {
+  stopifnot(length(csv_path) == 1L, file.exists(csv_path))
+  
+  cli_alert_info(paste("Working on:", csv_path))
+  
+  # Read file with type-safe reader
+  temp_df <- s0_clinic_RMA_read_nonlogical_fn(csv_path)
+  
+  # Drop the extra columns if they exist
+  temp_df <- temp_df %>%
+    select(-any_of(drop_cols))
+  
+  # Calculate diagnostics in DuckDB and collect only the two scalar results.
+  file_stats <- temp_df |>
+    summarise(
+      group_rows = n(),
+      .by = c(organisationunitid, periodname)
+    ) |>
+    summarise(
+      rows = sum(group_rows),
+      duplicate_rows = sum(group_rows - 1L)
+    ) |>
+    collect()
+
+  cli_alert_info(paste(
+    "Successfully created dataframe for", csv_path, "with shape",
+    file_stats$rows[[1]], "x", length(names(temp_df))
+  ))
+  cli_alert_info(paste(
+    "Number of duplicate clinic-month-year records:",
+    file_stats$duplicate_rows[[1]]
+  ))
+  
+  # Description fields are assigned VARCHAR when the CSV relation is created.
+  result = s0_clinic_RMA_summarise_group_max_fn(temp_df)
+  
+  dir.create(dirname(output_path), recursive = TRUE, showWarnings = FALSE)
+  compute_parquet(result, output_path)
+
+  output_path
+}
+```
+
+`s0_clinic_RMA_process_csv_fn()` intentionally accepts exactly one path, and never holds other input tables in
+memory. `_targets.R` selects the `RMA_W3_FULL` paths in
+`s0_clinic_RMA_W3_raw_paths_chr`, then declares one file-tracking branch per
+path in `s0_clinic_RMA_W3_raw_csv`. The Parquet writer maps over those tracked
+file branches outside this notebook. That makes each CSV
+independently schedulable and means the branch artifacts contain parquet files
+rather than raw csvs. Dynamic branching enables parallel execution;
+the approved Slurm allocation and selected `targets` backend determine how
+many branches run concurrently.
+
+The second reduction in `_targets.R` combines the smaller branch summaries and
+takes the clinic-month maximum again. This is equivalent to taking the maximum
+over the fully combined raw data because maximum is associative:
+
+\[
+\max(\text{all rows}) = \max(\max(\text{file 1}), \ldots, \max(\text{file N}))
+\]
+
+This two-stage reduction was introduced after the raw-table aggregation was
+OOM-killed with a 120 GiB Slurm allocation. It is a memory-scaling change, not
+a change to the numeric maximum rule. The current reducer retains the prior
+rule for every non-grouping field; a later curation decision should define
+field-specific behavior for names, descriptions, and codes rather than treating
+a lexicographic character maximum as scientific metadata.
+
+::: {.callout-warning title="Why aggregation stays in DuckDB"}
+
+The per-file reductions completed, but the final target was OOM-killed in a
+120 GiB Slurm allocation. The diagnostic evidence is that files can have zero
+duplicate clinic-month keys. In that situation, a per-file group maximum has
+nearly the same cardinality as the input, so the previous R-based final target
+needed to materialize all branch summaries at once. Increasing the requested memory is
+not the next proposed experiment.
+
+The per-file target now implements a disk-backed DuckDB/duckplyr boundary. Its
+stages are:
+
+1. preserve the existing one-file CSV reading, UTF-8, and type-normalization
+   behavior;
+2. execute each per-file clinic-month `MAX` reduction in DuckDB;
+3. write each branch result to Parquet without materializing it in R.
+
+The final target below reads all branch Parquet paths as one DuckDB relation,
+executes the final clinic-month reduction, and persists that result through
+another file target.
+
+The aim is to preserve the original code's transformation logic as closely as
+possible. The change is the execution engine and storage boundary, not a
+redesign of the data-cleaning rules. Before implementation, the output schema
+and reducer for metadata fields must be made explicit: numeric measures use
+maximum, whereas names, descriptions, and codes require a domain-specific
+rule. DuckDB and duckplyr are declared runtime dependencies.
+
+:::
+
+:::
+
+::: {.manual-procedure title="Combine The Reduced Branches"}
+
+Apply the same reduction to the branch files to obtain one tracked group-maximum
+artifact. No raw measurement table needs to be collected into R.
+
+Calculate the group maxima across all branch artifacts with the shared helper.
+`union_by_name` preserves columns that occur in only some source files.
+
+```{r}
+#| format: file
+s0_clinic_RMA_W3_group_max_parquet <- s0_pipeline_parquet_transform_fn(
+  input_paths = s0_clinic_RMA_W3_within_file_max_parquet,
+  output_path = here("data/intermediates/RMA_W3_group_max.parquet"),
+  transform = s0_clinic_RMA_summarise_group_max_fn,
+  read_options = list(union_by_name = TRUE)
+)
+```
+
+:::
+
+:::{.manual-procedure title="Crosswalk with GESIS Data"}
+
+Our next step is to crosswalk the clinic data with GESIS DHIS data to get the
+exact questions for each measure.
+
+```{r}
+#| format: file
+s0_gesis_xwalk_raw_csv <- s0_pipeline_inputs_raw_chr |>
+  str_subset("mapping DHIS2 GESIS 2010 2022")
+```
+
+```{r}
+s0_gesis_xwalk_nonmissing_uid_df <- read_csv(s0_gesis_xwalk_raw_csv) |>
+  select(UID...12, code_fs, TYPE, FS) |>
+  rename(organisationunitid = UID...12) |> #correct the naming of organisationunitid
+  distinct() |>                            #tidy up missingness
+  filter(!is.na(organisationunitid))
+```
+
+:::
+
+::: {.manual-procedure title="Write The Cleaned Wave 3 Table"}
+
+Use the descriptive crosswalk and the reviewed period-specific substitutions
+to produce the cleaned Parquet artifact.
+
+Lastly, we `left_join` the RMA wave 3 data with this crosswalk on Organisation.
+The last bit of cleaning correctly maps diagnoses that changed names slightly between wave 3 subwaves
+
+```{r}
+#| format: file
+s0_clinic_RMA_W3_clean_parquet <- s0_pipeline_parquet_transform_fn(
+  input_paths = s0_clinic_RMA_W3_group_max_parquet,
+  output_path = here("data/intermediates/clinic_RMA_W3_clean.parquet"),
+  transform = function(relation) {
+    relation |>
+      left_join(as_duckdb_tibble(s0_gesis_xwalk_nonmissing_uid_df), by = "organisationunitid") |>
+      mutate(
+        # rows of AME where periodcode > 202300 should be values of AME prem;
+        `T13: AME 0-6 mois` = if_else(
+          periodcode > 202300,  `T13: AME premiere heure 0-6 mois`, `T13: AME 0-6 mois`
+        ),
+        # etc
+        `T13: AME 1ère heure` = if_else(
+          periodcode > 202300, `T13: AME premiere heure 1ère heure`, `T13: AME 1ère heure`
+        ),
+        `MIDs pour groupe à risque (migrants/réfugiés/personnes déplacées)` = if_else(
+          periodcode > 202300, `CHU CHRR T26 MIDs pour groupe à risque (migrants/réfugiés/personnes déplacées)`, `MIDs pour groupe à risque (migrants/réfugiés/personnes déplacées)`
+        )
+      ) |>
+      # remove redundant
+      select(
+        -any_of(c(
+          "T13: AME premiere heure 0-6 mois",
+          "T13: AME premiere heure 1ère heure",
+          "CHU CHRR T26 MIDs pour groupe à risque (migrants/réfugiés/personnes déplacées)"
+        ))
+      ) |>
+      mutate(V1 = row_number() - 1L) |>
+      select(V1, everything())
+  }
+)
+```
+:::
+
+Important: there is a chance that the assignment of V1 to row number doesn't
+work here, due to the fact that the data is now in a Parquet and row numbers
+are only computed at evaluation time.
+
+::: {.manual-check title="Compare Most Recent Archived Data And Target Wave 3 Outputs"}
+
+**Review note (2026-11-08).** The researcher reports that the initial
+shape checks on pages 18–21 appear to pass. This covers the inspected dimensions, column layout, and reporting-period counts.
+This is a researcher-reported observation from the interactive review,
+not an independently rerun acceptance test. It does not establish
+key-level equality, measurement-value parity, or unchanged diagnosis
+definitions/IDs. Retain any remaining discrepancies for review.
+
+Run these chunks in order from the repository root after the targets build.
+These are exploratory summaries; interpretation is left to the reader.
+[Most recent archived data baseline](mapping/legacy-pipeline-map.qmd#most-recent-archived-data-comparison-baseline)
+records the selected iterations, evidence, and provenance limits. The shared
+selection is versioned in `src/archived-comparison-baseline.R`.
+
+Use the ZIP's generic `data/raw/from_Kevin/wave3_with_keys.csv`, the most
+recent archived W3 data within the selected freeze. The dated v3 filename is
+absent from this ZIP; a prior inspection established that the generic member
+has the same bytes. No Drive file is read. Extract only this member into the
+session temporary directory; DuckDB keeps the measurement tables out of R
+memory.
+
+Load the pair for this page. Braces keep these session assignments out of
+`tar_tangle()`; the objects remain available for interactive exploration.
+
+```{r}
+{
+  archived_baseline <- dget(here::here("src", "archived-comparison-baseline.R"))
+  legacy_path <- utils::unzip(
+    here::here(archived_baseline$archive_zip), files = archived_baseline$wave3_archive_member,
+    exdir = tempdir()
+  )
+  old_w3 <- duckplyr::read_csv_duckdb(
+    legacy_path, prudence = "stingy", options = list(all_varchar = TRUE)
+  )
+  new_w3 <- duckplyr::read_parquet_duckdb(
+    targets::tar_read(s0_clinic_RMA_W3_clean_parquet), prudence = "stingy"
+  )
+}
+```
+
+**Rows and columns.**
+
+Collect only the row-count summaries. Use `length(names(...))` for column
+counts: `ncol()` requests dimensions and triggers materialization of the
+original relation, which `prudence = "stingy"` disables. Collecting a summary
+does not materialize or replace `old_w3` or `new_w3`.
+
+```{r}
+dplyr::bind_rows(
+  `most recent archived data` = old_w3 |> dplyr::summarise(rows = dplyr::n()) |>
+    dplyr::collect() |> dplyr::mutate(columns = length(names(old_w3))),
+  `current pipeline` = new_w3 |> dplyr::summarise(rows = dplyr::n()) |>
+    dplyr::collect() |> dplyr::mutate(columns = length(names(new_w3))),
+  .id = "source"
+)
+```
+
+**Column names and order.**
+
+```{r}
+dplyr::bind_rows(
+  `most recent archived data` = tibble::tibble(position = seq_along(names(old_w3)), column = names(old_w3)),
+  `current pipeline` = tibble::tibble(position = seq_along(names(new_w3)), column = names(new_w3)),
+  .id = "source"
+)
+```
+
+**Reporting-period row counts. Period keys are displayed as integers on both sides.**
+
+```{r}
+# Shape check: w3-periods
+dplyr::bind_rows(
+  `most recent archived data` = old_w3 |> dplyr::count(periodcode, name = "rows") |>
+    dplyr::collect() |> dplyr::mutate(periodcode = as.integer(periodcode)),
+  `current pipeline` = new_w3 |> dplyr::count(periodcode, name = "rows") |>
+    dplyr::collect() |> dplyr::mutate(periodcode = as.integer(periodcode)),
+  .id = "source"
+) |>
+  tidyr::pivot_wider(names_from = source, values_from = rows, values_fill = 0L) |>
+  dplyr::mutate(difference = `current pipeline` - `most recent archived data`) |>
+  dplyr::arrange(periodcode) |>
+  print(n = Inf)
+```
+
+An absent period contributes zero rows; `difference` is current minus archived.
+
+**Diagnose row coverage before comparing measurement values.**
+
+Run the read-only diagnostic in an authorized analysis session. It compares
+the most recent archived data with the current pipeline, inventories both raw
+source trees, and checks that their distinct clinic-month keys survive into
+their respective prepared outputs. It then compares the legacy `readr` key
+reader with the stored DuckDB reader on the selected separate-year delivery,
+verifies the crosswalk's content identity, and reconciles the final row-count
+difference using the join multiplicities. It builds no targets and changes
+no pipeline outputs. Keep its data-derived summaries outside rendered HTML.
+
+```sh
+scripts/mdg-healthshed-clinic-data exec Rscript scripts/diagnose-w3-row-coverage.R
+```
+
+The legacy script and current implementation differ at these boundaries:
+
+| Boundary | Legacy script 0 | Current DuckDB pipeline | Diagnostic implication |
+| --- | --- | --- | --- |
+| Raw file selection | Recursively lists `.csv` files below its local `RMA_W3_FULL` directory. | Selects staged inventory paths containing `RMA_W3_FULL`; tracks and processes each file separately. | Compare actual selected paths and file versions before attributing differences to an engine. Separate-year and combined-year exports need not contain the same records. |
+| CSV parsing | `readr::spec_csv()` with inferred logical collectors replaced by `col_number()`, followed by `readr::read_csv()`. | Uses the inferred specification to request `VARCHAR` or `DOUBLE`, forces description fields to `VARCHAR`, and sets CSV delimiter/quoting explicitly. | Types, missing-value interpretation, and character parsing require comparison. The diagnostic projects the grouping keys and tests both readers on identical files. |
+| Maximum reduction | Combines all raw tables in R, then takes one `data.table` maximum per clinic ID and period name. Converts `-Inf` results to missing. | Takes per-file maxima, unions Parquet schemas by column name, then takes maxima again in DuckDB. All-null SQL maxima remain null. | Both use the same grouping key. Associativity preserves numeric maxima on identical parsed inputs; verify key conservation separately from value/type equivalence. |
+| Facility crosswalk | Selects UID, code, type, and name; removes exact duplicates and missing UIDs; left-joins on UID. | Performs the same selection and join through DuckDB. | Several distinct crosswalk records may match one UID and expand a clinic-month into multiple rows. Compare multiplicity, not just distinct key counts. |
+| Final corrections and storage | Uses indexed assignments for the period-specific diagnosis substitutions, adds a sequential `V1`, and writes CSV. | Uses `if_else()` for the same substitutions, adds `row_number() - 1`, and writes Parquet. | These operations do not deliberately filter rows. Row order and export indices are not stable alignment keys; types and missing-period behavior need separate value checks. |
+
+The source decision is settled: reproduce the hand-delivered May 2025 ZIP.
+Use its separate-year raw files for W3 preparation and its archived outputs
+for comparison. The synced Drive delivery is excluded. Previously built
+Drive-based targets require rebuilding before this comparison is meaningful.
+
+:::

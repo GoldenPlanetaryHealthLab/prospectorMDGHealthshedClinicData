@@ -1,0 +1,1230 @@
+---
+title: "Reconcile Sectorization and Construct Healthsheds"
+subtitle: "Implement legacy stage 5 as ordered spatial targets"
+execute:
+  eval: false
+engine: markdown
+---
+
+This page implements pinned legacy stage 5 at
+`31e0769683e133e136b09ac0c6608c5a12657a9a`. Each reviewed correction round is a
+separate target. Shared FKT assignments, population accounting, missing-value
+behavior, join multiplicity, and residual non-contiguity retain legacy rules.
+Spatial handoffs are ordinary `sf` targets; nonspatial exports use Parquet.
+The execution page tangles these declarations without executing scientific
+code during rendering.
+
+::: {.manual-prereq title="Require The Reviewed Inputs And Spatial Runtime"}
+
+Require the tracked `s2_clinic_months_raw_zip` and
+`s1_gesis_xwalk_clean_df`, the rebuilt [native runtime](../infrastructure/13_page-jinja-build.qmd),
+and the [package acceptance checks](../infrastructure/14_page-uvr.qmd).
+All stage-5 inputs below are exact `data/raw/` members of that tracked archive;
+the similarly named `from Symphonia/` sectorization copy is not substituted.
+The complete shapefile bundle is extracted privately and read before cleanup.
+No raw source or reviewed decision is edited.
+
+:::
+
+::: {.manual-procedure title="Declare Archive, Geometry, And Matching Helpers"}
+
+Helpers are tracked function targets, not an unresolved `source()` call.
+The grouped fuzzy join preserves original row identifiers, shared-group
+boundaries, cosine distance, callback selection, and ties. The topology helper
+uses the legacy DE-9IM positions 1, 2, 4, and 5; point contact alone does not
+connect polygons. Relation matrices are decoded directly in R, avoiding a
+data-frame mutation for every clinic. Population summation likewise uses
+base-R pair deduplication: attaching duckplyr replaces `unique.data.frame()`,
+which would otherwise execute a DuckDB query for each clinic group. As in the legacy script, `st_relate()`
+uses planar DE-9IM on the source longitude/latitude coordinates; its repeated
+informational notice is suppressed, while errors and warnings propagate.
+Empty healthsheds are constructed with the input CRS.
+
+```{r}
+s5_healthshed_drop_geometry_fn <- function(x) {
+  x <- as.data.frame(x)
+  x[!vapply(x, inherits, logical(1), what = "sfc")]
+}
+s5_healthshed_runtime_fn <- function() {
+  packages <- c("sf", "s2", "units", "igraph", "fuzzyjoin", "stringdist", "dplyr")
+  list(R = as.character(getRversion()),
+       packages = setNames(vapply(packages, function(x) as.character(utils::packageVersion(x)), character(1)), packages),
+       engines = sf::sf_extSoftVersion(), s2 = sf::sf_use_s2(),
+       native_lock_md5 = if (file.exists("/opt/spack-environment/spack.lock"))
+         unname(tools::md5sum("/opt/spack-environment/spack.lock")) else NA_character_)
+}
+s5_healthshed_read_fn <- function(archive, members, name, kind = "csv", colClasses = NULL, ...) {
+  s3_dictionary_archive_read_fn(archive, members[[name]], function(path) {
+    if (kind == "xlsx") return(readxl::read_excel(path, ...))
+    if (kind == "rds") return(readRDS(path))
+    columns <- names(read.csv(path, nrows = 0L, fileEncoding = "UTF-8"))
+    ids <- columns[grepl("uid|instat|code|pcode", columns, ignore.case = TRUE)]
+    if (is.null(colClasses)) colClasses <- setNames(rep("character", length(ids)), ids)
+    read.csv(path, colClasses = colClasses,
+             fileEncoding = "UTF-8", stringsAsFactors = FALSE, ...)
+  })
+}
+s5_healthshed_shapes_read_fn <- function(archive, members) {
+  unsafe <- startsWith(members, "/") | vapply(strsplit(members, "/", fixed = TRUE), function(x) any(x == ".."), logical(1))
+  stopifnot(length(members) >= 4L, !any(unsafe))
+  required <- c("shp", "shx", "dbf", "prj")
+  stopifnot(all(required %in% tools::file_ext(members)))
+  scratch <- tempfile("healthshed-shapes-")
+  dir.create(scratch)
+  on.exit(unlink(scratch, recursive = TRUE), add = TRUE)
+  paths <- utils::unzip(archive, files = members, exdir = scratch)
+  stopifnot(all(file.exists(paths)))
+  sf::read_sf(paths[endsWith(paths, ".shp")])
+}
+s5_healthshed_adjacency_fn <- function(x, y = x) {
+  # st_relate uses planar DE-9IM even for geographic coordinates, as in stage 5.
+  relation <- suppressMessages(sf::st_relate(x, y))
+  matrix(grepl("1|2", paste0(substr(relation, 1, 2), substr(relation, 4, 5))),
+         nrow = length(x), ncol = length(y))
+}
+s5_healthshed_components_fn <- function(x) {
+  if (!length(x)) return(0L)
+  igraph::components(igraph::graph_from_adjacency_matrix(s5_healthshed_adjacency_fn(x)), mode = "weak")$no
+}
+s5_grouped_stringdist_fulljoin_fn <- function(df1, df2, df1_group, df2_group,
+    df1_stringmatch, df2_stringmatch, dist_method = "cosine", dist_col = "dist",
+    max_dist = 30, ignore_case = TRUE, select_match = identity, unnest = TRUE, ...) {
+  left <- as.data.frame(df1) %>% mutate(df1_id = seq_len(n())) %>% nest_by(across(all_of(df1_group)), .key = "df1")
+  right <- as.data.frame(df2) %>% mutate(df2_id = seq_len(n())) %>% nest_by(across(all_of(df2_group)), .key = "df2")
+  # Legacy full_join + removal of absent nested groups keeps shared groups only.
+  joined <- inner_join(left, right, by = setNames(df2_group, df1_group)) %>%
+    rowwise() %>% mutate(df_new = list(select_match(fuzzyjoin::stringdist_join(
+      df1, df2, by = setNames(df2_stringmatch, df1_stringmatch), mode = "full",
+      method = dist_method, distance_col = dist_col, max_dist = max_dist,
+      ignore_case = ignore_case, ...))))
+  if (unnest) joined <- joined %>% select(-df1, -df2) %>% tidyr::unnest(df_new)
+  joined
+}
+s5_healthshed_refresh_fn <- function(x, lookup, shapes, fallback = FALSE) {
+  x <- s5_healthshed_drop_geometry_fn(x)
+  previous <- if (fallback && "ADM4_PCODE" %in% names(x)) x$ADM4_PCODE else rep(NA_character_, nrow(x))
+  x$ADM4_PCODE <- NULL
+  x$.s5_previous_pcode <- previous
+  x <- left_join(x, select(lookup, ADM4C_BNGRC, ADM4_PCODE), by = c("fkt_instat_clean" = "ADM4C_BNGRC"))
+  if (fallback) x$ADM4_PCODE <- coalesce(x$ADM4_PCODE, x$.s5_previous_pcode)
+  x$.s5_previous_pcode <- NULL
+  x <- left_join(x, as.data.frame(select(shapes, ADM4_PCODE)), by = "ADM4_PCODE")
+  sf::st_as_sf(x)
+}
+```
+
+```{r}
+s5_healthshed_aggregate_fn <- function(sect_df){
+  empty_geom <- sf::st_sfc(sf::st_geometrycollection(), crs = sf::st_crs(sect_df))
+  sect_df %>%
+    filter(!(is.na(fkt_uid) | fkt_uid == "" | is.na(fkt_name) | fkt_name == "")) %>% #pull(fs_uid) %>% n_distinct()
+    sf::st_as_sf() %>%
+    group_by(fs_uid) %>%
+    # for each clinic, merge the shapefiles
+    summarise(# since some fkt_uid get matched twice, have to take only unique ones
+      # before summing the population
+      fs_pop = sum(fkt_pop_2022[!duplicated(data.frame(
+        fkt_uid = fkt_uid, fkt_pop_2022 = fkt_pop_2022))], na.rm = TRUE),
+      n_fkt_uid = n_distinct(fkt_uid, na.rm = T),
+      n_fkt_instat = n_distinct(fkt_instat_clean, na.rm = T),
+      across(c(region_uid:district_name,
+               starts_with("fs"),
+               n_fkt_instat, n_fkt_uid),
+             function(x){unique(na.omit(x))}),
+      # recalculate the number of components
+      n_components = {if(n_distinct(fkt_instat_clean, na.rm = T) > 0){
+        s5_healthshed_components_fn(geometry[!is.na(fkt_instat_clean)])} else{0}},
+              geometry = {if(n_distinct(fkt_instat_clean, na.rm = T) > 0){
+                sf::st_union(geometry[!is.na(fkt_instat_clean)]) %>%
+                  sf::st_combine() %>%
+                  sf::st_make_valid()} else {empty_geom}}) %>%
+    rowwise() %>%
+    mutate(n_shape = length(geometry[[1]])) %>%
+    ungroup
+}
+```
+
+:::
+
+::: {.manual-procedure title="Select Exact Archived Sources And Record The Geometry Environment"}
+
+The execution page records `s5_spatial_runtime_list` with an always-check
+cue. Its unchanged value lets downstream targets skip; changed package,
+engine, or topology settings invalidate the spatial read. It does not change
+the global s2 setting or projection.
+
+```{r}
+s5_healthshed_archive_members_list <- {
+  suffixes <- c(
+    lookup = "data/raw/bngrc_codes_lut_pcodes_2018.xlsx",
+    sectorization = "data/raw/mapping GESIS DHIS questions - FKT code instat.csv",
+    duplicates = "data/raw/symphonia_verified/VERIFIER duplicated_fkt_instat_in_sectorisation2022.csv",
+    match1 = "data/raw/symphonia_verified/VERIFIER fkt_name_matching_for_sectorisation2022.csv",
+    manual1 = "data/raw/symphonia_verified/FKT SECTO UNMATCHED.xlsx",
+    manual2 = "data/raw/geolocation/manual_fkt_match.csv",
+    match2 = "data/raw/symphonia_verified/VERIFIER fkt_name_matching_for_sectorisation2022_v2.csv",
+    match3 = "data/raw/symphonia_verified/VERIFIER fkt_name_matching_for_sectorisation2022_v3.csv",
+    sectorization2018 = "data/raw/sectorisation 2018.xlsx",
+    manual3 = "data/raw/geolocation/manual_fkt_match_v2.csv",
+    manual4 = "data/raw/geolocation/manual_fkt_match_v3.csv",
+    unmatch = "data/raw/geolocation/unmatch_fkt.csv",
+    districts = "data/raw/geolocation/sect_ocha_district_match.rds",
+    final_reviews = "data/raw/from Symphonia/Verification secto vs ocha.xlsx",
+    reassignments = "data/raw/symphonia_verified/noncontig_v2_fix.csv")
+  tables <- vapply(suffixes, function(suffix) s3_dictionary_archive_member_fn(s2_clinic_months_raw_zip, suffix), character(1))
+  names <- utils::unzip(s2_clinic_months_raw_zip, list = TRUE)$Name
+  stem <- "data/raw/mdg_adm_bngrc_ocha_20181031_shp/mdg_admbnda_adm4_BNGRC_OCHA_20181031."
+  shapes <- names[grepl(stem, names, fixed = TRUE) & !grepl("(^|/)__MACOSX/", names)]
+  stopifnot(length(shapes) > 0L, !anyDuplicated(basename(shapes)))
+  list(tables = tables, shapes = shapes)
+}
+s5_fkt_shapes_source_sf <- {
+  s5_spatial_runtime_list
+  s5_healthshed_shapes_read_fn(s2_clinic_months_raw_zip, s5_healthshed_archive_members_list$shapes)
+}
+s5_fkt_shapes_valid_sf <- sf::st_make_valid(s5_fkt_shapes_source_sf)
+```
+
+:::
+
+::: {.manual-procedure title="Split Nosy Mitsio And Reconcile Population"}
+
+The initial split retains the source's first-polygon versus remaining-parts
+rule. Part order, bounds, areas, source CRS, and library versions are recorded
+in the split audit. A synthetic test makes the order dependency explicit.
+Population merging uses the reviewed notes and the source's sum/NA semantics;
+shared assignments are not deduplicated across clinics.
+
+```{r}
+s5_fkt_shapes_initial_sf <- {
+  fkt_shape <- s5_fkt_shapes_valid_sf
+  # Pinned stage 5, lines 61–74.
+  fkt_shape <- rbind(fkt_shape %>%
+                       filter(ADM4_PCODE != "MG71717150005"),
+                     fkt_shape %>%
+                       filter(ADM4_PCODE == "MG71717150005") %>%
+                       sf::st_cast("POLYGON") %>%
+                       mutate(group = (seq_len(n())) > 1) %>%
+                       summarise(across(!geometry, unique),
+                                 geometry = sf::st_union(geometry),
+                                 .by = group) %>%
+                       select(-group) %>%
+                       mutate(ADM4_EN = ifelse(seq_len(n()) == 1,
+                                               ADM4_EN,
+                                               "Nosy Mitsio"),
+                              ADM4_PCODE = paste0(ADM4_PCODE, LETTERS[seq_len(n())])))
+  fkt_shape
+}
+```
+
+```{r}
+s5_fkt_code_lookup_source_df <- s5_healthshed_read_fn(
+  s2_clinic_months_raw_zip, s5_healthshed_archive_members_list$tables, "lookup", "xlsx", sheet = 5) %>%
+  mutate(across(everything(), as.character))
+```
+
+```{r}
+s5_fkt_code_lookup_initial_df <- {
+  ocha_map <- s5_fkt_code_lookup_source_df
+  # Pinned stage 5, lines 80–88.
+  ocha_map <- ocha_map %>%
+    {rbind(filter(., ADM4_PCODE != "MG71717150005"),
+           filter(., ADM4_PCODE == "MG71717150005") %>%
+             mutate(across(c(ADM4_PCODE, ADM4C_BNGRC),
+                           ~paste0(.x, "A"))),
+           filter(., ADM4_PCODE == "MG71717150005") %>%
+             mutate(across(c(ADM4_PCODE, ADM4C_BNGRC),
+                           ~paste0(.x, "B")),
+                    ADM4_EN = "Nosy Mitsio",
+                    ADM4E_BNGRC = "NOSY MITSIO"))}
+  ocha_map
+}
+```
+
+```{r}
+s5_sectorization_2022_source_df <- {
+  x <- s5_healthshed_read_fn(s2_clinic_months_raw_zip, s5_healthshed_archive_members_list$tables, "sectorization", colClasses = "character")
+  stopifnot(ncol(x) == 17L)
+  names(x) <- c("region_uid", "region_name", "district_uid", "district_name", "commune_uid", "commune_name",
+                "fs_uid", "fs_type", "fs_name", "f_or_nf", "geometry", "fkt_uid", "fkt_instat", "fkt_name",
+                "fkt_pop_2022", "distance_csb_fkt", "transit")
+  x[c("fkt_pop_2022", "distance_csb_fkt", "transit")] <- lapply(x[c("fkt_pop_2022", "distance_csb_fkt", "transit")], type.convert, as.is = TRUE)
+  mutate(x, fkt_instat = ifelse(fkt_instat == "717150005", "717150005A", fkt_instat))
+}
+s5_sectorization_duplicate_reviews_df <- s5_healthshed_read_fn(
+  s2_clinic_months_raw_zip, s5_healthshed_archive_members_list$tables, "duplicates")
+```
+
+```{r}
+s5_sectorization_population_reconciled_df <- {
+  sect <- s5_sectorization_2022_source_df
+  dup_fkt_instat <- s5_sectorization_duplicate_reviews_df
+  # Pinned stage 5, lines 111–121.
+  sect_filled <- sect %>%
+    left_join(dup_fkt_instat %>%
+                mutate(fkt_instat = as.character(fkt_instat)) %>%
+                select(fkt_uid, fkt_instat, NOTE)) %>%
+    group_by(fkt_instat) %>%
+    mutate(merge_fkt = any(grepl("keep that row", NOTE)) & any(NOTE == "delete"),
+           fkt_pop_2022 = ifelse(merge_fkt, sum(fkt_pop_2022), fkt_pop_2022)) %>%
+    ungroup %>%
+    filter(!merge_fkt | (merge_fkt & NOTE != "delete")) %>%
+    select(-merge_fkt, -NOTE)
+  # drops 6 rows --> 21880 to 21874
+  sect_filled
+}
+```
+
+:::
+
+::: {.manual-procedure title="Apply The Initial Reviewed Matching Rounds"}
+
+The five matching sources are applied in their original precedence. Invalid
+original codes are cleared, reviewed one-to-many matches retain multiplicity,
+and direct clinic assignments are appended before attaching geometry.
+
+```{r}
+s5_sectorization_fkt_match_reviews_list <- {
+  read <- function(key, kind = "csv", ...) s5_healthshed_read_fn(
+    s2_clinic_months_raw_zip, s5_healthshed_archive_members_list$tables, key, kind, ...)
+  list(match_check = read("match1") %>% mutate(NOTE = ifelse(fkt_code_instat %in% c("114110001", "513010005", "204230010", "410050001", "713232001"), "no", NOTE)),
+       manual_match = read("manual1", "xlsx") %>% select(-`...1`) %>% filter(fkt_code_instat != "305170005"),
+       manual2 = read("manual2") %>% mutate(across(starts_with("match"), trimws)) %>% select(-note_reason, -X) %>% unique(),
+       match_check_v2 = read("match2"), match_check_v3 = read("match3"))
+}
+```
+
+```{r}
+s5_sectorization_fkt_matches_df <- {
+  sect_filled <- s5_sectorization_population_reconciled_df
+  ocha_map <- s5_fkt_code_lookup_initial_df
+  match_check <- s5_sectorization_fkt_match_reviews_list$match_check
+  manual_match <- s5_sectorization_fkt_match_reviews_list$manual_match
+  manual2 <- s5_sectorization_fkt_match_reviews_list$manual2
+  match_check_v2 <- s5_sectorization_fkt_match_reviews_list$match_check_v2
+  match_check_v3 <- s5_sectorization_fkt_match_reviews_list$match_check_v3
+  # Pinned stage 5, lines 142–208.
+  sect_filled <- sect_filled %>% #pull(fkt_instat) %>% n_distinct(na.rm = T) # 13687
+    # remove fkt codes that aren't in the instat/ocha shapefile
+    mutate(fkt_instat_clean = ifelse(fkt_instat %in% ocha_map$ADM4C_BNGRC,
+                                     fkt_instat,
+                                     NA)) %>%
+    # pull(fkt_instat_clean) %>% n_distinct(na.rm = T) # 13687 - 19 = 13668 ocha instat codes
+    # add the confirmed matches from the first fuzzy string matching
+    left_join(match_check %>%
+                filter(NOTE == "yes") %>%
+                select(fkt_uid, match1 = fkt_code_instat),
+              by = "fkt_uid",
+              multiple = "all") %>% # nrow
+    # this left join adds 30 nrow because some fkt_uid got matched to multiple instat codes
+    # 21874 --> 21904
+    mutate(fkt_instat_clean = ifelse(is.na(fkt_instat_clean),
+                                     match1,
+                                     fkt_instat_clean)) %>%
+    # pull(fkt_instat_clean) %>% n_distinct(na.rm = T) # + 2536 rows (4 instat fkt are dupliated) --> 162000 instat/ocha codes
+    # matches from Symphonia's manual matcing
+    left_join(manual_match %>%
+                mutate(check = as.numeric(fkt_code_instat)) %>%
+                filter(!is.na(check)) %>%
+                select(fkt_uid, match2 = fkt_code_instat)) %>%
+    mutate(fkt_instat_clean = ifelse(is.na(fkt_instat_clean),
+                                     match2,
+                                     fkt_instat_clean)) %>%
+    # pull(fkt_instat_clean) %>% n_distinct(na.rm = T)  # + 159 rows  --> 16359 instat/ocha codes match
+    # confirmed matches from fuzzy string matching v2
+    left_join(match_check_v2 %>%
+                filter(NOTE == "yes") %>%
+                select(fkt_uid, match3 = fkt_code_instat),
+              multiple = "all") %>% # nrow
+    # this left join adds 14 nrow because some fkt_uid got matched to multiple instat codes
+    # 21904 --> 21918
+    mutate(fkt_instat_clean = ifelse(is.na(fkt_instat_clean),
+                                     match3,
+                                     fkt_instat_clean)) %>%
+    # pull(fkt_instat_clean) %>% n_distinct(na.rm = T)  # + 722 rows (6 instat codes matched to 2 uid) --> 17075 instat codes matched
+    # confirmed matches from fuzzy string matching v3
+    left_join(match_check_v3 %>%
+                filter(note == "yes") %>%
+                select(fkt_uid, match4 = fkt_code_instat),
+              multiple = "all") %>% # nrow
+    # this left join adds 2 nrow because some fkt_uid got matched to multiple instat codes
+    # 21918 --> 21920
+    mutate(fkt_instat_clean = ifelse(is.na(fkt_instat_clean),
+                                     match4,
+                                     fkt_instat_clean)) %>%
+    # pull(fkt_instat_clean) %>% n_distinct(na.rm = T)  # + 134 rows (6 instat codes matched to 2 uid) --> 17203 (of 17465 instat fkt matched)
+    left_join(manual2 %>%
+                filter(match_type == "fkt") %>%
+                select(match5 = fkt_instat_code,
+                       fkt_uid = match_uid)) %>%
+    mutate(fkt_instat_clean = ifelse(is.na(fkt_instat_clean),
+                                     match5,
+                                     fkt_instat_clean)) %>%
+    # pull(fkt_instat_clean) %>% n_distinct(na.rm = T)  # --> 17264 (of 17465 instat fkt matched)
+    rename(fkt_instat_orig = fkt_instat,
+           fs_ll = geometry) %>%
+    mutate(match_type = case_when(fkt_instat_clean == fkt_instat_orig ~ "original",
+                                  fkt_instat_clean == match1 ~ "fuzzy1",
+                                  fkt_instat_clean == match2 ~ "manual",
+                                  fkt_instat_clean == match3 ~ "fuzzy2",
+                                  fkt_instat_clean == match4 ~ "fuzzy3",
+                                  fkt_instat_clean == match5 ~ "manual2")) %>%
+    select(-(match1:match5))
+  # now 21920 rows x 19 col
+  sect_filled
+}
+```
+
+```{r}
+s5_sectorization_direct_matches_df <- {
+  sect_filled <- s5_sectorization_fkt_matches_df
+  manual2 <- s5_sectorization_fkt_match_reviews_list$manual2
+  # Pinned stage 5, lines 211–221.
+  sect_filled <- sect_filled %>% full_join(manual2 %>%
+                               filter(match_type != "fkt") %>%
+                               transmute(fkt_instat_clean = as.character(fkt_instat_code),
+                                         fkt_name = fkt_ocha_name,
+                                         match_type = "manual2",
+                                         fs_uid = match_uid,
+                                         fkt_uid = "none"),
+                             by = c("fs_uid", "fkt_uid", "fkt_instat_clean",
+                                    "fkt_name",
+                                    "match_type"))
+  # 21933 rows
+  sect_filled
+}
+```
+
+```{r}
+s5_sectorization_initial_geometry_sf <- s5_healthshed_refresh_fn(
+  s5_sectorization_direct_matches_df, s5_fkt_code_lookup_initial_df, s5_fkt_shapes_initial_sf)
+```
+
+:::
+
+::: {.manual-procedure title="Evaluate Topology And Build Initial Healthsheds"}
+
+Isolated assignments are unlinked only when the legacy component-count rule
+holds; `manual2` assignments remain protected. Components and the legacy
+`n_shape` field are retained separately. No generic disjointness requirement
+is imposed on healthsheds.
+
+```{r}
+s5_sectorization_initial_topology_sf <- {
+  sect_filled <- s5_sectorization_initial_geometry_sf
+  # Pinned stage 5, lines 233–259.
+  sect_filled <- sect_filled %>%
+    group_by(fs_uid) %>%
+    mutate(n_fkt_instat = n_distinct(fkt_instat_clean, na.rm = T),
+           n_adj_fkt = {if(first(n_fkt_instat) == 0) {NA} else{
+             rowSums(s5_healthshed_adjacency_fn(geometry)) - 1}},
+           n_components = {if(first(n_fkt_instat) == 0) {NA} else{
+             s5_healthshed_components_fn(geometry[!is.na(ADM4_PCODE)])}},
+           drop_solo = (sum(n_adj_fkt == 0) == 1) &
+             (sum(n_adj_fkt > 0) > 1) &
+             n_components == 2)
+  sect_filled
+}
+```
+
+```{r}
+s5_sectorization_contiguity_filtered_sf <- {
+  sect_filled <- s5_sectorization_initial_topology_sf
+  fkt_shape <- s5_fkt_shapes_initial_sf
+  # Pinned stage 5, lines 264–275.
+  sect_filled <- sect_filled %>%
+    ungroup %>%
+    mutate(fkt_instat_matched = fkt_instat_clean,
+           fkt_instat_clean = case_when(drop_solo & n_adj_fkt == 0 & match_type != "manual2" ~ NA,
+                                          T ~ fkt_instat_clean),
+           ADM4_PCODE = case_when(drop_solo & n_adj_fkt == 0 & match_type != "manual2" ~ NA,
+                                  T ~ ADM4_PCODE)) %>%
+    # drop, then rejoin the geometry to remove the geometries for the ones you want to unmatch
+    s5_healthshed_drop_geometry_fn() %>%
+    left_join(fkt_shape %>% select(ADM4_PCODE))
+
+  sf::st_as_sf(sect_filled, sf_column_name = "geometry")
+}
+```
+
+```{r}
+s5_healthshed_clinic_initial_sf <- s5_healthshed_aggregate_fn(s5_sectorization_contiguity_filtered_sf)
+s5_fkt_unmatched_initial_sf <- s5_fkt_shapes_initial_sf %>%
+  filter(!ADM4_PCODE %in% s5_sectorization_contiguity_filtered_sf$ADM4_PCODE) %>%
+  left_join(select(s5_fkt_code_lookup_initial_df, ADM4_PCODE, ADM4C_BNGRC), by = "ADM4_PCODE")
+s5_sectorization_2018_source_df <- s5_healthshed_read_fn(
+  s2_clinic_months_raw_zip, s5_healthshed_archive_members_list$tables, "sectorization2018", "xlsx", skip = 2) %>%
+  rename_with(function(x) gsub(" ", "_", x)) %>% mutate(across(everything(), as.character)) %>%
+  mutate(row_id = seq_len(n())) %>% select(-(`Population_totale_année_2018/FKT`:`0.076`))
+```
+
+:::
+
+::: {.manual-procedure title="Recover Historical Assignments And Apply Follow-Up Reviews"}
+
+The historical bridge reuses the cleaned 2018 GESIS mapping. Candidate
+geometry and adjacency evidence precede the grouped minimum-distance match;
+ties and the inclusive cosine cutoff `<= 0.11` are preserved. Follow-up manual
+unmatches are applied before manual fills, and geometry is refreshed.
+
+```{r}
+s5_sectorization_2018_candidates_sf <- {
+  sect2018 <- s5_sectorization_2018_source_df
+  mapping <- s1_gesis_xwalk_clean_df
+  unmatched_fkt <- s5_fkt_unmatched_initial_sf
+  ocha_map <- s5_fkt_code_lookup_initial_df
+  sheds <- s5_healthshed_clinic_initial_sf
+  # Pinned stage 5, lines 318–347.
+  matches2018 <- sect2018 %>%
+    # add clinic UID to the 2018 sect
+    left_join(mapping %>%
+                filter(cAnnee == "2018") %>%
+                transmute(code_fs = as.character(code_fs),
+                          fs_uid),
+              by = c("Code_GESIS" = "code_fs")) %>%
+    # join in the unmatched fkt so we can limit to those
+    left_join(unmatched_fkt %>%
+                left_join(ocha_map %>%
+                            select(ADM4_PCODE, ADM4C_BNGRC)) %>%
+                select(ADM4C_BNGRC, ADM4_EN, ADM2_EN, ADM1_EN),
+              by = c("Code_Fkt_BNGRC" = "ADM4C_BNGRC")) %>%
+    # limit to unmatched BNGRC codes
+    filter(!is.na(ADM4_EN)) %>%
+    select(-(`Statut_(Pub_ou_Privé)`:`Accessibilté\n(nb_mois_par_an)`)) %>%
+    rename(fkt_geometry = geometry) %>%
+    # add on the fs geometry so we can plot them together
+    left_join(sheds %>% rename(shed_geometry = geometry))
+
+  matches2018 <- matches2018 %>%
+    rowwise %>%
+    mutate(relate_str = sf::st_relate(fkt_geometry, shed_geometry),
+           fkt_adj = relate_str %>%
+             {paste0(str_sub(., 1,2),
+                     str_sub(., 4,5))} %>%
+             grepl(pattern = "1|2")) %>%
+    ungroup %>%
+    # also add on information about which of the fs aren't in the healsheds geom
+    mutate(no_shed = fs_uid %in% sheds$fs_uid == FALSE)
+  sf::st_as_sf(matches2018, sf_column_name = "fkt_geometry")
+}
+```
+
+```{r}
+s5_sectorization_2018_matches_sf <- {
+  matches2018 <- as.data.frame(s5_sectorization_2018_candidates_sf)
+  sect_filled <- as.data.frame(s5_sectorization_contiguity_filtered_sf)
+  # Pinned stage 5, lines 349–369.
+  matches2018_in2022 <- matches2018 %>%
+    filter(fkt_adj | no_shed) %>%
+    filter(!is.na(fs_uid)) %>% #pull(fs_uid) %>% n_distinct 56 potential matches
+    select(fs_uid, Code_GESIS, ends_with("geometry"), no_shed, n_components,
+           Nom_Fokontany_par_CSB, Code_Fkt_BNGRC) %>%
+    distinct %>%
+    # join information about which have a close-ish string match in that fs_uid in 2022 sect
+    {left_join(.,
+               s5_grouped_stringdist_fulljoin_fn(select(., fs_uid, Nom_Fokontany_par_CSB),
+                                           sect_filled %>%
+                                             filter(is.na(fkt_instat_clean)) %>%
+                                             select(fkt_instat_clean, fs_uid, fkt_uid,
+                                                    fkt_name2022 = fkt_name,
+                                                    commune_name, district_name) %>%
+                                             mutate(sect2022 = T),
+                                           "fs_uid", "fs_uid",
+                                           "Nom_Fokontany_par_CSB", "fkt_name2022",
+                                           select_match = (function(df) {group_by(df, df1_id) %>%
+                                               filter(dist == min(dist))})) %>%
+                 filter(dist <= 0.11) %>%
+                 mutate(good_match = T))}
+  sf::st_as_sf(matches2018_in2022, sf_column_name = "fkt_geometry")
+}
+```
+
+```{r}
+s5_sectorization_historical_filled_sf <- {
+  sect_filled <- s5_sectorization_contiguity_filtered_sf
+  matches2018_in2022 <- as.data.frame(s5_sectorization_2018_matches_sf)
+  # Pinned stage 5, lines 391–404.
+  sect_filled_v2 <- sect_filled %>%
+    left_join(matches2018_in2022 %>%
+                # filter(fs_uid %in% c("MrABDSyBJVd", "MXZMrSow5Oo",
+                #                      "Z0ywXaDzPRm", "JSWV4zCHVlg") == FALSE) %>%
+                filter(!is.na(good_match)) %>%
+                select(fkt_uid,
+                       match_sect2018 = Code_Fkt_BNGRC),
+              by = "fkt_uid") %>%
+    mutate(fkt_instat_clean = ifelse(is.na(fkt_instat_clean),
+                                     match_sect2018,
+                                     fkt_instat_clean),
+           match_type = ifelse(!is.na(match_sect2018),
+                               "sect2018",
+                               match_type))
+  sect_filled_v2
+}
+```
+
+```{r}
+s5_sectorization_followup_reviews_list <- {
+  read <- function(key) s5_healthshed_read_fn(s2_clinic_months_raw_zip, s5_healthshed_archive_members_list$tables, key)
+  list(manual3 = unique(read("manual3")), manual4 = read("manual4"), unmatch = read("unmatch"))
+}
+```
+
+```{r}
+s5_sectorization_reviewed_v2_sf <- {
+  sect_filled_v2 <- as.data.frame(s5_sectorization_historical_filled_sf)
+  manual3 <- s5_sectorization_followup_reviews_list$manual3
+  manual4 <- s5_sectorization_followup_reviews_list$manual4
+  unmatch <- s5_sectorization_followup_reviews_list$unmatch
+  ocha_map <- s5_fkt_code_lookup_initial_df
+  fkt_shape <- s5_fkt_shapes_initial_sf
+  # Pinned stage 5, lines 412–459.
+  sect_filled_v2 <- sect_filled_v2 %>%
+    left_join(unmatch %>%
+                transmute(fkt_instat_clean = as.character(fkt_instat_code),
+                          fkt_uid,
+                          unmatch = T)) %>%
+    mutate(fkt_instat_clean = case_when(unmatch == T ~ NA,
+                                        T ~ fkt_instat_clean)) %>%
+    left_join(manual3 %>% filter(match_type == "fkt") %>%
+                select(match6 = fkt_instat_code,
+                       fkt_uid = match_uid)) %>%
+    mutate(fkt_instat_clean = ifelse(is.na(fkt_instat_clean),
+                                     match6,
+                                     fkt_instat_clean)) %>%
+    left_join(manual4 %>% filter(match_type == "fkt") %>%
+                select(match7 = fkt_instat_code,
+                       fkt_uid = match_uid)) %>%
+    mutate(fkt_instat_clean = ifelse(is.na(fkt_instat_clean),
+                                     match7,
+                                     fkt_instat_clean),
+           match_type = case_when(fkt_instat_clean == match6 ~ "manual3",
+                                  fkt_instat_clean == match7 ~ "manual4",
+                                  T ~ match_type))  %>%
+    full_join(manual3 %>%
+                filter(match_type != "fkt") %>%
+                transmute(fkt_instat_clean = as.character(fkt_instat_code),
+                          fkt_name = "-",
+                          match_type = "manual3",
+                          fs_uid = match_uid,
+                          fkt_uid = "none"),
+              by = c("fs_uid", "fkt_uid", "fkt_instat_clean",
+                     "fkt_name",
+                     "match_type")) %>%
+    full_join(manual4 %>%
+                filter(match_type != "fkt") %>%
+                transmute(fkt_instat_clean = as.character(fkt_instat_code),
+                          fkt_name = "-",
+                          match_type = "manual4",
+                          fs_uid = match_uid,
+                          fkt_uid = "none"),
+              by = c("fs_uid", "fkt_uid", "fkt_instat_clean",
+                     "fkt_name",
+                     "match_type"))
+
+  sect_filled_v2 <- sect_filled_v2 %>%
+    select(-c(ADM4_PCODE, geometry)) %>%
+    left_join(ocha_map %>% select(ADM4C_BNGRC, ADM4_PCODE),
+              by = c("fkt_instat_clean" = "ADM4C_BNGRC")) %>%
+    left_join(fkt_shape %>% select(ADM4_PCODE))
+  sf::st_as_sf(sect_filled_v2, sf_column_name = "geometry")
+}
+```
+
+```{r}
+s5_healthshed_clinic_v2_sf <- s5_healthshed_aggregate_fn(s5_sectorization_reviewed_v2_sf)
+s5_fkt_unmatched_v2_sf <- s5_fkt_shapes_initial_sf %>% filter(!ADM4_PCODE %in% s5_sectorization_reviewed_v2_sf$ADM4_PCODE)
+s5_sectorization_district_lookup_df <- s5_healthshed_read_fn(
+  s2_clinic_months_raw_zip, s5_healthshed_archive_members_list$tables, "districts", "rds")
+```
+
+:::
+
+::: {.manual-procedure title="Evaluate Commune Matches With The Contiguity Guard"}
+
+Closest-commune ties are preserved. A candidate must have one clinic and
+distance `< 0.075`; accepted additions must not worsen the component count.
+The candidate and rejection evidence remains available independently of the
+accepted assignment table.
+
+```{r}
+s5_sectorization_commune_candidates_sf <- {
+  unmatched_fkt2 <- as.data.frame(s5_fkt_unmatched_v2_sf)
+  district_map <- s5_sectorization_district_lookup_df
+  sect_filled_v2 <- as.data.frame(s5_sectorization_reviewed_v2_sf)
+  # Pinned stage 5, lines 484–503.
+  fkt_to_fs_by_commune <- unmatched_fkt2 %>%
+    left_join(district_map %>% select(ADM2_PCODE, district_uid)) %>%
+    s5_grouped_stringdist_fulljoin_fn(sect_filled_v2 %>%
+                                  filter(!is.na(fkt_name) & fkt_name != "") %>%
+                                  group_by(commune_uid) %>%
+                                  summarise(n_fs = n_distinct(fs_uid, na.rm = T),
+                                            across(starts_with("fs"),
+                                                   first),
+                                            across(c(region_uid:district_name,
+                                                     commune_name),
+                                                   unique)),
+                                df1_group = "district_uid",
+                                df2_group = "district_uid",
+                                df1_stringmatch = "ADM3_EN",
+                                df2_stringmatch = "commune_name") %>%
+    group_by(df1_id) %>%
+    filter(dist == min(dist)) %>%
+    filter(n_fs == 1) %>%
+    filter(dist < 0.075)
+  sf::st_as_sf(fkt_to_fs_by_commune, sf_column_name = "geometry")
+}
+```
+
+```{r}
+s5_sectorization_commune_topology_sf <- {
+  fkt_to_fs_by_commune <- as.data.frame(s5_sectorization_commune_candidates_sf)
+  sheds_v2 <- s5_healthshed_clinic_v2_sf
+  # Pinned stage 5, lines 506–529.
+  by_commune_adj <- fkt_to_fs_by_commune %>%
+    ungroup %>%
+    select(fkt_code = ADM4_PCODE,
+           fkt_geometry = geometry, fs_uid) %>%
+    left_join(sheds_v2 %>% select(fs_uid, geometry, n_components)) %>%
+    rename(fs_geometry = geometry) %>%
+    pivot_longer(ends_with("geometry"),
+                 names_to = "type",
+                 values_to = "geometry") %>%
+    mutate(type = gsub("_geometry", "", type)) %>%
+    select(-fkt_code) %>%
+    unique %>%
+    group_by(fs_uid) %>%
+    mutate(n_comp_new = s5_healthshed_components_fn(geometry),
+           type = ifelse(n_comp_new > n_components & type == "fkt", "bad", type))
+  sf::st_as_sf(by_commune_adj, sf_column_name = "geometry")
+}
+```
+
+```{r}
+s5_sectorization_commune_filled_sf <- {
+  sect_filled_v2 <- as.data.frame(s5_sectorization_reviewed_v2_sf)
+  fkt_to_fs_by_commune <- as.data.frame(s5_sectorization_commune_candidates_sf)
+  by_commune_adj <- as.data.frame(s5_sectorization_commune_topology_sf)
+  ocha_map <- s5_fkt_code_lookup_initial_df
+  fkt_shape <- s5_fkt_shapes_initial_sf
+  # Pinned stage 5, lines 540–563.
+  sect_filled_v3 <- sect_filled_v2 %>%
+    full_join(fkt_to_fs_by_commune %>%
+                ungroup %>%
+                left_join(by_commune_adj %>%
+                            transmute(fs_uid,
+                                      keep = (n_comp_new <= n_components)) %>%
+                            unique) %>%
+                filter(keep) %>%
+                mutate(fkt_uid = "none",
+                       match_type = "commune") %>%
+                left_join(ocha_map %>% select(ADM4_PCODE, ADM4C_BNGRC)) %>%
+                select(starts_with(c("region", "district", "commune", "fs")),
+                       match_type,
+                       fkt_uid, fkt_name = ADM4_EN,
+                       fkt_instat_clean = ADM4C_BNGRC))
+  # should just add rows because there's nothing to join to --> 22027 + 117 = 22144
+
+  # also re-fill in the ADM4_PCODE and fkt geometry for everything
+  sect_filled_v3 <- sect_filled_v3 %>%
+    select(-c(ADM4_PCODE, geometry, n_components)) %>%
+    left_join(ocha_map %>% select(ADM4C_BNGRC, ADM4_PCODE),
+              by = c("fkt_instat_clean" = "ADM4C_BNGRC")) %>%
+    left_join(fkt_shape %>% select(ADM4_PCODE))
+  sf::st_as_sf(sect_filled_v3, sf_column_name = "geometry")
+}
+```
+
+```{r}
+s5_healthshed_clinic_v3_sf <- s5_healthshed_aggregate_fn(s5_sectorization_commune_filled_sf)
+s5_fkt_unmatched_v3_sf <- s5_fkt_shapes_initial_sf %>% filter(!ADM4_PCODE %in% s5_sectorization_commune_filled_sf$ADM4_PCODE)
+s5_sectorization_final_reviews_df <- s5_healthshed_read_fn(
+  s2_clinic_months_raw_zip, s5_healthshed_archive_members_list$tables, "final_reviews", "xlsx", sheet = "SECTO 2022", col_types = "text")
+```
+
+:::
+
+::: {.manual-procedure title="Apply Reviewed Reassignments And Administrative Corrections"}
+
+The reviewed workbook's duplicate header names, hard-coded corrections, and
+join keys retain their legacy meaning. Each round consumes the previous
+round's state; full joins retain reviewed additions and shared assignments.
+
+```{r}
+s5_sectorization_noncontiguous_reviews_df <- {
+  sect_filled_v3 <- as.data.frame(s5_sectorization_commune_filled_sf)
+  sect_filled <- as.data.frame(s5_sectorization_contiguity_filtered_sf)
+  noncontig_fixes <- s5_sectorization_final_reviews_df %>%
+# and finally, remove the lines with those fkt from the sect_filled_v3 and add these in
+  filter(note...21 == "noncontig_healthsheds") %>%
+  # one fkt gets incorrectly moved to a different fs, just drop that row
+  filter(fkt_uid != "kJgR66aF9g6") %>%
+  # one fix we discussed didn't get added to the xlsx file, so lets fix it manually here
+  mutate(fs_uid = case_when(fkt_uid == "NWtrDDpi5n0" ~ "rmlBT17TlZ3",
+                            T ~ fs_uid)) %>%
+  select(fs_uid, fkt_uid, fkt_name = fkt_nm, fkt_instat = fkt_instat...15) %>%
+  # lets also manually move Marovaka to Marovovonana bc its two neighbors moved to that fs
+  rbind(data.frame(fs_uid = "xt1C9F1Flqu",
+                   fkt_uid = "XwLQg8znk5g",
+                   fkt_name = "Marovaka",
+                   fkt_instat = "303090008")) %>%
+  # accented e in fkt names got converted to ? somewhere in the line, fix it
+  mutate(fkt_name = gsub("\\?", "é", fkt_name)) %>%
+  # add on the fs information
+  left_join(sect_filled_v3 %>%
+              filter(!is.na(f_or_nf)) %>%
+              select(region_uid:fs_ll) %>%
+              distinct) %>%
+  # add on the fkt information
+  left_join(sect_filled %>%
+              select(fkt_uid, fkt_instat_orig:transit)) %>%
+  rename(fkt_instat_clean = fkt_instat) %>%
+  mutate(match_type = "noncontig_fix")
+  noncontig_fixes
+}
+```
+
+```{r}
+s5_sectorization_reassigned_v4_sf <- {
+  sect_filled_v3 <- as.data.frame(s5_sectorization_commune_filled_sf)
+  noncontig_fixes <- s5_sectorization_noncontiguous_reviews_df
+  # Pinned stage 5, lines 616–625.
+  sect_filled_v4 <- sect_filled_v3 %>%
+    select(-c(n_fkt_instat, n_adj_fkt, drop_solo, unmatch, match6, match7,
+              fkt_instat_matched, match_sect2018, ADM4_PCODE, geometry)) %>%
+    # join in the noncontig fix fkt to know which rows to drop
+    left_join(noncontig_fixes %>%
+                select(fkt_uid, fkt_name) %>%
+                mutate(drop = T)) %>%
+    filter(is.na(drop)) %>%  select(-drop) %>%
+    rbind(., noncontig_fixes %>% select(all_of(colnames(.))))
+  s5_healthshed_refresh_fn(sect_filled_v4, s5_fkt_code_lookup_initial_df, s5_fkt_shapes_initial_sf)
+}
+```
+
+```{r}
+s5_sectorization_unmatched_fixed_sf <- {
+  sect_filled_v4 <- as.data.frame(s5_sectorization_reassigned_v4_sf)
+  ocha_map <- s5_fkt_code_lookup_initial_df
+  unmatched_fkt_fixes <- s5_sectorization_final_reviews_df %>%
+  filter(note...20 == "unmatch FKT") %>%
+  select(fs_uid, fkt_uid, fkt_name = fkt_nm,
+         fkt_ocha_code = fkt_instat...18,
+         fkt_ocha_name = instat_nm...19) %>%
+  left_join(ocha_map %>% select(fkt_ocha_code = ADM4_PCODE, fkt_instat_match = ADM4C_BNGRC)) %>%
+  mutate(row_id = seq_len(n()))
+
+sect_filled_v4 <- sect_filled_v4 %>%
+  full_join(unmatched_fkt_fixes) %>%
+  mutate(match_type = ifelse(!is.na(row_id), "unmatched_fkt_fix", match_type),
+         fkt_instat_clean = ifelse(!is.na(row_id),  fkt_instat_match, fkt_instat_clean)) %>%
+  select(-row_id)
+
+  s5_healthshed_refresh_fn(sect_filled_v4, s5_fkt_code_lookup_initial_df, s5_fkt_shapes_initial_sf)
+}
+```
+
+```{r}
+s5_sectorization_misc_fixed_sf <- {
+  sect_filled_v4 <- as.data.frame(s5_sectorization_unmatched_fixed_sf)
+  misc_fixes <- s5_sectorization_final_reviews_df %>%
+  filter(note...20 %in% c("duplicate", "DUPLICATE", "New code instat", "INSTAT CODE FKT UPDATE") |
+           grepl("^\\d", fkt_instat...18))
+
+sect_filled_v4 <- sect_filled_v4 %>%
+  left_join(misc_fixes %>%
+              select(fs_uid, fkt_uid, fkt_instat_clean = fkt_instat...15,
+                     fkt_instat_fix = fkt_instat...18, note = note...20) %>%
+              mutate(misc_id = seq_len(n()))) %>%
+  filter(!grepl("duplicate", note, ignore.case = T)) %>%
+  mutate(match_type = ifelse(!is.na(misc_id), "misc_fix", match_type),
+         fkt_instat_clean = ifelse(!is.na(misc_id), fkt_instat_fix, fkt_instat_clean)) %>%
+  select(-misc_id)
+
+  s5_healthshed_refresh_fn(sect_filled_v4, s5_fkt_code_lookup_initial_df, s5_fkt_shapes_initial_sf)
+}
+```
+
+:::
+
+::: {.manual-procedure title="Split Coastal Islands And Apply The Final Unlinks"}
+
+The largest polygon remains mainland except for `MG71713253004`, where the
+smallest part is separated as in the source. The `_A` lookup extension and
+new assignment rows are updated together. The final review first unlinks old
+clinic assignments, appends the new rows with missing population, and then
+refreshes geometry with the legacy old-PCODE fallback.
+
+```{r}
+s5_sectorization_island_assignments_df <- {
+  ocha_map <- s5_fkt_code_lookup_initial_df
+  # Pinned stage 5, lines 666–672.
+  island_fixes <- data.frame(fkt_instat = c("713151001", "713151004",
+                                            "713232005", "713254003",
+                                            "713253004", "713010004"),
+                             fs_uid = c("Z0mzcQCqySd", "Z0mzcQCqySd",
+                                        "Zmgnljl5frE", "yPSYALQxVv2",
+                                        "yPSYALQxVv2", "wnWoQcrvINJ")) %>%
+    left_join(ocha_map %>% select(fkt_instat = ADM4C_BNGRC, ADM4_PCODE))
+  island_fixes
+}
+```
+
+The coastal split retains the literal legacy expression: area ranks are
+computed per feature, while the special-code comparison uses the maximum
+rank across the six features. In the archived inputs, that feature has three
+parts and the global maximum rank is three. This distinction matters if the
+source geometry is replaced; the split audit records each part explicitly.
+
+```{r}
+s5_fkt_shapes_final_sf <- {
+  fkt_shape <- s5_fkt_shapes_initial_sf
+  island_fixes <- s5_sectorization_island_assignments_df
+  # Pinned stage 5, lines 674–700.
+  fkt_shape <- rbind(fkt_shape %>%
+                       filter(ADM4_PCODE %in% c(island_fixes$ADM4_PCODE) == FALSE),
+                     fkt_shape %>%
+                       filter(ADM4_PCODE %in% c(island_fixes$ADM4_PCODE)) %>%
+                       mutate(row_id = seq_len(n())) %>%
+                       sf::st_cast("POLYGON") %>%
+                       mutate(area = sf::st_area(geometry)) %>%
+                       mutate(area_rank = rank(-area), # biggest is rank 1, smallest is max rank
+                              .by = row_id) %>%
+                       # for groups 1-3, 5 the largest shape is mainland and other islands can go together
+                       # for group 4, smallest island goes separate, larger island can stay with mainland
+                       # for 5, i think the land is bigger, its the second element when its cast
+                       mutate(mainland = ifelse(ADM4_PCODE != "MG71713253004", area_rank == 1, area_rank != max(area_rank))) %>%
+                       select(-starts_with("area")) %>%
+                       # merge the mainland and non-mainland pieces
+                       summarise(across(!geometry, unique),
+                                 geometry = sf::st_union(geometry),
+                                 .by = c(row_id, mainland)) %>%
+                       select(-row_id) %>%
+                       # if its the mainland, leave the name and pcode, if its non-mainlan, add a letter to the name and pcode
+                       mutate(ADM4_EN = ifelse(mainland,
+                                               ADM4_EN,
+                                               paste0(ADM4_EN, "_A")),
+                              ADM4_PCODE = ifelse(mainland,
+                                                  ADM4_PCODE,
+                                                  paste0(ADM4_PCODE, "_A"))) %>%
+                       select(-mainland))
+  fkt_shape
+}
+```
+
+```{r}
+s5_fkt_code_lookup_final_df <- {
+  ocha_map <- s5_fkt_code_lookup_initial_df
+  island_fixes <- s5_sectorization_island_assignments_df
+  # Pinned stage 5, lines 702–705.
+  ocha_map <- ocha_map %>% rbind(ocha_map %>%
+                        filter(ADM4C_BNGRC %in% island_fixes$fkt_instat) %>%
+                        mutate(across(starts_with("ADM4"), ~paste0(.x, "_A"))))
+  ocha_map
+}
+```
+
+```{r}
+s5_sectorization_islands_fixed_sf <- {
+  sect_filled_v4 <- as.data.frame(s5_sectorization_misc_fixed_sf)
+  island_fixes <- s5_sectorization_island_assignments_df
+  # Pinned stage 5, lines 707–720.
+  sect_filled_v4 <- sect_filled_v4 %>%
+    select(-(fkt_ocha_code:note)) %>%
+    full_join(island_fixes %>% select(-ADM4_PCODE) %>%
+                mutate(fkt_instat_clean = paste0(fkt_instat, "_A"),
+                       fkt_uid = "none",
+                       fkt_name = "-",
+                       match_type = "island_fix") %>%
+                select(-fkt_instat) %>%
+                # add the fs info from the sect file
+                left_join(sect_filled_v4 %>%
+                            filter(!is.na(f_or_nf)) %>%
+                            select(region_uid:fs_ll) %>%
+                            distinct))
+  # should result in 22147 rows
+  s5_healthshed_refresh_fn(sect_filled_v4, s5_fkt_code_lookup_final_df, s5_fkt_shapes_final_sf)
+}
+```
+
+```{r}
+s5_sectorization_final_reassignment_reviews_df <- s5_healthshed_read_fn(
+  s2_clinic_months_raw_zip, s5_healthshed_archive_members_list$tables, "reassignments") %>%
+  mutate(across(everything(), stringr::str_trim))
+```
+
+```{r}
+s5_sectorization_final_unlinked_sf <- {
+  sect_filled_v4 <- as.data.frame(s5_sectorization_islands_fixed_sf) %>% select(-geometry, -ADM4_PCODE)
+  ocha_map <- s5_fkt_code_lookup_final_df
+  noncontig_fixes2 <- s5_sectorization_final_reassignment_reviews_df
+  # Pinned stage 5, lines 745–752.
+  sect_filled_v4 <- sect_filled_v4 %>%
+    left_join(ocha_map %>% select(ADM4C_BNGRC, ADM4_PCODE),
+              by = c("fkt_instat_clean" = "ADM4C_BNGRC")) %>%
+    left_join(noncontig_fixes2 %>% transmute(ADM4_PCODE, old_fs_uid, unmatch = T),
+              by = c("ADM4_PCODE", "fs_uid" = "old_fs_uid")) %>%
+    mutate(across(c(fkt_instat_orig, fkt_instat_clean, match_type, ADM4_PCODE),
+                  ~ifelse(is.na(unmatch), .x, NA))) %>%
+    select(-unmatch)
+  s5_healthshed_refresh_fn(sect_filled_v4, s5_fkt_code_lookup_final_df, s5_fkt_shapes_final_sf, fallback = TRUE)
+}
+```
+
+```{r}
+s5_sectorization_final_reassignment_rows_df <- {
+  noncontig_fixes2 <- s5_sectorization_final_reassignment_reviews_df
+  sect_filled_v4 <- as.data.frame(s5_sectorization_final_unlinked_sf)
+  ocha_map <- s5_fkt_code_lookup_final_df
+  # Pinned stage 5, lines 755–768.
+  noncontig_fixes2 <- noncontig_fixes2 %>%
+    rename_with(~gsub("^new_", "", .x)) %>%
+    select(-old_fs_uid, -fs_name) %>%
+    left_join(sect_filled_v4 %>%
+                select(region_uid:fs_ll) %>%
+                filter(!is.na(region_uid)) %>%
+                distinct,
+              by = c("fs_uid")) %>%
+    left_join(ocha_map %>% select(ADM4_PCODE, ADM4_EN,
+                                  fkt_instat_clean = ADM4C_BNGRC)) %>%
+    rename(fkt_name = ADM4_EN) %>%
+    mutate(fkt_uid = "none", fkt_instat_orig = NA,
+           fkt_pop_2022 = NA, distance_csb_fkt = NA, transit = NA,
+           match_type = "noncontig_fix2")
+  noncontig_fixes2
+}
+```
+
+```{r}
+s5_sectorization_2022_clean_sf <- {
+  x <- bind_rows(as.data.frame(s5_sectorization_final_unlinked_sf) %>% select(-geometry),
+                 s5_sectorization_final_reassignment_rows_df)
+  s5_healthshed_refresh_fn(x, s5_fkt_code_lookup_final_df, s5_fkt_shapes_final_sf, fallback = TRUE) %>%
+    left_join(select(s5_fkt_code_lookup_final_df, ADM4_PCODE, fkt_instat_name = ADM4_EN), by = "ADM4_PCODE")
+}
+s5_healthshed_clinic_final_sf <- s5_healthshed_aggregate_fn(s5_sectorization_2022_clean_sf)
+```
+
+:::
+
+::: {.manual-procedure title="Retain Audits And Review Plots Without Publishing Protected Data"}
+
+The audit reports coverage and population at every major round. Historical
+counts are comparison observations, not universal assertions. Plot-list
+targets contain clinic diagnostics for authorized review and are never
+rendered into this manual. True polygon-part counts are audited separately
+from the literal legacy `n_shape` field.
+
+```{r}
+s5_healthshed_audit_fn <- function(sectorizations, shapes) {
+  bind_rows(lapply(names(sectorizations), function(round) {
+    x <- sectorizations[[round]]
+    tibble::tibble(round = round, rows = nrow(x), clinics = n_distinct(x$fs_uid, na.rm = TRUE),
+      population = sum(x$fkt_pop_2022, na.rm = TRUE),
+      unmatched_assignment_rows = sum(is.na(x$fkt_instat_clean)),
+      unmatched_polygons = sum(!shapes$ADM4_PCODE %in% x$ADM4_PCODE),
+      empty_assignment_geometries = sum(sf::st_is_empty(x)),
+      unknown_pcodes = sum(!is.na(x$ADM4_PCODE) & !x$ADM4_PCODE %in% shapes$ADM4_PCODE))
+  }))
+}
+s5_healthshed_assignment_audit_df <- s5_healthshed_audit_fn(list(
+  initial = s5_sectorization_contiguity_filtered_sf, v2 = s5_sectorization_reviewed_v2_sf,
+  v3 = s5_sectorization_commune_filled_sf, final = s5_sectorization_2022_clean_sf), s5_fkt_shapes_final_sf)
+s5_healthshed_clinic_audit_df <- s5_healthshed_clinic_final_sf %>%
+  mutate(polygon_parts = lengths(sf::st_geometry(s5_healthshed_clinic_final_sf)),
+         empty_geometry = sf::st_is_empty(s5_healthshed_clinic_final_sf)) %>% sf::st_drop_geometry()
+s5_fkt_split_audit_df <- bind_rows(lapply(c("source", "initial", "final"), function(stage) {
+  x <- switch(stage, source = s5_fkt_shapes_valid_sf, initial = s5_fkt_shapes_initial_sf, final = s5_fkt_shapes_final_sf)
+  split_codes <- c("MG71717150005", s5_sectorization_island_assignments_df$ADM4_PCODE)
+  selected <- x %>% filter(sub("(_A|[AB])$", "", ADM4_PCODE) %in% split_codes)
+  bind_rows(lapply(seq_len(nrow(selected)), function(i) {
+    parts <- suppressWarnings(sf::st_cast(sf::st_geometry(selected[i, ]), "POLYGON"))
+    bounds <- t(vapply(parts, function(part) sf::st_bbox(part), numeric(4)))
+    tibble::tibble(stage = stage, ADM4_PCODE = selected$ADM4_PCODE[[i]], part = seq_along(parts),
+      area_m2 = as.numeric(sf::st_area(parts)), xmin = bounds[,1], ymin = bounds[,2],
+      xmax = bounds[,3], ymax = bounds[,4], wkt = sf::st_as_text(parts), crs_wkt = sf::st_crs(x)$wkt)
+  }))
+}))
+s5_healthshed_review_plots_fn <- function(sheds, assignments, multipart = FALSE) {
+  selected <- if (multipart) filter(sheds, n_components == 1, n_shape > 1) else filter(sheds, n_components > 1)
+  plots <- lapply(seq_len(nrow(selected)), function(i) {
+    focus <- selected[i, ]
+    nearby <- sf::st_filter(sheds, sf::st_as_sfc(sf::st_bbox(focus)))
+    cells <- filter(assignments, fs_uid %in% nearby$fs_uid)
+    plot <- ggplot2::ggplot() + ggplot2::geom_sf(data = nearby, ggplot2::aes(fill = fs_uid)) +
+      ggplot2::geom_sf(data = cells, fill = NA, colour = "grey35", linetype = "dotted") +
+      ggplot2::scale_fill_manual(values = MetBrewer::met.brewer("Renoir", nrow(nearby))) +
+      ggplot2::ggtitle(paste(focus$fs_uid, focus$fs_name, focus$district_name, sep = ": ")) +
+      ggplot2::coord_sf(xlim = extendrange(sf::st_bbox(focus)[c(1, 3)], f = 0.5),
+                        ylim = extendrange(sf::st_bbox(focus)[c(2, 4)], f = 0.5)) + ggplot2::theme_void()
+    locations <- sf::st_drop_geometry(nearby) %>%
+      filter(!is.na(fs_ll), grepl("^POINT[[:space:]]*[(]", fs_ll))
+    if (nrow(locations)) {
+      locations <- sf::st_sf(locations, geometry = sf::st_as_sfc(locations$fs_ll, crs = sf::st_crs(sheds)))
+      plot <- plot + ggplot2::geom_sf(data = locations, colour = "grey15", size = 2, inherit.aes = FALSE)
+    }
+    plot
+  })
+  setNames(plots, selected$fs_uid)
+}
+s5_healthshed_clinic_noncontiguous_review_list <- s5_healthshed_review_plots_fn(
+  s5_healthshed_clinic_final_sf, s5_sectorization_2022_clean_sf)
+s5_healthshed_clinic_multipart_review_list <- s5_healthshed_review_plots_fn(
+  s5_healthshed_clinic_final_sf, s5_sectorization_2022_clean_sf, multipart = TRUE)
+```
+
+:::
+
+::: {.manual-procedure title="Expose Spatial Handoffs And Nonspatial Parquet Products"}
+
+Pages 24–25 consume the final sectorization and healthshed `sf` objects
+directly, retaining full field names and geometry. Only explicit nonspatial
+assignment/audit exports are written below. No shapefile field truncation or
+new spatial interchange format is introduced.
+
+```{r}
+s5_healthshed_write_table_fn <- function(x, path) {
+  dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
+  duckplyr::compute_parquet(duckplyr::as_duckdb_tibble(as.data.frame(x)), path)
+  path
+}
+```
+
+```{r}
+#| format: file
+s5_sectorization_2022_clean_parquet <- s5_healthshed_write_table_fn(
+  sf::st_drop_geometry(s5_sectorization_2022_clean_sf), here::here("data/intermediates/healthsheds/sectorization2022_clean.parquet"))
+s5_healthshed_assignment_audit_parquet <- s5_healthshed_write_table_fn(
+  s5_healthshed_assignment_audit_df, here::here("data/intermediates/healthsheds/assignment_audit.parquet"))
+```
+
+:::
+
+::: {.manual-check title="Verify Rules Before Building Research Products"}
+
+The synthetic suite extracts helpers and target expressions from this page,
+compares legacy behavior on controlled geometry, and validates the targets
+graph without building targets. Run it before the stage-5 build. Full-data parity is an explicit
+comparison against the most recent archived data; synthetic tests alone do not prove it.
+The [baseline selection](mapping/legacy-pipeline-map.qmd#most-recent-archived-data-comparison-baseline),
+loaded with `dget(here::here("src", "archived-comparison-baseline.R"))`, selects
+`sectorization_member` and `healthsheds_member` from `archive_zip`. These are
+October 2024 products; no newer replacements were found in the staged sources.
+
+```sh
+scripts/mdg-healthshed-clinic-data exec Rscript tests/check-healthshed-rules.R
+scripts/mdg-healthshed-clinic-data exec Rscript tests/check-data-storage-convention.R
+python3 tests/check-manual-structure.py
+```
+
+**Current scope (2026-11-08): inspect output shape before proceeding.**
+The initial pages' shape checks appear to pass according to the researcher.
+Run the following plain R examples in order after S5 completes; they read
+existing products and build no targets. Results stay in the authorized
+session, outside rendered HTML. The archived healthsheds are RDS and can be
+compared directly. Archived sectorization is Feather; that comparison is
+deferred, with no Feather reader added.
+
+```r
+# Shape check: healthsheds-setup
+archived_baseline <- dget(here::here("src", "archived-comparison-baseline.R"))
+read_fn <- targets::tar_read(s3_dictionary_archive_read_fn)
+old_healthsheds <- read_fn(here::here(archived_baseline$archive_zip),
+  archived_baseline$healthsheds_member, readRDS)
+new_healthsheds <- targets::tar_read(s5_healthshed_clinic_final_sf)
+new_sectorization <- targets::tar_read(s5_sectorization_2022_clean_sf)
+```
+
+**Healthshed dimensions, UID coverage, and geometry structure side by side.**
+Here `columns` includes geometry; `attribute_columns` excludes all `sfc`
+columns. Geometry validity is reported separately from empty geometry.
+`difference` is current minus archived; equal counts do not establish equal
+polygons or clinic memberships.
+
+```r
+# Shape check: healthsheds-dimensions
+healthshed_shape <- function(x) {
+  valid <- sf::st_is_valid(x)
+  tibble::tibble(
+    rows = nrow(x), columns = length(names(x)),
+    attribute_columns = sum(!vapply(x, inherits, logical(1), what = "sfc")),
+    clinics = dplyr::n_distinct(x$fs_uid, na.rm = TRUE),
+    missing_uids = sum(is.na(x$fs_uid) | x$fs_uid == ""),
+    empty_geometries = sum(sf::st_is_empty(x), na.rm = TRUE),
+    invalid_geometries = sum(!valid, na.rm = TRUE),
+    unknown_validity = sum(is.na(valid))
+  )
+}
+dplyr::bind_rows(
+  `most recent archived data` = healthshed_shape(old_healthsheds),
+  `current pipeline` = healthshed_shape(new_healthsheds), .id = "source"
+) |>
+  tidyr::pivot_longer(-source, names_to = "metric", values_to = "count") |>
+  tidyr::pivot_wider(names_from = source, values_from = count) |>
+  dplyr::mutate(difference = `current pipeline` - `most recent archived data`) |>
+  print(n = Inf)
+tibble::tibble(
+  source = c("most recent archived data", "current pipeline"),
+  crs = c(sf::st_crs(old_healthsheds)$input, sf::st_crs(new_healthsheds)$input)
+)
+```
+
+```r
+# Shape check: healthsheds-schema
+dplyr::bind_rows(
+  `most recent archived data` = tibble::tibble(position = seq_along(names(old_healthsheds)), column = names(old_healthsheds)),
+  `current pipeline` = tibble::tibble(position = seq_along(names(new_healthsheds)), column = names(new_healthsheds)),
+  .id = "source"
+) |>
+  tidyr::pivot_wider(names_from = source, values_from = column) |>
+  dplyr::arrange(position) |>
+  print(n = Inf)
+```
+
+```r
+# Shape check: healthsheds-types
+dplyr::bind_rows(
+  `most recent archived data` = tibble::tibble(type = as.character(sf::st_geometry_type(old_healthsheds))),
+  `current pipeline` = tibble::tibble(type = as.character(sf::st_geometry_type(new_healthsheds))),
+  .id = "source"
+) |>
+  dplyr::count(source, type, name = "rows") |>
+  tidyr::pivot_wider(names_from = source, values_from = rows, values_fill = 0L) |>
+  dplyr::mutate(difference = `current pipeline` - `most recent archived data`) |>
+  print(n = Inf)
+```
+
+**Current sectorization shape and assignment-method counts.** Assignment rows
+can share a clinic or FKT; these counts do not impose uniqueness on those
+fields. The column listing includes the geometry column.
+
+```r
+# Shape check: sectorization-dimensions
+tibble::tibble(rows = nrow(new_sectorization), columns = length(names(new_sectorization)))
+tibble::tibble(position = seq_along(names(new_sectorization)), column = names(new_sectorization)) |>
+  print(n = Inf)
+sf::st_drop_geometry(new_sectorization) |>
+  tibble::as_tibble() |>
+  dplyr::summarise(
+    rows = dplyr::n(), clinics = dplyr::n_distinct(fs_uid, na.rm = TRUE),
+    assigned_fkt_codes = dplyr::n_distinct(fkt_instat_clean, na.rm = TRUE),
+    missing_fkt_codes = sum(is.na(fkt_instat_clean) | fkt_instat_clean == "")
+  )
+sf::st_drop_geometry(new_sectorization) |>
+  tibble::as_tibble() |>
+  dplyr::count(match_type, name = "rows", sort = TRUE) |>
+  print(n = Inf)
+```
+
+Run scientific targets only inside the compute-node allocation through the
+existing launcher. The stage-5 selection for that allocation is:
+
+```r
+targets::tar_make(names = tidyselect::starts_with("s5_"))
+```
+
+Record CRS, native/package versions, split-part identity, coverage, population,
+component counts, and overlap exceptions when evaluating the real outputs.
+Do not assert that all clinics have healthsheds or that all healthsheds are
+disjoint. No research maps or exception tables are embedded in public HTML.
+
+:::

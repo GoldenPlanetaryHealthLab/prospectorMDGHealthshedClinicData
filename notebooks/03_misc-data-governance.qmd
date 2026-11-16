@@ -1,0 +1,24 @@
+---
+title: "Data Governance"
+execute:
+  eval: false
+engine: markdown
+---
+
+This project concerns private health data. Repository access and FASRC storage
+controls are necessary but do not decide what may enter a release.
+
+Before source inspection or curation begins, a human data steward must record:
+
+- the authoritative source location and custodian;
+- whether files contain direct or quasi-identifiers;
+- approved users and computational locations;
+- permissible row- and geography-level release grain;
+- masking, aggregation, and small-cell rules;
+- retention and deletion requirements;
+- the reviewer who authorizes publication.
+
+These are scientific and governance decisions, not infrastructure defaults.
+Until they are recorded, Pipeline pages deliberately stop at inventory and
+scaffolding. Do not include values, screenshots, tables, or summaries derived
+from protected data in the rendered Manual.
