@@ -12,20 +12,25 @@ profile:
   default: authoring
 
 book:
-  title: "Madagascar Healthshed Clinic Data Curation Manual"
+  title: "Madagascar Healthshed Clinic Data Manual"
   author: "Tinashe M. Tapera"
   date: last-modified
   chapters:
     - index.qmd
-    - part: "Project Setup"
+    - part: "Accessing and using the data"
+      chapters:
+        - 00_access-data.qmd
+        - 00_data-guide.qmd
+    # Quarto books have one level of parts. Prefix the three operator groups
+    # consistently to distinguish them from the data-user section.
+    - part: "Operating the pipeline: Setup"
       chapters:
         - 00_cover.qmd
-        - 00_data-guide.qmd
-        - pipeline/mapping/legacy-pipeline-map.qmd
         - 01_misc-render-isolated.qmd
         - 02_misc-project-contract.qmd
         - 03_misc-data-governance.qmd
-    - part: "Infrastructure"
+        - pipeline/mapping/legacy-pipeline-map.qmd
+    - part: "Operating the pipeline: Infrastructure"
       chapters:
         - infrastructure/10_page-direnv.qmd
         - infrastructure/11_page-spack.qmd
@@ -33,7 +38,7 @@ book:
         - infrastructure/13_page-jinja-build.qmd
         - infrastructure/14_page-uvr.qmd
         - infrastructure/15_page-runner.qmd
-    - part: "Pipeline"
+    - part: "Operating the pipeline: Pipeline"
       chapters:
         - pipeline/16_page-stage-inputs.qmd
         - pipeline/17_page-inspect-source-data.qmd
@@ -53,6 +58,7 @@ book:
         - releases/20_page-execute-pipeline.qmd
         - releases/21_page-verify-release.qmd
         - releases/22_page-export-frictionless.qmd
+        - 04_misc-data-guide-evidence.qmd
 
 execute:
   enabled: false

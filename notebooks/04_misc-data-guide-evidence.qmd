@@ -1,0 +1,58 @@
+---
+title: "Maintain the Reader's Guide Evidence"
+subtitle: "Rebuild the comparison figures and validate their scope"
+execute:
+  eval: false
+engine: markdown
+---
+
+Operators maintain the national summaries embedded in the
+[reader's guide](00_data-guide.qmd). These procedures require the governed
+workspace and saved pipeline outputs.
+
+::: {.manual-prereq title="Use the Governed Evidence Workspace"}
+
+Confirm access to the frozen May 2025 archive and the saved pipeline products
+used by `scripts/build-data-guide.R`. Review the source boundary and the
+existing figure provenance before regenerating the evidence.
+
+:::
+
+::: {.manual-procedure title="Reproduce the Evidence Without Rebuilding the Pipeline"}
+
+The figures are generated explicitly from saved outputs. Rendering the Manual
+only embeds the precomputed national summaries; it never reads research data.
+Run from the repository root in an appropriate compute allocation:
+
+```sh
+scripts/mdg-healthshed-clinic-data exec Rscript scripts/build-data-guide.R prepare
+uv run --no-project --with pyarrow==22.0.0 python scripts/read-guide-archive.py
+scripts/mdg-healthshed-clinic-data exec Rscript scripts/build-data-guide.R plot
+```
+
+The pinned Python reader is used only to project the frozen Feather reference;
+it is not a dependency of the scientific R pipeline. Diagnostic projections,
+monthly aggregates, dictionary differences, and keyed comparisons remain under
+ignored `data/intermediates/data-guide/`. The versioned
+[figure provenance](assets/data-guide/provenance.json) records the archive,
+reference member, saved output, script hashes, and comparison snapshot. Rebuild
+this evidence after changing the saved pipeline products, then review the
+snapshot text and figures before rerendering.
+
+:::
+
+::: {.manual-check title="Verify Comparisons and Review the Claim"}
+
+Run the synthetic diagnostics and the Manual structure check:
+
+```sh
+scripts/mdg-healthshed-clinic-data exec Rscript tests/check-data-guide.R
+python3 tests/check-manual-structure.py
+```
+
+Review the resulting figures, provenance, and snapshot text together.
+Agreement for three example series does not establish all-variable
+scientific equivalence. Keep unmatched clinic-months, missing values,
+sentinels, and source-boundary coverage differences explicit in the guide.
+
+:::

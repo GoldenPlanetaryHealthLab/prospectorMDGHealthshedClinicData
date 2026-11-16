@@ -1,105 +1,59 @@
 ---
-title: "Madagascar Healthshed Clinic Data Curation Manual"
-subtitle: "A reproducible path from staged source material to a versioned release"
+title: "Madagascar Healthshed Clinic Data"
+subtitle: "Monthly clinic reports, diagnosis definitions, and healthshed geography"
 execute:
   eval: false
 engine: markdown
 ---
 
-This Quarto Manual is the human-facing source of truth for constructing and
-operating the Madagascar Healthshed Clinic Data pipeline. Its `emit` profile
-materializes reviewed configuration and command-line tools. Scientific work is
-then run explicitly through the generated container runner and targets graph.
+The Madagascar Healthshed Clinic Data brings together monthly clinic-reported
+counts, facility metadata, diagnosis definitions, and healthshed geography for
+research on health and environmental exposures in Madagascar. Historical
+observations cover 2010–2024, with a separately ingested 2025–2026 extension.
 
-## Context
+Healthsheds represent catchment areas linking villages to a central clinic.
+The dataset provides a **2022 spatial reference** for relating clinic reports
+to catchment geography and environmental exposures. A historical healthshed
+does not establish a clinic's catchment for every year.
 
-In MDG, our research has divvied up the geographical land into "healthsheds."
-Healthsheds conceptually represent a catchment area in which nearby residents
-are expected, under normal circumstances, to attend a central clinic for their
-healthcare. In doing so, we can ask interesting questions about health as it
-pertains to an individual's residential healthshed, and investigate what
-confounds and other variables influence health outcomes. Importantly,
-we are also able to use the healthsheds for geospatial data analysis questions,
-such as by aggregating ERA5 satellite data to each healthshed, and seeing
-if environmental exposures to heat, precipitation, etc., contribute to
-health outcomes.
+The cleaned database contains:
 
-We receive this data from the Ministry of Health in Madagascar, monthly,
-in the form of database dumps onto Google Drive.
-Notably, we believe that, being in small, rural clinics, the clinicians are
-not using very sophisticated EMR. As a result, we have to make the following
-important assumptions:
+- **Clinic metadata:** facility attributes, reporting calendars, identifiers,
+  coordinates, and available healthshed links.
+- **A diagnosis dictionary:** English and French descriptions and the
+  source definitions used to construct harmonized variables.
+- **Diagnosis files:** monthly counts keyed by clinic, year, and month.
+- **Healthshed polygons:** catchment geometry with its coordinate reference
+  system and reference year.
 
-- Individual nurses, doctors, and other clinicians hand collect physical notes;
-- These notes are aggregated into counts of disease, giving us an idea (but not strict confirmation) of prevalence;
-- These are recorded counts. Missing categories can mean unavailable or
-  unreported information and must not automatically be converted to zero.
-  The [reader's guide](00_data-guide.qmd) explains the released missing-value
-  and sentinel conventions and shows comparisons with the historical archive.
+These are reported counts, not individual patient records or population
+prevalence estimates. Missing categories can reflect unavailable or unreported
+information and must not automatically be converted to zero. Definitions and
+reporting coverage change across collection eras; the
+[reader's guide](00_data-guide.qmd) explains these boundaries and presents
+measured historical comparisons and the observed extension.
 
-## Prior Work & Plan
+## Accessing and using the data
 
-This project has been ongoing for several years, with several hands having
-been involved in data management. Contact persons worth keeping in mind:
+Start with [Access the data with Stagecoach](00_access-data.qmd), then read
+[A Reader's Guide to the Cleaned Database](00_data-guide.qmd) for file layouts,
+joins, missingness, and analysis examples. The dataset is not yet in the Depot;
+Stagecoach currently symlinks the shared release directory into your analysis
+project. Choose one complete, versioned release for an analysis.
 
-- Chris Golden (PI, present)
-- G. DeNicola (Post Doc, present)
-- Marissa Childs (Post Doc, 2024(?))
-- Tinashe M. Tapera (RSE, present)
+## Operating the pipeline
 
-> **Human decision required:** confirm the project participants, their roles,
-> and the accountable data steward before source data is staged or inspected.
+Pipeline operators should continue with the three operator groups:
 
-In general, there are 2 major "blocks" of data: pre-DHIS2, and post.
+1. **Setup:** [operator overview](00_cover.qmd), rendering, project contracts,
+   governance, and the historical pipeline map.
+2. **Infrastructure:** [environment setup](infrastructure/10_page-direnv.qmd),
+   container construction, R dependencies, and the runner.
+3. **Pipeline:** [input staging](pipeline/16_page-stage-inputs.qmd), cleaning,
+   validation, release packaging, and reader-guide evidence generation.
 
-Pre-implementation of DHSI2, the data were processed ad-hoc and within their means,
-and post, the introduction of DHIS2 standards made manual fixes and adjustments
-far less prevalent. In our reproduction of the pipeline, we expect
-the same truth to hold in implementation. We will keep obvious manual
-fixes and patches as they are in the pre-DHIS2 data, as there is little we
-can do to confidently improve on spaghetti code without a comparable true
-expected outcome to test against. Post DHIS2, we will improve code where
-necessary to communicate more clearly, or speed up a laborious task.
-
-## Current curation boundary
-
-The notebooks implement historical curation from the frozen May 2025 archive,
-a separate 2025–2026 extension, final schema/key validation, and versioned
-Parquet packaging with a Frictionless descriptor. The reader's guide presents
-measured agreement for three historical diagnosis series and their observed
-extension; full all-variable scientific equivalence and external publication
-remain separate review decisions.
-
-Rendering this Manual never opens files under `data/`. The guide embeds
-explicitly generated national aggregate figures; protected source records
-and clinic-level diagnostic evidence remain in the governed workspace.
-
-## How To Read This Manual
-
-This manual can be read in several ways.
-
-Each workflow page follows the [Quarto Manuals page contract](https://goldenplanetaryhealthlab.github.io/QuartoManual/):
-one prerequisite block establishes the starting state, one or more procedure
-blocks perform the work, and one check block verifies the outcome. Target
-declarations, file writes, and execution commands belong in procedures.
-Checks inspect the resulting targets or artifacts through assertions,
-summaries, plots, or test commands. Read the prose before each code chunk for
-its inputs, action, and expected result.
-
-Long transformations are divided into named stages so the operator can
-inspect their handoffs. Dependencies between pages live in targets and tracked
-files. The public authoring render executes no protected-data analysis;
-diagnostic chunks are for an authorized data session, and synthetic tests can
-run without the staged sources.
-
-After editing a page, check the block structure without executing its code:
-
-```sh
-python3 tests/check-manual-structure.py
-```
-
-| | Do not need to run the code | Want to run the code yourself |
-|---|---|---|
-| **Read on the web** | Read the rendered manual website for an overview of the workflow and its rationale. | Open the repository in a browser-based development environment (for example, GitHub Codespaces) and run the procedure blocks there. |
-| **Read as text** | Browse the `.qmd` source files in a text editor or repository viewer to inspect the instructions and code. | Clone the repository, open the `.qmd` files in your preferred editor, and run the procedure blocks in order. |
-
+The pipeline implements historical curation from the frozen May 2025 archive,
+a separate 2025–2026 extension, and versioned Parquet packaging with a
+Frictionless descriptor. The default release remains an internal candidate;
+full all-variable scientific equivalence and external publication remain
+separate review decisions.

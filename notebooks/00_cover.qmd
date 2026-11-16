@@ -1,66 +1,127 @@
 ---
-title: "Data Curation Manual"
-subtitle: "Declarative, Step-by-Step Data Curation of the Clinic Data using Quarto Manuals, Targets & Spack"
+title: "Pipeline Operator Overview"
+subtitle: "Set up, maintain, and reproduce the curation workflow"
 execute:
   eval: false
 engine: markdown
 ---
 
-This manual walks the reader through a declarative reproduction of the MDGHealthshedClinicData Prospector.
+This section is for maintainers who build the computational environment,
+curate the source data, validate outputs, or package a new release. For
+analysis of an existing release, start with
+[Access the data with Stagecoach](00_access-data.qmd) and the
+[reader's guide](00_data-guide.qmd).
 
-Clinic data from Madagascar is curated from the frozen historical archive and
-separately staged 2025–2026 deliveries. Read the
-[cleaned-database guide](00_data-guide.qmd) next for the file layout, analysis
-examples, measured archive agreement through 2024, and observed continuation.
-GESIS is the prior format, where each row in a GESIS file is a count of GESIS codes
-and likewise for DHIS2 data. Diagnoses are translated and linked by several crosswalks
-and manual fixes recorded in the code.
-
-The manual should:
-
-- declaratively create a robust, reproducible computational environment;
-- safely and declaratively stage input data;
-- process the data transparently and elegantly;
-- version and distribute the data to the Frontier.
-
-The Manual separates three operations:
+The Quarto Manual is the source of truth for pipeline configuration and
+command-line tools. It separates three operations:
 
 1. an authoring render produces human-readable documentation;
 2. an emission render synchronizes reviewed scripts and configuration;
 3. the emitted container runner executes R and the targets pipeline.
 
 No render is permitted to inspect or transform protected source data.
+The reader's guide embeds explicitly generated national aggregate figures;
+protected source records and clinic-level evidence remain in the governed
+workspace. [Evidence maintenance](04_misc-data-guide-evidence.qmd) documents
+how operators rebuild those figures and verify their scope.
+
+## Operator workflow
+
+Work through **Setup**, **Infrastructure**, and **Pipeline**, in that order.
+Setup establishes the repository contract, rendering boundary, governance,
+and migration baseline. Infrastructure constructs the runtime. Pipeline
+pages declare source staging, transformations, checks, and release packaging.
+Stagecoach owns input staging; tracked notebook parameters own transformation
+and release choices.
+
+## Prior Work & Plan
+
+This project has been ongoing for several years, with several hands having
+been involved in data management. Contact persons worth keeping in mind:
+
+- Chris Golden (PI, present)
+- G. DeNicola (Post Doc, present)
+- Marissa Childs (Post Doc, 2024(?))
+- Tinashe M. Tapera (RSE, present)
+
+> **Human decision required:** confirm the project participants, their roles,
+> and the accountable data steward before source data is staged or inspected.
+
+In general, there are 2 major "blocks" of data: pre-DHIS2, and post.
+
+Pre-implementation of DHSI2, the data were processed ad-hoc and within their means,
+and post, the introduction of DHIS2 standards made manual fixes and adjustments
+far less prevalent. In our reproduction of the pipeline, we expect
+the same truth to hold in implementation. We will keep obvious manual
+fixes and patches as they are in the pre-DHIS2 data, as there is little we
+can do to confidently improve on spaghetti code without a comparable true
+expected outcome to test against. Post DHIS2, we will improve code where
+necessary to communicate more clearly, or speed up a laborious task.
+
+## How To Read This Manual
+
+Operator pages combine explanations, procedures, and checks.
+
+Each workflow page follows the [Quarto Manuals page contract](https://goldenplanetaryhealthlab.github.io/QuartoManual/):
+one prerequisite block establishes the starting state, one or more procedure
+blocks perform the work, and one check block verifies the outcome. Target
+declarations, file writes, and execution commands belong in procedures.
+Checks inspect the resulting targets or artifacts through assertions,
+summaries, plots, or test commands. Read the prose before each code chunk for
+its inputs, action, and expected result.
+
+Long transformations are divided into named stages so the operator can
+inspect their handoffs. Dependencies between pages live in targets and tracked
+files. The public authoring render executes no protected-data analysis;
+diagnostic chunks are for an authorized data session, and synthetic tests can
+run without the staged sources.
+
+After editing a page, check the block structure without executing its code:
+
+```sh
+python3 tests/check-manual-structure.py
+```
 
 ::: {.emit-generic file="{{ emit.project_root }}/README.md"}
 
 ~~~~markdown
 # Madagascar Healthshed Clinic Data
 
-This repository contains the executable curation Manual for the Madagascar
-Healthshed Clinic Data pipeline. The Manual owns generated configuration and
-command-line entry points; scientific execution occurs explicitly through a
-Singularity container and a targets graph.
+Monthly clinic-reported counts from Madagascar are distributed with facility
+metadata, a diagnosis dictionary, and healthshed geography. Historical
+observations cover 2010–2024, with a separately ingested 2025–2026 extension.
+These are reported counts; missing measurements are not automatically zeros.
 
-## Current status
+## Accessing and using the data
 
-Historical curation, the separate 2025–2026 R extension, final shape validation,
-and immutable internal Parquet candidate packaging are implemented. Stagecoach owns input staging; the notebooks declare tracked R parameters
-and review tables. The
-extension follows Kai's two-delivery scope and maximum reduction, retaining
-mapping, parsing, identity, missingness, and source-seam evidence. Publication
-and full archived measurement equivalence remain separate review decisions.
+Follow [Access the data with Stagecoach](notebooks/00_access-data.qmd), then the
+[reader's guide](notebooks/00_data-guide.qmd) for file layouts, joins,
+missingness, and analysis examples. The dataset is not yet in the Depot.
+Use [Stagecoach](https://goldenplanetaryhealthlab.github.io/stagecoach/) to
+symlink the shared release directory into your own analysis project:
 
-Release pages 19–22 declare named semantic versions and export a Frictionless
-`datapackage.json` alongside unchanged Parquet resources. The descriptor records
-native schemas, row counts, checksums, and WKT/CRS interpretation. Page 19 owns
-the version and release notes; page 22 documents the Parquet compatibility test
-and synthetic validation.
+```text
+/n/holylabs/cgolden_lab/Lab/frontier/works/prospectors/prospectorMDGHealthshedClinicData/data/outputs/releases
+```
 
-The [reader's guide](notebooks/00_data-guide.qmd) explains the cleaned files,
-joins, and missingness, and shows archive comparisons and the observed extension.
-Only the requested national aggregate figures and their comparison summaries
-are included; protected source records and clinic-level evidence remain outside
-the rendered Manual and version control.
+Choose one complete version and retain its `datapackage.json` and provenance
+with your analysis. The default package remains an internal candidate;
+packaging does not constitute publication.
+
+## Operating the pipeline
+
+The Manual separates operator guidance into Setup, Infrastructure, and
+Pipeline. Start with the [operator overview](notebooks/00_cover.qmd).
+The Manual owns generated configuration and command-line entry points;
+scientific execution occurs explicitly through a Singularity container and
+a targets graph. Historical curation, the separate 2025–2026 extension,
+validation, and immutable Parquet packaging with a Frictionless descriptor
+are implemented. Full archived measurement equivalence and publication
+remain separate review decisions.
+
+Only the reviewed national aggregate figures and their comparison summaries
+are included in the Manual; protected source records and clinic-level
+evidence remain outside the rendered Manual and version control.
 
 ## Render the Manual
 

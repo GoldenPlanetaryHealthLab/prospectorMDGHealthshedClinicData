@@ -4,31 +4,41 @@
 
 # Madagascar Healthshed Clinic Data
 
-This repository contains the executable curation Manual for the Madagascar
-Healthshed Clinic Data pipeline. The Manual owns generated configuration and
-command-line entry points; scientific execution occurs explicitly through a
-Singularity container and a targets graph.
+Monthly clinic-reported counts from Madagascar are distributed with facility
+metadata, a diagnosis dictionary, and healthshed geography. Historical
+observations cover 2010–2024, with a separately ingested 2025–2026 extension.
+These are reported counts; missing measurements are not automatically zeros.
 
-## Current status
+## Accessing and using the data
 
-Historical curation, the separate 2025–2026 R extension, final shape validation,
-and immutable internal Parquet candidate packaging are implemented. Stagecoach owns input staging; the notebooks declare tracked R parameters
-and review tables. The
-extension follows Kai's two-delivery scope and maximum reduction, retaining
-mapping, parsing, identity, missingness, and source-seam evidence. Publication
-and full archived measurement equivalence remain separate review decisions.
+Follow [Access the data with Stagecoach](notebooks/00_access-data.qmd), then the
+[reader's guide](notebooks/00_data-guide.qmd) for file layouts, joins,
+missingness, and analysis examples. The dataset is not yet in the Depot.
+Use [Stagecoach](https://goldenplanetaryhealthlab.github.io/stagecoach/) to
+symlink the shared release directory into your own analysis project:
 
-Release pages 19–22 declare named semantic versions and export a Frictionless
-`datapackage.json` alongside unchanged Parquet resources. The descriptor records
-native schemas, row counts, checksums, and WKT/CRS interpretation. Page 19 owns
-the version and release notes; page 22 documents the Parquet compatibility test
-and synthetic validation.
+```text
+/n/holylabs/cgolden_lab/Lab/frontier/works/prospectors/prospectorMDGHealthshedClinicData/data/outputs/releases
+```
 
-The [reader's guide](notebooks/00_data-guide.qmd) explains the cleaned files,
-joins, and missingness, and shows archive comparisons and the observed extension.
-Only the requested national aggregate figures and their comparison summaries
-are included; protected source records and clinic-level evidence remain outside
-the rendered Manual and version control.
+Choose one complete version and retain its `datapackage.json` and provenance
+with your analysis. The default package remains an internal candidate;
+packaging does not constitute publication.
+
+## Operating the pipeline
+
+The Manual separates operator guidance into Setup, Infrastructure, and
+Pipeline. Start with the [operator overview](notebooks/00_cover.qmd).
+The Manual owns generated configuration and command-line entry points;
+scientific execution occurs explicitly through a Singularity container and
+a targets graph. Historical curation, the separate 2025–2026 extension,
+validation, and immutable Parquet packaging with a Frictionless descriptor
+are implemented. Full archived measurement equivalence and publication
+remain separate review decisions.
+
+Only the reviewed national aggregate figures and their comparison summaries
+are included in the Manual; protected source records and clinic-level
+evidence remain outside the rendered Manual and version control.
 
 ## Render the Manual
 

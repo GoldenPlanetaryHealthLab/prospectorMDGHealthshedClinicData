@@ -1,0 +1,119 @@
+---
+title: "Access the Data With Stagecoach"
+subtitle: "Link a versioned release into your analysis project"
+execute:
+  eval: false
+engine: markdown
+---
+
+Use [Stagecoach](https://goldenplanetaryhealthlab.github.io/stagecoach/) to
+symlink the shared releases into your own analysis project on FASRC. The
+dataset is **not yet in the Depot**. Its current release directory is:
+
+```text
+/n/holylabs/cgolden_lab/Lab/frontier/works/prospectors/prospectorMDGHealthshedClinicData/data/outputs/releases
+```
+
+You can use a completed release without running the curation pipeline or
+building its container. The [reader's guide](00_data-guide.qmd) explains the
+files, joins, diagnosis definitions, and interpretation limits.
+
+::: {.manual-prereq title="Prepare Your Analysis Project"}
+
+You need an authorized FASRC account with read access to the shared release
+directory and your own analysis project. A symlink uses your existing file
+permissions; it does not grant access. Keep the shared release read-only in
+your workflow and write analysis products in your own project.
+
+Follow the [Stagecoach installation and project setup instructions](https://goldenplanetaryhealthlab.github.io/stagecoach/)
+if needed. Run the following commands from your analysis project's root.
+
+:::
+
+::: {.manual-procedure title="Declare the Shared Releases in Stagecoach"}
+
+If your analysis project does not already have a `stagecoach_manifest.yml`,
+create one:
+
+```sh
+stagecoach hail
+```
+
+Keep the generated Frontier, citizen, and project fields specific to your own
+analysis project. In its manifest, enable `sources.01_gold_mine` and add the
+following item to its `items` list. Merge this entry with any existing items.
+This is a manifest excerpt, not a replacement for the full manifest:
+
+```yaml
+sources:
+  01_gold_mine:
+    enabled: true
+    items:
+      - name: mdg_healthshed_clinic_data
+        path_regex: '/n/holylabs/cgolden_lab/Lab/frontier/works/prospectors/prospectorMDGHealthshedClinicData/data/outputs/releases'
+        required: true
+```
+
+Stagecoach's `01_gold_mine` source supports FASRC symlinking from an explicit
+readable path. Here it points to the Prospector's releases while the dataset
+awaits Depot availability. Set `project.input_data_dir` to your analysis
+project's `data/inputs` directory to use the paths shown below.
+
+Inspect the manifest, resolve any reported issues, and stage it:
+
+```sh
+stagecoach inspect --manifest stagecoach_manifest.yml
+stagecoach stage --manifest stagecoach_manifest.yml
+```
+
+Stagecoach creates the directory symlink at
+`<input_data_dir>/01_gold_mine/<item name>/<source basename>`. With the
+configuration above, your project sees:
+
+```text
+data/inputs/01_gold_mine/mdg_healthshed_clinic_data/releases
+```
+
+:::
+
+::: {.manual-procedure title="Choose One Complete Release"}
+
+List the available versions through the staged link:
+
+```sh
+ls data/inputs/01_gold_mine/mdg_healthshed_clinic_data/releases/
+```
+
+Choose a complete `v<MAJOR>.<MINOR>.<BUGFIX>/` directory containing
+`datapackage.json` and its listed resources. The initial declared version is
+`v0.1.0`; use it only once that package is complete and available. Directory
+existence alone does not establish completeness. The current package defaults
+to an internal candidate, so confirm that the chosen release is appropriate
+for your intended analysis.
+
+Record the explicit version in analysis code, together with the manifest
+and release provenance. The symlink exposes the releases directory as it
+changes; selecting a named version keeps the analysis tied to that version.
+Use all tables from the same release. The
+[reader's guide](00_data-guide.qmd#find-the-data-you-need) lists the resources
+and shows how to load a diagnosis partition from this staged location.
+
+:::
+
+::: {.manual-check title="Check the Link and Selected Package"}
+
+For a completed `v0.1.0` package, run the following checks from your analysis
+project. Substitute your selected version when needed:
+
+```sh
+test -L data/inputs/01_gold_mine/mdg_healthshed_clinic_data/releases
+readlink -f data/inputs/01_gold_mine/mdg_healthshed_clinic_data/releases
+test -r data/inputs/01_gold_mine/mdg_healthshed_clinic_data/releases/v0.1.0/datapackage.json
+```
+
+The resolved link should be the shared release directory printed above.
+Before loading data, check that every resource listed in the selected
+`datapackage.json` exists and matches its recorded checksum. Retain the
+descriptor, version, and provenance in your analysis record.
+
+:::

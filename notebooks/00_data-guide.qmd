@@ -21,9 +21,10 @@ pages document their rules and audits.
 
 ::: {.manual-prereq title="Start With a Completed Versioned Release"}
 
-Use a complete directory under `data/processed/<version>/`, with its
-`datapackage.json`, rather than a mixture of intermediate files from different
-runs. The [release parameters](releases/19_page-package-release.qmd) name and
+First [stage the release directory with Stagecoach](00_access-data.qmd).
+Use one complete `v<MAJOR>.<MINOR>.<BUGFIX>/` directory under that symlink,
+with its `datapackage.json`, rather than a mixture of files from different
+versions or pipeline intermediates. The [release parameters](releases/19_page-package-release.qmd) name and
 version the dataset. [The package inventory](releases/22_page-export-frictionless.qmd)
 records paths, native column types, row counts, checksums, and spatial encoding.
 The default release remains an internal candidate; packaging is distinct from
@@ -247,7 +248,9 @@ variables required for the analysis. This example selects one pneumonia
 variable and reads only its key fields and measurement from 2020 onward:
 
 ```r
-release <- "data/processed/1.0.0"  # Choose a completed release.
+# Run from your analysis project after staging with Stagecoach.
+# Replace v0.1.0 with the complete version selected for your analysis.
+release <- "data/inputs/01_gold_mine/mdg_healthshed_clinic_data/releases/v0.1.0"
 package <- frictionless::read_package(file.path(release, "datapackage.json"))
 dictionary <- duckplyr::read_parquet_duckdb(
   file.path(release, "diagnosis_dictionary.parquet"), prudence = "stingy"
@@ -276,29 +279,6 @@ DuckDB reads the Parquet and sf reconstructs WKT geometry.
 
 :::
 
-::: {.manual-procedure title="Reproduce the Evidence Without Rebuilding the Pipeline"}
-
-The figures are generated explicitly from saved outputs. Rendering the Manual
-only embeds the precomputed national summaries; it never reads research data.
-Run from the repository root in an appropriate compute allocation:
-
-```sh
-scripts/mdg-healthshed-clinic-data exec Rscript scripts/build-data-guide.R prepare
-uv run --no-project --with pyarrow==22.0.0 python scripts/read-guide-archive.py
-scripts/mdg-healthshed-clinic-data exec Rscript scripts/build-data-guide.R plot
-```
-
-The pinned Python reader is used only to project the frozen Feather reference;
-it is not a dependency of the scientific R pipeline. Diagnostic projections,
-monthly aggregates, dictionary differences, and keyed comparisons remain under
-ignored `data/intermediates/data-guide/`. The versioned
-[figure provenance](assets/data-guide/provenance.json) records the archive,
-reference member, saved output, script hashes, and comparison snapshot. Rebuild
-this evidence after changing the saved pipeline products, then review the
-snapshot text and figures before rerendering.
-
-:::
-
 ::: {.manual-check title="Check the Scope of an Agreement Claim"}
 
 Three example series can demonstrate agreement or identify discrepancies in
@@ -307,9 +287,10 @@ scientific interpretation of a temporal change. Complete schema/key validation,
 byte-identical release-copy checks, selected-cell comparisons, and full
 scientific equivalence answer different questions.
 
-```sh
-scripts/mdg-healthshed-clinic-data exec Rscript tests/check-data-guide.R
-python3 tests/check-manual-structure.py
-```
+Before analysis, confirm the selected release version, inspect variable
+definitions, check join cardinality, and account for reporting coverage and
+missingness. Record those choices with the analysis. Operators can use
+[Evidence maintenance](04_misc-data-guide-evidence.qmd) to reproduce and test
+the comparison snapshot.
 
 :::

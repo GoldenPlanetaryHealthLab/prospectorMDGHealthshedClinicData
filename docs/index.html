@@ -7,9 +7,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Tinashe M. Tapera">
-<meta name="dcterms.date" content="2026-11-13">
+<meta name="dcterms.date" content="2026-11-16">
 
-<title>Madagascar Healthshed Clinic Data Curation Manual</title>
+<title>Madagascar Healthshed Clinic Data Manual</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -25,41 +25,6 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
-/* CSS for syntax highlighting */
-html { -webkit-text-size-adjust: 100%; }
-pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
-pre > code.sourceCode > span:empty { height: 1.2em; }
-.sourceCode { overflow: visible; }
-code.sourceCode > span { color: inherit; text-decoration: inherit; }
-div.sourceCode { margin: 1em 0; }
-pre.sourceCode { margin: 0; }
-@media screen {
-div.sourceCode { overflow: auto; }
-}
-@media print {
-pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
-}
-pre.numberSource code
-  { counter-reset: source-line 0; }
-pre.numberSource code > span
-  { position: relative; left: -4em; counter-increment: source-line; }
-pre.numberSource code > span > a:first-child::before
-  { content: counter(source-line);
-    position: relative; left: -1em; text-align: right; vertical-align: baseline;
-    border: none; display: inline-block;
-    -webkit-touch-callout: none; -webkit-user-select: none;
-    -khtml-user-select: none; -moz-user-select: none;
-    -ms-user-select: none; user-select: none;
-    padding: 0 4px; width: 4em;
-  }
-pre.numberSource { margin-left: 3em;  padding-left: 4px; }
-div.sourceCode
-  {   }
-@media screen {
-pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
-}
 </style>
 
 
@@ -70,7 +35,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="site_libs/quarto-search/fuse.min.js"></script>
 <script src="site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="./">
-<link href="./00_cover.html" rel="next">
+<link href="./00_access-data.html" rel="next">
 <script src="site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
 <script src="site_libs/quarto-html/popper.min.js"></script>
@@ -121,7 +86,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./index.html"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Madagascar Healthshed Clinic Data Curation Manual</span></a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./index.html"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Madagascar Healthshed Clinic Data</span></a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
@@ -136,7 +101,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
     <div class="pt-lg-2 mt-2 text-left sidebar-header">
     <div class="sidebar-title mb-0 py-0">
-      <a href="./">Madagascar Healthshed Clinic Data Curation Manual</a> 
+      <a href="./">Madagascar Healthshed Clinic Data Manual</a> 
     </div>
       </div>
         <div class="mt-2 flex-shrink-0 align-items-center">
@@ -149,13 +114,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./index.html" class="sidebar-item-text sidebar-link active">
- <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Madagascar Healthshed Clinic Data Curation Manual</span></span></a>
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Madagascar Healthshed Clinic Data</span></span></a>
   </div>
 </li>
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
             <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
- <span class="menu-text">Project Setup</span></a>
+ <span class="menu-text">Accessing and using the data</span></a>
           <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
@@ -163,8 +128,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./00_cover.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Data Curation Manual</span></span></a>
+  <a href="./00_access-data.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Access the Data With Stagecoach</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -173,10 +138,21 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
  <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">A Reader’s Guide to the Cleaned Database</span></span></a>
   </div>
 </li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
+ <span class="menu-text">Operating the pipeline: Setup</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./pipeline/mapping/legacy-pipeline-map.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Map the Legacy Clinic Pipeline to Notebooks</span></span></a>
+  <a href="./00_cover.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Pipeline Operator Overview</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -197,51 +173,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
  <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Data Governance</span></span></a>
   </div>
 </li>
-      </ul>
-  </li>
-        <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
- <span class="menu-text">Infrastructure</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./infrastructure/10_page-direnv.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Local Operator Environment</span></span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="./infrastructure/11_page-spack.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Bootstrap the Spack Builder</span></span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="./infrastructure/12_page-jinja.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Declare the Native Runtime</span></span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="./infrastructure/13_page-jinja-build.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Customize and Build the Runtime</span></span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="./infrastructure/14_page-uvr.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Lock and Synchronize R Packages</span></span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="./infrastructure/15_page-runner.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Run the Project Environment</span></span></a>
+  <a href="./pipeline/mapping/legacy-pipeline-map.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Map the Legacy Clinic Pipeline to Notebooks</span></span></a>
   </div>
 </li>
       </ul>
@@ -249,7 +184,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
             <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
- <span class="menu-text">Pipeline</span></a>
+ <span class="menu-text">Operating the pipeline: Infrastructure</span></a>
           <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
@@ -257,110 +192,163 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="./infrastructure/10_page-direnv.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Local Operator Environment</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./infrastructure/11_page-spack.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Bootstrap the Spack Builder</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./infrastructure/12_page-jinja.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Declare the Native Runtime</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./infrastructure/13_page-jinja-build.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Customize and Build the Runtime</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./infrastructure/14_page-uvr.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Lock and Synchronize R Packages</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./infrastructure/15_page-runner.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Run the Project Environment</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true">
+ <span class="menu-text">Operating the pipeline: Pipeline</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="./pipeline/16_page-stage-inputs.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Stage Inputs</span></span></a>
+ <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Stage Inputs</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./pipeline/17_page-inspect-source-data.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Inspect Source Data</span></span></a>
+ <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Inspect Source Data</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./pipeline/18_page-prep-w3.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Curate the Healthshed Clinic Data</span></span></a>
+ <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">Curate the Healthshed Clinic Data</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./pipeline/19_page-clean-mapping-dhis2-gesis.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">Clean the DHIS2–GESIS Mapping</span></span></a>
+ <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Clean the DHIS2–GESIS Mapping</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./pipeline/20_page-construct-clinic-ids.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Construct Clinic IDs</span></span></a>
+ <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Construct Clinic IDs</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./pipeline/21_page-construct-diagnosis-dictionary.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Construct the Diagnosis Dictionary</span></span></a>
+ <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Construct the Diagnosis Dictionary</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./pipeline/22_page-clean-clinic-diagnosis.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Clean and Combine Clinic Diagnoses</span></span></a>
+ <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Clean and Combine Clinic Diagnoses</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./pipeline/23_page-construct-healthsheds.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Reconcile Sectorization and Construct Healthsheds</span></span></a>
+ <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Reconcile Sectorization and Construct Healthsheds</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./pipeline/24_page-locate-clinics.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Compare and Select Clinic Locations</span></span></a>
+ <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Compare and Select Clinic Locations</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./pipeline/25_page-combine-clinic-metadata.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Combine Reporting and Spatial Clinic Metadata</span></span></a>
+ <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Combine Reporting and Spatial Clinic Metadata</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./pipeline/26_page-prep-2025-2026.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Survey and Read the 2025–2026 Deliveries</span></span></a>
+ <span class="menu-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">Survey and Read the 2025–2026 Deliveries</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./pipeline/27_page-clean-2025-2026.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">Clean and Harmonize the 2025–2026 Waves</span></span></a>
+ <span class="menu-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">Clean and Harmonize the 2025–2026 Waves</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./pipeline/28_page-geospatial-aggregate-2025-2026.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">Locate Clinics and Assemble the Final Database</span></span></a>
+ <span class="menu-text"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">Locate Clinics and Assemble the Final Database</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./pipeline/30_page-validate-migration.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">Validate the Migrated Clinic Pipeline</span></span></a>
+ <span class="menu-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">Validate the Migrated Clinic Pipeline</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./releases/19_page-package-release.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">Inventory and Package a Versioned Release</span></span></a>
+ <span class="menu-text"><span class="chapter-number">29</span>&nbsp; <span class="chapter-title">Inventory and Package a Versioned Release</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./releases/20_page-execute-pipeline.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">29</span>&nbsp; <span class="chapter-title">Execute the Pipeline</span></span></a>
+ <span class="menu-text"><span class="chapter-number">30</span>&nbsp; <span class="chapter-title">Execute the Pipeline</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./releases/21_page-verify-release.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">30</span>&nbsp; <span class="chapter-title">Verify an Internal Candidate</span></span></a>
+ <span class="menu-text"><span class="chapter-number">31</span>&nbsp; <span class="chapter-title">Verify an Internal Candidate</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./releases/22_page-export-frictionless.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">31</span>&nbsp; <span class="chapter-title">Export the Frictionless Data Package</span></span></a>
+ <span class="menu-text"><span class="chapter-number">32</span>&nbsp; <span class="chapter-title">Export the Frictionless Data Package</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./04_misc-data-guide-evidence.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">33</span>&nbsp; <span class="chapter-title">Maintain the Reader’s Guide Evidence</span></span></a>
   </div>
 </li>
       </ul>
@@ -375,10 +363,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">Table of contents</h2>
    
   <ul>
-  <li><a href="#context" id="toc-context" class="nav-link active" data-scroll-target="#context"><span class="header-section-number">0.1</span> <em>Context</em></a></li>
-  <li><a href="#prior-work-plan" id="toc-prior-work-plan" class="nav-link" data-scroll-target="#prior-work-plan"><span class="header-section-number">0.2</span> <em>Prior Work &amp; Plan</em></a></li>
-  <li><a href="#current-curation-boundary" id="toc-current-curation-boundary" class="nav-link" data-scroll-target="#current-curation-boundary"><span class="header-section-number">0.3</span> <em>Current curation boundary</em></a></li>
-  <li><a href="#how-to-read-this-manual" id="toc-how-to-read-this-manual" class="nav-link" data-scroll-target="#how-to-read-this-manual"><span class="header-section-number">0.4</span> <em>How To Read This Manual</em></a></li>
+  <li><a href="#accessing-and-using-the-data" id="toc-accessing-and-using-the-data" class="nav-link active" data-scroll-target="#accessing-and-using-the-data"><span class="header-section-number">0.1</span> <em>Accessing and using the data</em></a></li>
+  <li><a href="#operating-the-pipeline" id="toc-operating-the-pipeline" class="nav-link" data-scroll-target="#operating-the-pipeline"><span class="header-section-number">0.2</span> <em>Operating the pipeline</em></a></li>
   </ul>
 </nav>
     </div>
@@ -387,8 +373,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">Madagascar Healthshed Clinic Data Curation Manual</h1>
-<p class="subtitle lead">A reproducible path from staged source material to a versioned release</p>
+<h1 class="title">Madagascar Healthshed Clinic Data Manual</h1>
+<p class="subtitle lead">Monthly clinic reports, diagnosis definitions, and healthshed geography</p>
 </div>
 
 
@@ -405,7 +391,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">November 13, 2026</p>
+      <p class="date">November 16, 2026</p>
     </div>
   </div>
   
@@ -417,70 +403,29 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<p>This Quarto Manual is the human-facing source of truth for constructing and operating the Madagascar Healthshed Clinic Data pipeline. Its <code>emit</code> profile materializes reviewed configuration and command-line tools. Scientific work is then run explicitly through the generated container runner and targets graph.</p>
-<section id="context" class="level2" data-number="0.1">
-<h2 data-number="0.1" class="anchored" data-anchor-id="context"><span class="header-section-number">0.1</span> <em>Context</em></h2>
-<p>In MDG, our research has divvied up the geographical land into “healthsheds.” Healthsheds conceptually represent a catchment area in which nearby residents are expected, under normal circumstances, to attend a central clinic for their healthcare. In doing so, we can ask interesting questions about health as it pertains to an individual’s residential healthshed, and investigate what confounds and other variables influence health outcomes. Importantly, we are also able to use the healthsheds for geospatial data analysis questions, such as by aggregating ERA5 satellite data to each healthshed, and seeing if environmental exposures to heat, precipitation, etc., contribute to health outcomes.</p>
-<p>We receive this data from the Ministry of Health in Madagascar, monthly, in the form of database dumps onto Google Drive. Notably, we believe that, being in small, rural clinics, the clinicians are not using very sophisticated EMR. As a result, we have to make the following important assumptions:</p>
+<p>The Madagascar Healthshed Clinic Data brings together monthly clinic-reported counts, facility metadata, diagnosis definitions, and healthshed geography for research on health and environmental exposures in Madagascar. Historical observations cover 2010–2024, with a separately ingested 2025–2026 extension.</p>
+<p>Healthsheds represent catchment areas linking villages to a central clinic. The dataset provides a <strong>2022 spatial reference</strong> for relating clinic reports to catchment geography and environmental exposures. A historical healthshed does not establish a clinic’s catchment for every year.</p>
+<p>The cleaned database contains:</p>
 <ul>
-<li>Individual nurses, doctors, and other clinicians hand collect physical notes;</li>
-<li>These notes are aggregated into counts of disease, giving us an idea (but not strict confirmation) of prevalence;</li>
-<li>These are recorded counts. Missing categories can mean unavailable or unreported information and must not automatically be converted to zero. The <a href="./00_data-guide.html">reader’s guide</a> explains the released missing-value and sentinel conventions and shows comparisons with the historical archive.</li>
+<li><strong>Clinic metadata:</strong> facility attributes, reporting calendars, identifiers, coordinates, and available healthshed links.</li>
+<li><strong>A diagnosis dictionary:</strong> English and French descriptions and the source definitions used to construct harmonized variables.</li>
+<li><strong>Diagnosis files:</strong> monthly counts keyed by clinic, year, and month.</li>
+<li><strong>Healthshed polygons:</strong> catchment geometry with its coordinate reference system and reference year.</li>
 </ul>
+<p>These are reported counts, not individual patient records or population prevalence estimates. Missing categories can reflect unavailable or unreported information and must not automatically be converted to zero. Definitions and reporting coverage change across collection eras; the <a href="./00_data-guide.html">reader’s guide</a> explains these boundaries and presents measured historical comparisons and the observed extension.</p>
+<section id="accessing-and-using-the-data" class="level2" data-number="0.1">
+<h2 data-number="0.1" class="anchored" data-anchor-id="accessing-and-using-the-data"><span class="header-section-number">0.1</span> <em>Accessing and using the data</em></h2>
+<p>Start with <a href="./00_access-data.html">Access the data with Stagecoach</a>, then read <a href="./00_data-guide.html">A Reader’s Guide to the Cleaned Database</a> for file layouts, joins, missingness, and analysis examples. The dataset is not yet in the Depot; Stagecoach currently symlinks the shared release directory into your analysis project. Choose one complete, versioned release for an analysis.</p>
 </section>
-<section id="prior-work-plan" class="level2" data-number="0.2">
-<h2 data-number="0.2" class="anchored" data-anchor-id="prior-work-plan"><span class="header-section-number">0.2</span> <em>Prior Work &amp; Plan</em></h2>
-<p>This project has been ongoing for several years, with several hands having been involved in data management. Contact persons worth keeping in mind:</p>
-<ul>
-<li>Chris Golden (PI, present)</li>
-<li>G. DeNicola (Post Doc, present)</li>
-<li>Marissa Childs (Post Doc, 2024(?))</li>
-<li>Tinashe M. Tapera (RSE, present)</li>
-</ul>
-<blockquote class="blockquote">
-<p><strong>Human decision required:</strong> confirm the project participants, their roles, and the accountable data steward before source data is staged or inspected.</p>
-</blockquote>
-<p>In general, there are 2 major “blocks” of data: pre-DHIS2, and post.</p>
-<p>Pre-implementation of DHSI2, the data were processed ad-hoc and within their means, and post, the introduction of DHIS2 standards made manual fixes and adjustments far less prevalent. In our reproduction of the pipeline, we expect the same truth to hold in implementation. We will keep obvious manual fixes and patches as they are in the pre-DHIS2 data, as there is little we can do to confidently improve on spaghetti code without a comparable true expected outcome to test against. Post DHIS2, we will improve code where necessary to communicate more clearly, or speed up a laborious task.</p>
-</section>
-<section id="current-curation-boundary" class="level2" data-number="0.3">
-<h2 data-number="0.3" class="anchored" data-anchor-id="current-curation-boundary"><span class="header-section-number">0.3</span> <em>Current curation boundary</em></h2>
-<p>The notebooks implement historical curation from the frozen May 2025 archive, a separate 2025–2026 extension, final schema/key validation, and versioned Parquet packaging with a Frictionless descriptor. The reader’s guide presents measured agreement for three historical diagnosis series and their observed extension; full all-variable scientific equivalence and external publication remain separate review decisions.</p>
-<p>Rendering this Manual never opens files under <code>data/</code>. The guide embeds explicitly generated national aggregate figures; protected source records and clinic-level diagnostic evidence remain in the governed workspace.</p>
-</section>
-<section id="how-to-read-this-manual" class="level2" data-number="0.4">
-<h2 data-number="0.4" class="anchored" data-anchor-id="how-to-read-this-manual"><span class="header-section-number">0.4</span> <em>How To Read This Manual</em></h2>
-<p>This manual can be read in several ways.</p>
-<p>Each workflow page follows the <a href="https://goldenplanetaryhealthlab.github.io/QuartoManual/">Quarto Manuals page contract</a>: one prerequisite block establishes the starting state, one or more procedure blocks perform the work, and one check block verifies the outcome. Target declarations, file writes, and execution commands belong in procedures. Checks inspect the resulting targets or artifacts through assertions, summaries, plots, or test commands. Read the prose before each code chunk for its inputs, action, and expected result.</p>
-<p>Long transformations are divided into named stages so the operator can inspect their handoffs. Dependencies between pages live in targets and tracked files. The public authoring render executes no protected-data analysis; diagnostic chunks are for an authorized data session, and synthetic tests can run without the staged sources.</p>
-<p>After editing a page, check the block structure without executing its code:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode numberSource sh number-lines code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1"></a><span class="ex">python3</span> tests/check-manual-structure.py</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<table class="caption-top table">
-<colgroup>
-<col style="width: 33%">
-<col style="width: 33%">
-<col style="width: 33%">
-</colgroup>
-<thead>
-<tr class="header">
-<th></th>
-<th>Do not need to run the code</th>
-<th>Want to run the code yourself</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td><strong>Read on the web</strong></td>
-<td>Read the rendered manual website for an overview of the workflow and its rationale.</td>
-<td>Open the repository in a browser-based development environment (for example, GitHub Codespaces) and run the procedure blocks there.</td>
-</tr>
-<tr class="even">
-<td><strong>Read as text</strong></td>
-<td>Browse the <code>.qmd</code> source files in a text editor or repository viewer to inspect the instructions and code.</td>
-<td>Clone the repository, open the <code>.qmd</code> files in your preferred editor, and run the procedure blocks in order.</td>
-</tr>
-</tbody>
-</table>
+<section id="operating-the-pipeline" class="level2" data-number="0.2">
+<h2 data-number="0.2" class="anchored" data-anchor-id="operating-the-pipeline"><span class="header-section-number">0.2</span> <em>Operating the pipeline</em></h2>
+<p>Pipeline operators should continue with the three operator groups:</p>
+<ol type="1">
+<li><strong>Setup:</strong> <a href="./00_cover.html">operator overview</a>, rendering, project contracts, governance, and the historical pipeline map.</li>
+<li><strong>Infrastructure:</strong> <a href="./infrastructure/10_page-direnv.html">environment setup</a>, container construction, R dependencies, and the runner.</li>
+<li><strong>Pipeline:</strong> <a href="./pipeline/16_page-stage-inputs.html">input staging</a>, cleaning, validation, release packaging, and reader-guide evidence generation.</li>
+</ol>
+<p>The pipeline implements historical curation from the frozen May 2025 archive, a separate 2025–2026 extension, and versioned Parquet packaging with a Frictionless descriptor. The default release remains an internal candidate; full all-variable scientific equivalence and external publication remain separate review decisions.</p>
 
 
 </section>
@@ -890,8 +835,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <div class="nav-page nav-page-previous">
   </div>
   <div class="nav-page nav-page-next">
-      <a href="./00_cover.html" class="pagination-link" aria-label="Data Curation Manual">
-        <span class="nav-page-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Data Curation Manual</span></span> <i class="bi bi-arrow-right-short"></i>
+      <a href="./00_access-data.html" class="pagination-link" aria-label="Access the Data With Stagecoach">
+        <span class="nav-page-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Access the Data With Stagecoach</span></span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>
